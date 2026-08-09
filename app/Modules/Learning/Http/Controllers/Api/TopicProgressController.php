@@ -21,64 +21,59 @@ final class TopicProgressController extends Controller
 
     public function reportProgress(Request $request, Topic $topic): JsonResponse
     {
-        $lesson = $topic->lesson;
-        $course = $lesson->course;
-        $enrollment = $this->access->requireEnrollment($request->user(), $course);
+        $course = $topic->lesson->course;
+
+        try {
+            $enrollment = $this->access->requireEnrollment($request->user(), $course);
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage(), 'code' => 'NOT_ENROLLED'], 403);
+        }
 
         if (! $this->access->canAccessTopic($enrollment, $topic)) {
             return response()->json(['message' => 'Topic is locked.'], 403);
         }
 
         $validated = $request->validate([
-            'watch_progress_percent' => ['required', 'numeric', 'min:0', 'max:100'],
+            'watch_progress_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'watched_seconds' => ['nullable', 'integer', 'min:0'],
+            'duration' => ['nullable', 'integer', 'min:1'],
+            'duration_seconds' => ['nullable', 'integer', 'min:1'],
+            'completed' => ['nullable', 'boolean'],
         ]);
 
+        if (
+            ! isset($validated['watch_progress_percent'])
+            && ! isset($validated['watched_seconds'])
+            && empty($validated['completed'])
+        ) {
+            return response()->json([
+                'message' => 'Provide watch_progress_percent, watched_seconds, or completed.',
+            ], 422);
+        }
+
         try {
-            $this->progress->markTopicComplete(
-                $enrollment,
-                $topic,
-                (float) $validated['watch_progress_percent']
-            );
+            $data = $this->progress->recordTopicProgress($enrollment, $topic, $validated);
         } catch (DomainException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
-        return response()->json([
-            'data' => [
-                'topic_id' => $topic->id,
-                'watch_progress_percent' => (float) $validated['watch_progress_percent'],
-                'course_progress_percent' => (float) $enrollment->fresh()->progress_percent,
-            ],
-        ]);
+        return response()->json(['data' => $data]);
     }
 
     public function heartbeat(Request $request, Topic $topic): JsonResponse
     {
-        $lesson = $topic->lesson;
-        $course = $lesson->course;
-        $enrollment = $this->access->requireEnrollment($request->user(), $course);
-
-        if (! $this->access->canAccessTopic($enrollment, $topic)) {
-            return response()->json(['message' => 'Topic is locked.'], 403);
-        }
-
-        $validated = $request->validate([
-            'watch_progress_percent' => ['required', 'numeric', 'min:0', 'max:100'],
-        ]);
-
-        $this->progress->markTopicComplete(
-            $enrollment,
-            $topic,
-            (float) $validated['watch_progress_percent']
-        );
-
-        return response()->json(['ok' => true]);
+        return $this->reportProgress($request, $topic);
     }
 
     public function videoUrl(Request $request, Topic $topic): JsonResponse
     {
         $course = $topic->lesson->course;
-        $enrollment = $this->access->requireEnrollment($request->user(), $course);
+
+        try {
+            $enrollment = $this->access->requireEnrollment($request->user(), $course);
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage(), 'code' => 'NOT_ENROLLED'], 403);
+        }
 
         if (! $this->access->canAccessTopic($enrollment, $topic)) {
             return response()->json(['message' => 'Topic is locked.'], 403);
@@ -88,11 +83,23 @@ final class TopicProgressController extends Controller
             return response()->json(['message' => 'No video available.'], 404);
         }
 
+        $enrollment->update([
+            'last_accessed_lesson_id' => $topic->lesson_id,
+            'last_accessed_topic_id' => $topic->id,
+            'last_accessed_at' => now(),
+        ]);
+
+        $completion = $enrollment->topicCompletions()->where('topic_id', $topic->id)->first();
+
         return response()->json([
             'data' => [
                 'url' => $topic->video_url,
                 'provider' => $topic->video_provider,
                 'expires_at' => now()->addHours(4)->toIso8601String(),
+                'last_position_seconds' => $completion?->last_position_seconds ?? 0,
+                'watched_seconds' => $completion?->watched_seconds ?? 0,
+                'duration_seconds' => $completion?->duration_seconds,
+                'watch_progress_percent' => $completion ? (float) $completion->watch_progress_percent : 0,
             ],
         ]);
     }

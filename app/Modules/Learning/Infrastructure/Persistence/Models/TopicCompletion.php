@@ -11,12 +11,23 @@ class TopicCompletion extends Model
 {
     public $timestamps = false;
 
-    protected $fillable = ['enrollment_id', 'topic_id', 'watch_progress_percent', 'completed_at'];
+    protected $fillable = [
+        'enrollment_id',
+        'topic_id',
+        'watch_progress_percent',
+        'watched_seconds',
+        'duration_seconds',
+        'last_position_seconds',
+        'completed_at',
+    ];
 
     protected function casts(): array
     {
         return [
             'watch_progress_percent' => 'decimal:2',
+            'watched_seconds' => 'integer',
+            'duration_seconds' => 'integer',
+            'last_position_seconds' => 'integer',
             'completed_at' => 'datetime',
         ];
     }

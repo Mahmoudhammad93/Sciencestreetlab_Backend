@@ -91,13 +91,24 @@ final class QuizController extends Controller
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
+        $graded->loadMissing('answers');
+        $correctAnswers = $graded->answers->where('is_correct', true)->count();
+        $wrongAnswers = $graded->answers->where('is_correct', false)->count();
+        $totalQuestions = $graded->answers->count();
+
         return response()->json([
             'data' => [
                 'attempt_id' => $graded->id,
+                'attempt_number' => $graded->attempt_number,
                 'score' => (float) $graded->score,
                 'max_score' => (float) $graded->max_score,
                 'percentage' => (float) $graded->percentage,
-                'passed' => $graded->passed,
+                'total_questions' => $totalQuestions,
+                'correct_answers' => $correctAnswers,
+                'wrong_answers' => $wrongAnswers,
+                'passed' => (bool) $graded->passed,
+                'status' => $graded->passed ? 'passed' : 'failed',
+                'submitted_at' => $graded->submitted_at?->toIso8601String(),
             ],
         ]);
     }

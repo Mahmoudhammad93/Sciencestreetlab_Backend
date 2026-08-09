@@ -33,7 +33,12 @@ class CourseResource extends Resource
             Forms\Components\Toggle::make('is_published'),
             Forms\Components\TextInput::make('title.ar')->label('Title (AR)')->required(),
             Forms\Components\TextInput::make('title.en')->label('Title (EN)'),
-            Forms\Components\Textarea::make('description.ar')->label('Description (AR)'),
+            Forms\Components\Textarea::make('short_description.ar')->label('Short Description (AR)'),
+            Forms\Components\Textarea::make('short_description.en')->label('Short Description (EN)'),
+            Forms\Components\Textarea::make('description.ar')->label('Long Description (AR)'),
+            Forms\Components\Textarea::make('description.en')->label('Long Description (EN)'),
+            Forms\Components\TextInput::make('image_url')->label('Image URL')->url()->maxLength(500),
+            Forms\Components\TextInput::make('estimated_hours')->numeric()->minValue(0),
         ]);
     }
 

@@ -5,14 +5,8 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Models\User;
-use App\Modules\Catalog\Domain\Enums\ProductStatus;
-use App\Modules\Catalog\Domain\Enums\ProductType;
-use App\Modules\Catalog\Infrastructure\Persistence\Models\Product;
 use App\Modules\Competition\Infrastructure\Persistence\Models\Competition;
-use App\Modules\Learning\Domain\Enums\AccessType;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
-use App\Modules\Learning\Infrastructure\Persistence\Models\Lesson;
-use App\Modules\Learning\Infrastructure\Persistence\Models\Topic;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -31,138 +25,14 @@ final class ScienceStreetSeeder extends Seeder
         );
         $admin->assignRole('super_admin');
 
-        $products = [
-            [
-                'sku' => 'SS-MICRO-001',
-                'slug' => 'science-street-microscope',
-                'type' => ProductType::Kit,
-                'price' => 3720,
-                'compare_price' => 3720,
-                'name' => ['ar' => 'ميكروسكوب شارع العلوم', 'en' => 'Science Street Microscope'],
-                'short_description' => ['ar' => 'ميكروسكوب تعليمي للأطفال', 'en' => 'Educational microscope for kids'],
-            ],
-            [
-                'sku' => 'SS-GEN-001',
-                'slug' => 'manual-power-generator',
-                'type' => ProductType::Kit,
-                'price' => 520,
-                'name' => ['ar' => 'مولد الطاقة اليدوي', 'en' => 'Manual Power Generator'],
-                'short_description' => ['ar' => 'تعلم توليد الكهرباء', 'en' => 'Learn to generate electricity'],
-            ],
-            [
-                'sku' => 'SS-TRUCK-001',
-                'slug' => 'gear-truck',
-                'type' => ProductType::Kit,
-                'price' => 653,
-                'name' => ['ar' => 'شاحنة التروس', 'en' => 'Gear Truck'],
-                'short_description' => ['ar' => 'اكتشف عالم التروس', 'en' => 'Discover the world of gears'],
-            ],
-        ];
+        $this->call(LearningCatalogSeeder::class);
 
-        foreach ($products as $data) {
-            Product::query()->updateOrCreate(
-                ['sku' => $data['sku']],
-                array_merge($data, [
-                    'status' => ProductStatus::Published,
-                    'currency' => 'EGP',
-                    'is_featured' => true,
-                    'published_at' => now(),
-                ])
-            );
-        }
-
-        $microscopeProduct = Product::query()->where('sku', 'SS-MICRO-001')->first();
-
-        $course = Course::query()->updateOrCreate(
-            ['slug' => 'microscope-course'],
-            [
-                'product_id' => $microscopeProduct?->id,
-                'access_type' => AccessType::Paid,
-                'is_published' => true,
-                'published_at' => now(),
-                'title' => ['ar' => 'كورس الميكروسكوب', 'en' => 'Microscope Course'],
-                'description' => ['ar' => 'تعلم استخدام الميكروسكوب خطوة بخطوة', 'en' => 'Learn microscope usage step by step'],
-            ]
-        );
-
-        $certificateTemplate = \App\Modules\Certification\Infrastructure\Persistence\Models\CertificateTemplate::query()->updateOrCreate(
-            ['slug' => 'default'],
-            [
-                'is_active' => true,
-                'name' => ['ar' => 'شهادة افتراضية', 'en' => 'Default Certificate'],
-                'layout_config' => ['page_size' => 'A4_landscape'],
-            ]
-        );
-
-        $course->update(['certificate_template_id' => $certificateTemplate->id]);
-
-        if ($microscopeProduct) {
-            $microscopeProduct->update(['course_id' => $course->id]);
-        }
-
-        $lesson = Lesson::query()->updateOrCreate(
-            ['course_id' => $course->id, 'slug' => 'introduction'],
-            [
-                'lesson_type' => 'theory',
-                'sort_order' => 1,
-                'title' => ['ar' => 'المقدمة', 'en' => 'Introduction'],
-            ]
-        );
-
-        Topic::query()->updateOrCreate(
-            ['lesson_id' => $lesson->id, 'slug' => 'what-is-microscope'],
-            [
-                'sort_order' => 1,
-                'content_type' => 'video',
-                'video_url' => 'https://example.com/videos/microscope-intro.mp4',
-                'video_provider' => 's3',
-                'title' => ['ar' => 'ما هو الميكروسكوب؟', 'en' => 'What is a microscope?'],
-            ]
-        );
-
-        $quiz = \App\Modules\Assessment\Infrastructure\Persistence\Models\Quiz::query()->updateOrCreate(
-            [
-                'quizable_type' => Lesson::class,
-                'quizable_id' => $lesson->id,
-            ],
-            [
-                'passing_score' => 70,
-                'max_attempts' => 3,
-                'is_required' => true,
-                'title' => ['ar' => 'وقت التحدى', 'en' => 'Challenge Time'],
-                'instructions' => ['ar' => 'أجب على الأسئلة التالية', 'en' => 'Answer the following questions'],
-            ]
-        );
-
-        $question = \App\Modules\Assessment\Infrastructure\Persistence\Models\Question::query()->updateOrCreate(
-            ['quiz_id' => $quiz->id, 'sort_order' => 1],
-            [
-                'question_type' => \App\Modules\Assessment\Domain\Enums\QuestionType::SingleChoice,
-                'points' => 1,
-                'body' => ['ar' => 'ما وظيفة الميكروسكوب؟', 'en' => 'What is the function of a microscope?'],
-            ]
-        );
-
-        \App\Modules\Assessment\Infrastructure\Persistence\Models\QuestionOption::query()->updateOrCreate(
-            ['question_id' => $question->id, 'sort_order' => 1],
-            [
-                'is_correct' => true,
-                'label' => ['ar' => 'تكبير الأجسام الدقيقة', 'en' => 'Magnify tiny objects'],
-            ]
-        );
-
-        \App\Modules\Assessment\Infrastructure\Persistence\Models\QuestionOption::query()->updateOrCreate(
-            ['question_id' => $question->id, 'sort_order' => 2],
-            [
-                'is_correct' => false,
-                'label' => ['ar' => 'تسخين المواد', 'en' => 'Heat materials'],
-            ]
-        );
+        $microscopeCourse = Course::query()->where('slug', 'microscope-course')->firstOrFail();
 
         Competition::query()->updateOrCreate(
             ['slug' => 'microscope-100-challenge'],
             [
-                'prerequisite_course_id' => $course->id,
+                'prerequisite_course_id' => $microscopeCourse->id,
                 'required_photos' => 100,
                 'photos_per_sample' => 2,
                 'starts_at' => now()->subMonth(),

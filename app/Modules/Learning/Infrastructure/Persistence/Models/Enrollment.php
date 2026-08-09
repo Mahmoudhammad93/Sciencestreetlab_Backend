@@ -15,6 +15,7 @@ class Enrollment extends Model
     protected $fillable = [
         'user_id', 'course_id', 'order_item_id', 'status', 'progress_percent',
         'enrolled_at', 'started_at', 'completed_at', 'expires_at',
+        'last_accessed_lesson_id', 'last_accessed_topic_id', 'last_accessed_at',
     ];
 
     protected function casts(): array
@@ -26,6 +27,7 @@ class Enrollment extends Model
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
             'expires_at' => 'datetime',
+            'last_accessed_at' => 'datetime',
         ];
     }
 
@@ -47,5 +49,15 @@ class Enrollment extends Model
     public function lessonCompletions(): HasMany
     {
         return $this->hasMany(LessonCompletion::class);
+    }
+
+    public function lastAccessedLesson(): BelongsTo
+    {
+        return $this->belongsTo(Lesson::class, 'last_accessed_lesson_id');
+    }
+
+    public function lastAccessedTopic(): BelongsTo
+    {
+        return $this->belongsTo(Topic::class, 'last_accessed_topic_id');
     }
 }
