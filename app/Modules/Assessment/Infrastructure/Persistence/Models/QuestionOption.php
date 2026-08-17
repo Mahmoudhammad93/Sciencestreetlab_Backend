@@ -15,11 +15,20 @@ class QuestionOption extends Model
     /** @var list<string> */
     public array $translatable = ['label'];
 
-    protected $fillable = ['question_id', 'is_correct', 'sort_order'];
+    protected $fillable = [
+        'question_id', 'is_correct', 'sort_order', 'label', 'meta',
+    ];
+
+    protected $hidden = [
+        'is_correct',
+    ];
 
     protected function casts(): array
     {
-        return ['is_correct' => 'boolean'];
+        return [
+            'is_correct' => 'boolean',
+            'meta' => 'array',
+        ];
     }
 
     public function question(): BelongsTo

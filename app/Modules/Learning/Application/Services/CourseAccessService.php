@@ -46,6 +46,14 @@ final class CourseAccessService
             return false;
         }
 
+        $enrollment->loadMissing('course');
+
+        // Free courses are open for enrolled students (demo / self-paced study).
+        if ($enrollment->course?->access_type?->value === 'free'
+            || $enrollment->course?->access_type === \App\Modules\Learning\Domain\Enums\AccessType::Free) {
+            return true;
+        }
+
         $lessons = $enrollment->course->lessons()->where('is_published', true)->orderBy('sort_order')->get();
         $index = $lessons->search(fn (Lesson $l) => $l->id === $lesson->id);
 
@@ -68,6 +76,11 @@ final class CourseAccessService
 
         if (! $this->canAccessLesson($enrollment, $lesson)) {
             return false;
+        }
+
+        $enrollment->loadMissing('course');
+        if ($enrollment->course?->access_type === \App\Modules\Learning\Domain\Enums\AccessType::Free) {
+            return true;
         }
 
         $topics = $lesson->topics()->where('is_published', true)->orderBy('sort_order')->get();

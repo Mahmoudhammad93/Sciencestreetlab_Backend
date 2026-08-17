@@ -26,6 +26,8 @@ final class ScienceStreetSeeder extends Seeder
         $admin->assignRole('super_admin');
 
         $this->call(LearningCatalogSeeder::class);
+        $this->call(DemoLearningSeeder::class);
+        $this->call(AssessmentDemoCoursesSeeder::class);
 
         $microscopeCourse = Course::query()->where('slug', 'microscope-course')->firstOrFail();
 

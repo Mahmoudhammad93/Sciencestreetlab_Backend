@@ -10,6 +10,7 @@ use App\Modules\Learning\Domain\Enums\AccessType;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Enrollment;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Lesson;
+use App\Modules\Learning\Infrastructure\Persistence\Models\Topic;
 
 final class CoursePresenter
 {
@@ -72,7 +73,10 @@ final class CoursePresenter
                 'topics' => fn ($q) => $q->where('is_published', true),
                 'quizzes',
             ])
-            ->with(['topics' => fn ($q) => $q->where('is_published', true)])
+            ->with([
+                'topics' => fn ($q) => $q->where('is_published', true)->orderBy('sort_order'),
+                'quizzes',
+            ])
             ->orderBy('sort_order')
             ->get();
 
@@ -81,15 +85,38 @@ final class CoursePresenter
         }
 
         return $lessons->map(function (Lesson $lesson) use ($locale, $enrollment) {
+            $canAccessLesson = $enrollment ? $this->access->canAccessLesson($enrollment, $lesson) : false;
+            $quiz = $lesson->quizzes->first();
+
             return [
                 'id' => $lesson->id,
                 'slug' => $lesson->slug,
                 'title' => $lesson->getTranslation('title', $locale),
+                'sort_order' => (int) $lesson->sort_order,
                 'lesson_type' => $lesson->lesson_type->value,
                 'status' => $this->lessonStatus($lesson, $enrollment),
-                'is_locked' => $enrollment ? ! $this->access->canAccessLesson($enrollment, $lesson) : true,
+                'is_locked' => ! $canAccessLesson,
                 'topics_count' => $lesson->topics_count,
                 'has_quiz' => $lesson->quizzes_count > 0,
+                'quiz' => $quiz ? [
+                    'id' => $quiz->id,
+                    'title' => $quiz->getTranslation('title', $locale),
+                    'is_required' => (bool) $quiz->is_required,
+                ] : null,
+                'topics' => $lesson->topics->map(function (Topic $topic) use ($locale, $canAccessLesson) {
+                    return [
+                        'id' => $topic->id,
+                        'lesson_id' => $topic->lesson_id,
+                        'slug' => $topic->slug,
+                        'sort_order' => (int) $topic->sort_order,
+                        'content_type' => $topic->content_type,
+                        'title' => $topic->getTranslation('title', $locale),
+                        // Keep video URLs only for unlocked lessons
+                        'video_url' => $canAccessLesson ? $topic->video_url : null,
+                        'video_provider' => $canAccessLesson ? $topic->video_provider : null,
+                        'is_published' => (bool) $topic->is_published,
+                    ];
+                })->values()->all(),
             ];
         })->values()->all();
     }

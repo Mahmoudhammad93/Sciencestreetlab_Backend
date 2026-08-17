@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Learning\Application\Services;
 
 use App\Modules\Assessment\Application\Services\QuizAttemptService;
+use App\Modules\Assessment\Domain\Enums\InteractiveActivityStatus;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Enrollment;
 
 final class CurriculumService
@@ -19,6 +20,7 @@ final class CurriculumService
         $enrollment->load([
             'course.lessons.topics',
             'course.lessons.quizzes',
+            'course.lessons.interactiveActivities',
             'topicCompletions',
             'lessonCompletions',
         ]);
@@ -60,6 +62,24 @@ final class CurriculumService
                 ];
             }
 
+            $interactiveActivities = [];
+            foreach ($lesson->interactiveActivities as $activity) {
+                if ($activity->status !== InteractiveActivityStatus::Published) {
+                    continue;
+                }
+
+                $interactiveActivities[] = [
+                    'id' => $activity->id,
+                    'uuid' => $activity->uuid,
+                    'title' => $activity->getTranslation('title', app()->getLocale()),
+                    'activity_type' => $activity->activity_type,
+                    'difficulty' => $activity->difficulty?->value ?? $activity->difficulty,
+                    'points' => (float) $activity->points,
+                    'estimated_time_seconds' => $activity->estimated_time_seconds,
+                    'is_locked' => ! $this->access->canAccessLesson($enrollment, $lesson),
+                ];
+            }
+
             $lessons[] = [
                 'id' => $lesson->id,
                 'slug' => $lesson->slug,
@@ -69,6 +89,7 @@ final class CurriculumService
                 'is_completed' => $this->access->isLessonComplete($enrollment, $lesson),
                 'topics' => $topics,
                 'quizzes' => $quizzes,
+                'interactive_activities' => $interactiveActivities,
             ];
         }
 

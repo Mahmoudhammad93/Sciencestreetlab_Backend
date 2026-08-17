@@ -1,0 +1,1227 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>تحدي هدم القلعة - شارع العلوم</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: Tahoma, "Segoe UI", Arial, sans-serif;
+  background: #07182f;
+  color: #fffaf0;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+
+#game {
+  width: 100%;
+  max-width: 780px;
+  background: radial-gradient(circle at 10% 15%, rgba(88,222,240,.18), transparent 30%),
+              linear-gradient(145deg, #07182f, #0d4872 58%, #07182f);
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 28px;
+  box-shadow: 0 24px 70px rgba(1,8,27,.5);
+  overflow: hidden;
+  padding: 1.2rem;
+  display: grid;
+  gap: 1rem;
+}
+
+/* ── TOP BAR ── */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  background: #f8d41c;
+  color: #0b1730;
+  border-radius: 12px;
+  padding: .55rem .9rem;
+  font-weight: 700;
+  font-size: .9rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.brand-icon {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.score-box {
+  display: flex;
+  gap: .75rem;
+  align-items: center;
+}
+
+.score-pill {
+  background: rgba(0,7,24,.55);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 99px;
+  padding: .35rem .9rem;
+  font-size: .8rem;
+  color: #dbe8f7;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+}
+
+.score-pill span {
+  color: #f8d41c;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.attempts-bar {
+  display: flex;
+  gap: 6px;
+}
+
+.attempt-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.2);
+  border: 1px solid rgba(255,255,255,.3);
+  transition: all .3s;
+}
+
+.attempt-dot.used { background: #ff7474; border-color: #ff7474; }
+.attempt-dot.active { background: #f8d41c; border-color: #f8d41c; box-shadow: 0 0 8px #f8d41c88; }
+
+/* ── MISSION HEADER ── */
+.mission {
+  border-right: 4px solid #f8d41c;
+  padding: .2rem 1rem .2rem 0;
+}
+
+.mission-label {
+  color: #58def0;
+  font-size: .72rem;
+  display: block;
+  margin-bottom: .2rem;
+}
+
+.mission h2 {
+  color: #fffaf0;
+  font-size: clamp(1.1rem, 3vw, 1.6rem);
+  font-weight: 600;
+  margin-bottom: .2rem;
+}
+
+.mission p {
+  color: #cbd8e9;
+  font-size: .82rem;
+}
+
+/* ── MAIN LAYOUT ── */
+.main-layout {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr minmax(220px, .75fr);
+}
+
+@media (max-width: 560px) {
+  .main-layout { grid-template-columns: 1fr; }
+}
+
+/* ── GAME CANVAS ── */
+.canvas-wrap {
+  background: linear-gradient(145deg, #fffaf0, #f2d99d);
+  border: 1px solid rgba(255,255,255,.38);
+  border-radius: 20px;
+  padding: .8rem;
+  display: grid;
+  gap: .6rem;
+}
+
+.canvas-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.canvas-head-label { color: #3137c9; font-size: .68rem; display: block; }
+.canvas-head h3 { color: #0b1730; font-size: 1rem; font-weight: 600; margin-top: .15rem; }
+
+.status-badge {
+  background: rgba(255,255,255,.72);
+  border: 1px solid rgba(11,23,48,.17);
+  border-radius: 99px;
+  color: #704d20;
+  font-size: .65rem;
+  padding: .3rem .6rem;
+  white-space: nowrap;
+  transition: all .3s;
+}
+
+.status-badge.ready { background: #dff9ef; color: #075248; }
+
+/* SVG Stage */
+.stage-svg {
+  width: 100%;
+  height: auto;
+  min-height: 200px;
+  display: block;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #c8e6f7 0%, #e8f4fd 60%, #d4c4a0 60%, #b8a882 100%);
+}
+
+.result-line {
+  min-height: 1.4em;
+  text-align: center;
+  font-size: .8rem;
+  color: #596274;
+  font-weight: 500;
+}
+
+/* ── CONTROLS ── */
+.controls-panel {
+  background: rgba(5,18,43,.76);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 20px;
+  padding: 1rem;
+  display: grid;
+  gap: .85rem;
+  align-content: start;
+}
+
+.ctrl-group { display: grid; gap: .35rem; }
+
+.ctrl-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: .78rem;
+  color: #dbe8f7;
+}
+
+.ctrl-label strong { color: #f8d41c; font-size: .9rem; }
+
+input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 99px;
+  background: rgba(255,255,255,.15);
+  outline: none;
+  cursor: pointer;
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #f8d41c;
+  border: 2px solid #0b1730;
+  box-shadow: 0 0 6px rgba(248,212,28,.5);
+  cursor: pointer;
+}
+
+input[type=range]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #f8d41c;
+  border: 2px solid #0b1730;
+  cursor: pointer;
+}
+
+.range-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: .6rem;
+  color: #6b7c9a;
+  margin-top: -2px;
+}
+
+.divider {
+  height: 1px;
+  background: rgba(255,255,255,.1);
+}
+
+.energy-display {
+  background: rgba(0,7,24,.55);
+  border: 1px solid rgba(88,222,240,.25);
+  border-radius: 12px;
+  padding: .6rem .8rem;
+  display: grid;
+  gap: .35rem;
+}
+
+.energy-label {
+  font-size: .68rem;
+  color: #58def0;
+}
+
+.energy-bar-wrap {
+  background: rgba(0,7,24,.6);
+  border-radius: 99px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.energy-bar {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #58def0, #f8d41c);
+  transition: width .4s ease;
+  width: 0%;
+}
+
+.energy-value {
+  font-size: .7rem;
+  color: #aab9d0;
+  text-align: left;
+}
+
+.fire-btn {
+  background: linear-gradient(90deg, #f8d41c, #ffe96a);
+  border: none;
+  border-radius: 14px;
+  color: #0b1730;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  padding: .75rem;
+  width: 100%;
+  transition: transform .15s, box-shadow .15s;
+  letter-spacing: .02em;
+}
+
+.fire-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(248,212,28,.4);
+}
+
+.fire-btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── QUESTION PANEL ── */
+.question-panel {
+  background: rgba(5,18,43,.76);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 20px;
+  padding: 1.2rem;
+  display: none;
+  flex-direction: column;
+  gap: .7rem;
+}
+
+.question-panel.visible { display: flex; }
+
+.q-step { color: #aab9d0; font-size: .72rem; }
+
+.q-text {
+  color: #fffaf0;
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.q-options { display: grid; gap: .5rem; margin-top: .3rem; }
+
+.q-option {
+  background: rgba(10,28,57,.82);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 12px;
+  color: #edf4ff;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: .85rem;
+  padding: .75rem .9rem;
+  text-align: right;
+  transition: background .2s, border-color .2s;
+  width: 100%;
+}
+
+.q-option:hover:not(:disabled) {
+  background: rgba(88,222,240,.12);
+  border-color: #58def0;
+}
+
+.q-option.correct {
+  background: rgba(47,196,174,.15);
+  border-color: #2fc4ae;
+  color: #88f0d6;
+}
+
+.q-option.wrong {
+  background: rgba(255,116,116,.12);
+  border-color: #ff7474;
+  color: #ffaaaa;
+}
+
+.q-option:disabled { cursor: default; }
+
+.q-feedback {
+  border: 1px solid rgba(47,196,174,.45);
+  border-radius: 10px;
+  color: #c9d6e8;
+  padding: .7rem .9rem;
+  font-size: .82rem;
+  line-height: 1.5;
+  display: none;
+}
+
+.q-feedback.visible { display: block; }
+.q-feedback strong { color: #88f0d6; display: block; margin-bottom: .25rem; }
+.q-feedback.wrong-fb { border-color: rgba(255,185,98,.5); }
+.q-feedback.wrong-fb strong { color: #ffd087; }
+
+.next-btn {
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 10px;
+  color: #fffaf0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: .85rem;
+  padding: .6rem;
+  transition: background .2s;
+  display: none;
+}
+
+.next-btn.visible { display: block; }
+.next-btn:hover { background: rgba(255,255,255,.18); }
+
+/* ── WIN/LOSE SCREEN ── */
+.end-screen {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  text-align: center;
+  padding: 1.5rem 1rem;
+  background: rgba(5,18,43,.76);
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 20px;
+}
+
+.end-screen.visible { display: flex; }
+
+.end-icon { font-size: 3.5rem; line-height: 1; }
+.end-title { font-size: 1.6rem; font-weight: 700; color: #f8d41c; }
+.end-sub { color: #cbd8e9; font-size: .88rem; line-height: 1.6; max-width: 380px; }
+.end-score { font-size: 1.1rem; color: #58def0; }
+
+.replay-btn {
+  background: linear-gradient(90deg, #f8d41c, #ffe96a);
+  border: none;
+  border-radius: 12px;
+  color: #0b1730;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: .95rem;
+  font-weight: 700;
+  padding: .7rem 2rem;
+  transition: transform .15s;
+}
+
+.replay-btn:hover { transform: translateY(-2px); }
+
+/* ── FOOTER ── */
+.footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: .68rem;
+  color: #5a6b84;
+}
+
+/* ── ANIMATIONS ── */
+@keyframes shake {
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-6px)}
+  75%{transform:translateX(6px)}
+}
+
+@keyframes pop {
+  0%{transform:scale(1)}
+  50%{transform:scale(1.15)}
+  100%{transform:scale(1)}
+}
+
+.shake { animation: shake .3s ease; }
+.pop { animation: pop .3s ease; }
+</style>
+</head>
+<body>
+<div id="game">
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="brand">
+      <span class="brand-icon">🔬</span>
+      شارع العلوم
+    </div>
+    <div class="score-box">
+      <div class="score-pill">⭐ النقاط <span id="score-val">0</span></div>
+      <div class="attempts-bar" id="attempts-bar"></div>
+    </div>
+  </div>
+
+  <!-- MISSION -->
+  <div class="mission">
+    <span class="mission-label">🏰 تحدي هدم القلعة</span>
+    <h2>الطاقة المستخبية في الأستيك</h2>
+    <p>اختار الإعدادات الصح — اهدم القلعة واكسب النقاط!</p>
+  </div>
+
+  <!-- MAIN LAYOUT -->
+  <div class="main-layout" id="main-layout">
+
+    <!-- CANVAS -->
+    <div class="canvas-wrap">
+      <div class="canvas-head">
+        <div>
+          <span class="canvas-head-label">🧪 الملعب</span>
+          <h3>منجنيق + قلعة</h3>
+        </div>
+        <span class="status-badge" id="status-badge">جاهز للإطلاق</span>
+      </div>
+
+      <svg class="stage-svg" id="stage" viewBox="0 0 500 240" xmlns="http://www.w3.org/2000/svg">
+        <!-- Sky -->
+        <defs>
+          <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#c8e6f7"/>
+            <stop offset="100%" stop-color="#e8f4fd"/>
+          </linearGradient>
+          <linearGradient id="groundGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#d4c4a0"/>
+            <stop offset="100%" stop-color="#b8a882"/>
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="500" height="200" fill="url(#skyGrad)"/>
+        <rect x="0" y="200" width="500" height="40" fill="url(#groundGrad)"/>
+
+        <!-- Ground line -->
+        <line x1="0" y1="200" x2="500" y2="200" stroke="#9a8a6a" stroke-width="2"/>
+
+        <!-- Distance markers -->
+        <g fill="#9a8a6a" font-size="9" text-anchor="middle" font-family="Tahoma,Arial">
+          <line x1="100" y1="200" x2="100" y2="207" stroke="#9a8a6a" stroke-width="1"/>
+          <text x="100" y="218">قريب</text>
+          <line x1="250" y1="200" x2="250" y2="207" stroke="#9a8a6a" stroke-width="1"/>
+          <text x="250" y="218">متوسط</text>
+          <line x1="400" y1="200" x2="400" y2="207" stroke="#9a8a6a" stroke-width="1"/>
+          <text x="400" y="218">بعيد</text>
+        </g>
+
+        <!-- Catapult base -->
+        <g id="catapult">
+          <!-- Wheels -->
+          <circle cx="68" cy="200" r="12" fill="#7a5230" stroke="#4a3018" stroke-width="2"/>
+          <circle cx="68" cy="200" r="5" fill="#4a3018"/>
+          <circle cx="32" cy="200" r="12" fill="#7a5230" stroke="#4a3018" stroke-width="2"/>
+          <circle cx="32" cy="200" r="5" fill="#4a3018"/>
+          <!-- Frame -->
+          <rect x="20" y="178" width="60" height="22" rx="4" fill="#9a6030" stroke="#5a3818" stroke-width="2"/>
+          <!-- Pivot post -->
+          <rect x="46" y="155" width="8" height="26" rx="3" fill="#7a4820" stroke="#5a3818" stroke-width="1.5"/>
+          <!-- Arm (will rotate) -->
+          <g id="arm" style="transform-origin: 50px 181px; transform: rotate(-55deg);">
+            <rect x="47" y="100" width="6" height="85" rx="3" fill="#9a5b2b" stroke="#5a3818" stroke-width="1.5"/>
+            <!-- Cup at top -->
+            <ellipse cx="50" cy="100" rx="10" ry="5" fill="#7a4820" stroke="#5a3818" stroke-width="1.5"/>
+          </g>
+          <!-- Rubber bands visual -->
+          <g id="bands-visual">
+            <line x1="50" y1="181" x2="30" y2="170" stroke="#e04040" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="50" y1="181" x2="70" y2="170" stroke="#e04040" stroke-width="2.5" stroke-linecap="round"/>
+          </g>
+        </g>
+
+        <!-- Castle -->
+        <g id="castle">
+          <!-- Main wall -->
+          <rect id="cb-wall" class="cb" x="340" y="155" width="120" height="45" fill="#c8965b" stroke="#6f4829" stroke-width="2"/>
+          <!-- Battlements -->
+          <rect id="cb-b1" class="cb" x="340" y="140" width="22" height="18" fill="#c8965b" stroke="#6f4829" stroke-width="2"/>
+          <rect id="cb-b2" class="cb" x="370" y="140" width="22" height="18" fill="#c8965b" stroke="#6f4829" stroke-width="2"/>
+          <rect id="cb-b3" class="cb" x="400" y="140" width="22" height="18" fill="#c8965b" stroke="#6f4829" stroke-width="2"/>
+          <rect id="cb-b4" class="cb" x="430" y="140" width="22" height="18" fill="#c8965b" stroke="#6f4829" stroke-width="2"/>
+          <!-- Tower left -->
+          <rect id="cb-tl" class="cb" x="335" y="125" width="30" height="75" fill="#b07840" stroke="#6f4829" stroke-width="2"/>
+          <rect id="cb-tl-top" class="cb" x="330" y="112" width="42" height="16" fill="#b07840" stroke="#6f4829" stroke-width="2"/>
+          <!-- Tower right -->
+          <rect id="cb-tr" class="cb" x="435" y="125" width="30" height="75" fill="#b07840" stroke="#6f4829" stroke-width="2"/>
+          <rect id="cb-tr-top" class="cb" x="430" y="112" width="42" height="16" fill="#b07840" stroke="#6f4829" stroke-width="2"/>
+          <!-- Gate -->
+          <path d="M380 200 L380 170 Q400 155 420 170 L420 200 Z" fill="#5a3010" stroke="#3a1808" stroke-width="1.5"/>
+          <!-- Flag -->
+          <line x1="400" y1="112" x2="400" y2="88" stroke="#5a3818" stroke-width="2"/>
+          <polygon points="400,88 415,95 400,102" fill="#e04040"/>
+        </g>
+
+        <!-- Projectile (hidden initially) -->
+        <circle id="projectile" cx="50" cy="85" r="7" fill="#626974" stroke="#0b1730" stroke-width="2" visibility="hidden"/>
+
+        <!-- Trajectory path -->
+        <path id="trajectory" d="" fill="none" stroke="#3137c9" stroke-width="1.5" stroke-dasharray="6 4" opacity=".5"/>
+
+        <!-- Impact burst -->
+        <g id="impact" visibility="hidden">
+          <circle cx="0" cy="0" r="20" fill="none" stroke="#f8d41c" stroke-width="3" opacity=".8"/>
+          <circle cx="0" cy="0" r="35" fill="none" stroke="#f8d41c" stroke-width="2" opacity=".4"/>
+        </g>
+      </svg>
+
+      <div class="result-line" id="result-line">🎯 اضبط الإعدادات وابدأ الإطلاق!</div>
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="controls-panel">
+      <div class="ctrl-group">
+        <div class="ctrl-label">
+          <span>🔁 عدد اللفات</span>
+          <strong id="turns-val">3</strong>
+        </div>
+        <input type="range" id="turns" min="1" max="9" value="3" step="1">
+        <div class="range-ticks"><span>١</span><span>٣</span><span>٥</span><span>٧</span><span>٩</span></div>
+      </div>
+
+      <div class="ctrl-group">
+        <div class="ctrl-label">
+          <span>🔴 عدد الأشرطة</span>
+          <strong id="bands-val">1</strong>
+        </div>
+        <input type="range" id="bands" min="1" max="3" value="1" step="1">
+        <div class="range-ticks"><span>١</span><span>٢</span><span>٣</span></div>
+      </div>
+
+      <div class="ctrl-group">
+        <div class="ctrl-label">
+          <span>📐 زاوية الإطلاق</span>
+          <strong id="angle-val">45°</strong>
+        </div>
+        <input type="range" id="angle" min="20" max="70" value="45" step="5">
+        <div class="range-ticks"><span>٢٠°</span><span>٤٥°</span><span>٧٠°</span></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="energy-display">
+        <div class="energy-label">⚡ طاقة الوضع المرنة المتخزنة</div>
+        <div class="energy-bar-wrap">
+          <div class="energy-bar" id="energy-bar"></div>
+        </div>
+        <div class="energy-value" id="energy-value">قليلة</div>
+      </div>
+
+      <button class="fire-btn" id="fire-btn">🚀 إطلاق!</button>
+
+      <div style="font-size:.7rem; color:#6b7c9a; text-align:center; line-height:1.5;">
+        لديك <span id="attempts-left" style="color:#f8d41c; font-weight:700;">5</span> محاولات
+      </div>
+    </div>
+  </div>
+
+  <!-- QUESTION PANEL (shown after each shot) -->
+  <div class="question-panel" id="question-panel">
+    <div class="q-step" id="q-step">سؤال ١ من ٣</div>
+    <div class="q-text" id="q-text"></div>
+    <div class="q-options" id="q-options"></div>
+    <div class="q-feedback" id="q-feedback"></div>
+    <button class="next-btn" id="next-btn">← العب تاني</button>
+  </div>
+
+  <!-- END SCREEN -->
+  <div class="end-screen" id="end-screen">
+    <div class="end-icon" id="end-icon">🏆</div>
+    <div class="end-title" id="end-title">أنجزت المهمة!</div>
+    <div class="end-sub" id="end-sub"></div>
+    <div class="end-score" id="end-score"></div>
+    <button class="replay-btn" onclick="resetGame()">🔄 العب تاني</button>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <span>🔬 مختبر شارع العلوم</span>
+    <span>طاقة الوضع المرنة 💪</span>
+  </div>
+</div>
+
+<script>
+// ── QUESTIONS ──
+const QUESTIONS = [
+  {
+    text: "لما زودنا عدد اللفات في المنجنيق، إيه اللي اتغير؟",
+    options: [
+      { text: "الاستيك اتلف أكتر وخزّن طاقة وضع مرنة أكتر", correct: true },
+      { text: "الزاوية بتاعة الإطلاق اتغيرت", correct: false },
+      { text: "عدد الأشرطة زاد لوحده", correct: false },
+      { text: "ما اتغيرش حاجة", correct: false }
+    ],
+    feedback: {
+      correct: "✅ صح! كل ما لفينا الاستيك أكتر، شكله اتغير أكتر وخزّن طاقة أكتر — وده معناه كرة أقوى!",
+      wrong: "❌ فكّر تاني! اللف بيغير مقدار الطاقة المتخزنة في الاستيك."
+    }
+  },
+  {
+    text: "لو حطينا شريطين مطاطيين بدل واحد، إيه اللي هيحصل للطاقة المتخزنة؟",
+    options: [
+      { text: "هتبقى نفسها", correct: false },
+      { text: "هتتضاعف تقريباً — لأن كل شريط بيخزن طاقته", correct: true },
+      { text: "هتقل لأن الأشرطة بتتعارض مع بعض", correct: false },
+      { text: "بيعتمد على لون الشريط", correct: false }
+    ],
+    feedback: {
+      correct: "✅ برافو! كل شريط بيخزن طاقة لوحده، ولما نجمعهم الطاقات بتتجمع — زي حصالة كبيرة!",
+      wrong: "❌ مش كده! كل شريط بيخزن طاقته المستقلة. يعني كل ما زودنا الأشرطة، الطاقة الكلية بتزيد."
+    }
+  },
+  {
+    text: "تغيير زاوية الإطلاق بيعمل إيه بالظبط؟",
+    options: [
+      { text: "بيزود الطاقة المتخزنة في الاستيك", correct: false },
+      { text: "بيغيّر اتجاه ومسار الكرة — مش مقدار الطاقة", correct: true },
+      { text: "بيغيّر عدد الأشرطة المطاطية", correct: false },
+      { text: "بيخلي الكرة أثقل", correct: false }
+    ],
+    feedback: {
+      correct: "✅ ممتاز! الزاوية بتوجّه الكرة — مش بتزوّد ولا بتقلل الطاقة. الطاقة من الاستيك، والاتجاه من الزاوية!",
+      wrong: "❌ مش كده! الزاوية بتغيّر المسار فقط. الطاقة بتيجي من اللفات والأشرطة."
+    }
+  }
+];
+
+// ── STATE ──
+let score = 0;
+let attemptsLeft = 5;
+let blocksDestroyed = 0;
+let questionIdx = 0;
+let animating = false;
+let castleBlocks = [];
+let questionAnswered = false;
+
+const BLOCK_IDS = ['cb-wall','cb-b1','cb-b2','cb-b3','cb-b4','cb-tl','cb-tl-top','cb-tr','cb-tr-top'];
+
+// ── INIT ──
+function init() {
+  // Attempts dots
+  const bar = document.getElementById('attempts-bar');
+  bar.innerHTML = '';
+  for (let i = 0; i < 5; i++) {
+    const d = document.createElement('div');
+    d.className = 'attempt-dot' + (i === 0 ? ' active' : '');
+    d.id = 'dot-' + i;
+    bar.appendChild(d);
+  }
+
+  // Reset blocks
+  castleBlocks = [...BLOCK_IDS];
+  BLOCK_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.style.opacity = '1';
+      el.style.transform = 'none';
+      el.style.display = '';
+    }
+  });
+
+  // Reset flag
+  document.getElementById('projectile').setAttribute('visibility','hidden');
+  document.getElementById('trajectory').setAttribute('d','');
+  document.getElementById('impact').setAttribute('visibility','hidden');
+
+  updateEnergy();
+  updateAttemptsDots();
+}
+
+// ── SLIDERS ──
+document.getElementById('turns').addEventListener('input', function() {
+  document.getElementById('turns-val').textContent = this.value;
+  updateEnergy();
+  updateArmAngle();
+  updateTrajectoryPreview();
+});
+
+document.getElementById('bands').addEventListener('input', function() {
+  document.getElementById('bands-val').textContent = this.value;
+  updateEnergy();
+  updateBandsVisual();
+  updateTrajectoryPreview();
+});
+
+document.getElementById('angle').addEventListener('input', function() {
+  document.getElementById('angle-val').textContent = this.value + '°';
+  updateTrajectoryPreview();
+});
+
+function updateEnergy() {
+  const turns = parseInt(document.getElementById('turns').value);
+  const bands = parseInt(document.getElementById('bands').value);
+  const energy = Math.min(100, (turns / 9) * 60 + (bands / 3) * 40);
+  document.getElementById('energy-bar').style.width = energy + '%';
+  const labels = ['قليلة جداً','قليلة','متوسطة','عالية','عالية جداً!'];
+  const li = Math.min(4, Math.floor(energy / 21));
+  document.getElementById('energy-value').textContent = labels[li];
+}
+
+function updateArmAngle() {
+  const turns = parseInt(document.getElementById('turns').value);
+  const angle = -55 - turns * 3;
+  document.getElementById('arm').style.transform = `rotate(${angle}deg)`;
+}
+
+function updateBandsVisual() {
+  const bands = parseInt(document.getElementById('bands').value);
+  const bv = document.getElementById('bands-visual');
+  const colors = ['#e04040','#3137c9','#f8d41c'];
+  let html = '';
+  for (let i = 0; i < bands; i++) {
+    const offset = (i - (bands-1)/2) * 5;
+    html += `<line x1="${50+offset}" y1="181" x2="${30+offset}" y2="170" stroke="${colors[i]}" stroke-width="2.5" stroke-linecap="round"/>`;
+    html += `<line x1="${50+offset}" y1="181" x2="${70+offset}" y2="170" stroke="${colors[i]}" stroke-width="2.5" stroke-linecap="round"/>`;
+  }
+  bv.innerHTML = html;
+}
+
+function computeLanding() {
+  const turns = parseInt(document.getElementById('turns').value);
+  const bands = parseInt(document.getElementById('bands').value);
+  const angle = parseInt(document.getElementById('angle').value);
+  // Power = turns * bands, range 1..27
+  const power = turns * bands;
+  // Base range: 80..430 px (SVG coords)
+  const rawRange = 80 + (power / 27) * 350;
+  // Angle penalty: optimal at 45deg
+  const angleRad = angle * Math.PI / 180;
+  const angleFactor = Math.sin(2 * angleRad); // max at 45°
+  const range = rawRange * angleFactor;
+  return Math.max(60, Math.min(480, range));
+}
+
+function computePeak(range, angle) {
+  const angleRad = angle * Math.PI / 180;
+  return Math.min(170, range * Math.tan(angleRad) * 0.22);
+}
+
+function updateTrajectoryPreview() {
+  const range = computeLanding();
+  const angle = parseInt(document.getElementById('angle').value);
+  const peak = computePeak(range, angle);
+  const startX = 50, startY = 105;
+  const endX = startX + range, endY = 200;
+  const cpX = startX + range * 0.45;
+  const cpY = startY - peak;
+  document.getElementById('trajectory').setAttribute('d',
+    `M${startX},${startY} Q${cpX},${cpY} ${endX},${endY}`
+  );
+}
+
+// ── FIRE ──
+document.getElementById('fire-btn').addEventListener('click', fire);
+
+function fire() {
+  if (animating || attemptsLeft <= 0) return;
+  animating = true;
+
+  document.getElementById('fire-btn').disabled = true;
+  document.getElementById('status-badge').textContent = '🚀 جاري الإطلاق...';
+  document.getElementById('status-badge').classList.remove('ready');
+  document.getElementById('result-line').textContent = '';
+
+  const range = computeLanding();
+  const angle = parseInt(document.getElementById('angle').value);
+  const peak = computePeak(range, angle);
+  const startX = 50, startY = 105;
+  const endX = startX + range, endY = 198;
+
+  const proj = document.getElementById('projectile');
+  proj.setAttribute('visibility','visible');
+  proj.setAttribute('cx', startX);
+  proj.setAttribute('cy', startY);
+
+  // Arm launch animation
+  const arm = document.getElementById('arm');
+  const turns = parseInt(document.getElementById('turns').value);
+  arm.style.transition = 'transform .3s ease-out';
+  arm.style.transform = 'rotate(30deg)';
+
+  // Projectile animation
+  const duration = 900;
+  const start = performance.now();
+
+  function animFrame(now) {
+    const t = Math.min(1, (now - start) / duration);
+    // Quadratic bezier
+    const cpX = startX + (endX - startX) * 0.45;
+    const cpY = startY - peak;
+    const x = (1-t)*(1-t)*startX + 2*(1-t)*t*cpX + t*t*endX;
+    const y = (1-t)*(1-t)*startY + 2*(1-t)*t*cpY + t*t*endY;
+    proj.setAttribute('cx', x.toFixed(1));
+    proj.setAttribute('cy', y.toFixed(1));
+
+    if (t < 1) {
+      requestAnimationFrame(animFrame);
+    } else {
+      onLand(endX, endY, range);
+    }
+  }
+
+  requestAnimationFrame(animFrame);
+}
+
+function onLand(x, y, range) {
+  const proj = document.getElementById('projectile');
+
+  // Castle zone: x 330..470
+  const hit = x >= 325 && x <= 475;
+  const score_earned = hit ? calculateScore(range) : 0;
+
+  // Impact
+  if (hit) {
+    const imp = document.getElementById('impact');
+    imp.setAttribute('transform', `translate(${x},${y - 20})`);
+    imp.setAttribute('visibility','visible');
+    setTimeout(() => imp.setAttribute('visibility','hidden'), 600);
+    destroyBlocks(range);
+    score += score_earned;
+    document.getElementById('score-val').textContent = score;
+  }
+
+  // Result text
+  const rl = document.getElementById('result-line');
+  if (hit) {
+    rl.innerHTML = `💥 إصابة! +${score_earned} نقطة`;
+    rl.style.color = '#2fc4ae';
+    document.getElementById('status-badge').textContent = '💥 إصابة!';
+    document.getElementById('status-badge').classList.add('ready');
+  } else {
+    const msg = x < 325 ? '😅 قصيرة — زود القوة!' : '🎯 طويلة — قلّل القوة أو غيّر الزاوية';
+    rl.innerHTML = msg;
+    rl.style.color = '#ffd087';
+    document.getElementById('status-badge').textContent = '↩ جرب تاني';
+  }
+
+  // Reset arm
+  setTimeout(() => {
+    const arm = document.getElementById('arm');
+    arm.style.transition = 'transform .5s ease';
+    const turns = parseInt(document.getElementById('turns').value);
+    arm.style.transform = `rotate(${-55 - turns * 3}deg)`;
+  }, 400);
+
+  attemptsLeft--;
+  document.getElementById('attempts-left').textContent = attemptsLeft;
+  updateAttemptsDots();
+
+  setTimeout(() => {
+    proj.setAttribute('visibility','hidden');
+    animating = false;
+
+    if (castleBlocks.length === 0) {
+      showEndScreen(true);
+      return;
+    }
+
+    if (attemptsLeft <= 0) {
+      showEndScreen(false);
+      return;
+    }
+
+    // Show question
+    if (questionIdx < QUESTIONS.length) {
+      showQuestion();
+    } else {
+      document.getElementById('fire-btn').disabled = false;
+      document.getElementById('status-badge').textContent = 'جاهز للإطلاق';
+    }
+  }, 700);
+}
+
+function calculateScore(range) {
+  // More points for precise hits
+  const distToCenter = Math.abs(range - 400);
+  if (distToCenter < 30) return 30;
+  if (distToCenter < 80) return 20;
+  return 10;
+}
+
+function destroyBlocks(range) {
+  // Destroy blocks based on where ball lands
+  const remaining = [...castleBlocks];
+  let toDestroy = [];
+
+  if (range >= 325 && range < 370) {
+    toDestroy = ['cb-tl','cb-tl-top'].filter(b => remaining.includes(b));
+  } else if (range >= 370 && range < 430) {
+    toDestroy = ['cb-wall','cb-b1','cb-b2','cb-b3','cb-b4'].filter(b => remaining.includes(b));
+  } else if (range >= 430 && range <= 475) {
+    toDestroy = ['cb-tr','cb-tr-top'].filter(b => remaining.includes(b));
+  }
+
+  toDestroy.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.style.transition = 'all .5s ease';
+      el.style.opacity = '0';
+      el.style.transform = `translate(${(Math.random()-0.5)*30}px, 40px) rotate(${(Math.random()-0.5)*40}deg)`;
+    }
+    const i = castleBlocks.indexOf(id);
+    if (i > -1) castleBlocks.splice(i, 1);
+  });
+
+  blocksDestroyed += toDestroy.length;
+}
+
+function updateAttemptsDots() {
+  for (let i = 0; i < 5; i++) {
+    const d = document.getElementById('dot-' + i);
+    if (!d) continue;
+    d.className = 'attempt-dot';
+    const used = 5 - attemptsLeft;
+    if (i < used) d.classList.add('used');
+    else if (i === used && attemptsLeft > 0) d.classList.add('active');
+  }
+}
+
+// ── QUESTIONS ──
+function showQuestion() {
+  if (questionIdx >= QUESTIONS.length) return;
+  const q = QUESTIONS[questionIdx];
+  const panel = document.getElementById('question-panel');
+  panel.classList.add('visible');
+  document.getElementById('q-step').textContent = `سؤال ${questionIdx + 1} من ${QUESTIONS.length}`;
+  document.getElementById('q-text').textContent = q.text;
+
+  const optDiv = document.getElementById('q-options');
+  optDiv.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'q-option';
+    btn.textContent = opt.text;
+    btn.onclick = () => answerQuestion(opt, btn, q);
+    optDiv.appendChild(btn);
+  });
+
+  document.getElementById('q-feedback').className = 'q-feedback';
+  document.getElementById('q-feedback').innerHTML = '';
+  document.getElementById('next-btn').className = 'next-btn';
+  questionAnswered = false;
+}
+
+function answerQuestion(opt, btn, q) {
+  if (questionAnswered) return;
+  questionAnswered = true;
+
+  const allOpts = document.querySelectorAll('.q-option');
+  allOpts.forEach(b => {
+    b.disabled = true;
+    const isCorrect = QUESTIONS[questionIdx].options.find(o => o.text === b.textContent)?.correct;
+    if (isCorrect) b.classList.add('correct');
+  });
+
+  if (!opt.correct) btn.classList.add('wrong');
+
+  const fb = document.getElementById('q-feedback');
+  fb.className = 'q-feedback visible' + (opt.correct ? '' : ' wrong-fb');
+  fb.innerHTML = `<strong>${opt.correct ? '🎉 صح!' : '💡 تقريباً!'}</strong>${opt.correct ? q.feedback.correct : q.feedback.wrong}`;
+
+  if (opt.correct) score += 10;
+  document.getElementById('score-val').textContent = score;
+
+  document.getElementById('next-btn').className = 'next-btn visible';
+  questionIdx++;
+}
+
+document.getElementById('next-btn').addEventListener('click', function() {
+  document.getElementById('question-panel').classList.remove('visible');
+  document.getElementById('fire-btn').disabled = false;
+  document.getElementById('status-badge').textContent = 'جاهز للإطلاق';
+  document.getElementById('status-badge').classList.add('ready');
+});
+
+// ── END SCREEN ──
+function showEndScreen(won) {
+  document.getElementById('question-panel').classList.remove('visible');
+  document.getElementById('main-layout').style.display = 'none';
+
+  const end = document.getElementById('end-screen');
+  end.classList.add('visible');
+
+  if (won) {
+    document.getElementById('end-icon').textContent = '🏆';
+    document.getElementById('end-title').textContent = 'هدّيت القلعة!';
+    document.getElementById('end-sub').textContent = 'برافو! فهمت إن الطاقة المتخزنة في الاستيك بتتحول لحركة — وعرفت تستخدمها صح!';
+  } else {
+    const partial = blocksDestroyed > 0;
+    document.getElementById('end-icon').textContent = partial ? '⚡' : '😅';
+    document.getElementById('end-title').textContent = partial ? 'هدّيت جزء منها!' : 'جرب تاني!';
+    document.getElementById('end-sub').textContent = partial
+      ? `هدّيت ${blocksDestroyed} من أجزاء القلعة! المرة الجاية عدّل في اللفات والأشرطة والزاوية.`
+      : 'القلعة صمدت المرة دي! جرب تزود اللفات والأشرطة، وبعدين اضبط الزاوية توجّه الكرة للهدف.';
+  }
+
+  document.getElementById('end-score').textContent = `نقاطك: ${score} ⭐`;
+}
+
+function resetGame() {
+  score = 0;
+  attemptsLeft = 5;
+  blocksDestroyed = 0;
+  questionIdx = 0;
+  animating = false;
+  questionAnswered = false;
+
+  document.getElementById('score-val').textContent = '0';
+  document.getElementById('attempts-left').textContent = '5';
+  document.getElementById('end-screen').classList.remove('visible');
+  document.getElementById('main-layout').style.display = '';
+  document.getElementById('question-panel').classList.remove('visible');
+  document.getElementById('result-line').textContent = '🎯 اضبط الإعدادات وابدأ الإطلاق!';
+  document.getElementById('result-line').style.color = '';
+  document.getElementById('fire-btn').disabled = false;
+  document.getElementById('status-badge').textContent = 'جاهز للإطلاق';
+  document.getElementById('status-badge').classList.remove('ready');
+
+  // Reset sliders
+  document.getElementById('turns').value = 3;
+  document.getElementById('bands').value = 1;
+  document.getElementById('angle').value = 45;
+  document.getElementById('turns-val').textContent = '3';
+  document.getElementById('bands-val').textContent = '1';
+  document.getElementById('angle-val').textContent = '45°';
+
+  init();
+  updateArmAngle();
+  updateBandsVisual();
+  updateTrajectoryPreview();
+}
+
+// ── START ──
+init();
+updateArmAngle();
+updateBandsVisual();
+updateTrajectoryPreview();
+</script>
+
+<script>
+/* Science Street Lab postMessage bridge. Does not change game/simulation logic. */
+(function () {
+  if (window.__sslBridge) return;
+  window.__sslBridge = true;
+  var params = new URLSearchParams(location.search);
+  var activityId = params.get('activityId');
+  var attemptId = params.get('attemptId');
+  var targetOrigin = '*';
+  var started = false;
+  var t0 = Date.now();
+  var completedPosted = false;
+
+  function post(type, extra) {
+    try {
+      var payload = Object.assign({ type: type, activityId: activityId, attemptId: attemptId }, extra || {});
+      parent.postMessage(payload, targetOrigin);
+    } catch (err) {}
+  }
+
+  window.addEventListener('message', function (e) {
+    var d = e.data;
+    if (!d || typeof d !== 'object') return;
+    if (d.type === 'INIT') {
+      if (d.activityId != null) activityId = d.activityId;
+      if (d.attemptId != null) attemptId = d.attemptId;
+      if (d.origin) targetOrigin = d.origin;
+    }
+  });
+
+  function markStarted() {
+    if (started) return;
+    started = true;
+    post('STARTED');
+  }
+
+  function reportProgress(completed, total) {
+    var percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+    post('PROGRESS', { progress: { completed: completed, total: total, percentage: percentage } });
+  }
+
+  function completeActivity(score, maxScore, challenges, total) {
+    if (completedPosted) return;
+    completedPosted = true;
+    post('ACTIVITY_COMPLETED', {
+      result: {
+        score: score,
+        max_score: maxScore,
+        percentage: maxScore > 0 ? Math.round((score / maxScore) * 100) : 100,
+        completed: true,
+        time_spent_seconds: Math.round((Date.now() - t0) / 1000),
+        challenges_completed: challenges,
+        total_challenges: total
+      }
+    });
+  }
+
+  if (typeof window.checkAnswer === 'function') {
+    var original = window.checkAnswer;
+    window.checkAnswer = function (btn, msg) {
+      markStarted();
+      var panel = btn && btn.closest ? btn.closest('.q-panel') : null;
+      var panels = document.querySelectorAll('.q-panel');
+      var step = panel ? Array.prototype.indexOf.call(panels, panel) + 1 : 1;
+      var total = (typeof totalQuestions !== 'undefined' && totalQuestions) ? totalQuestions : (panels.length || 5);
+      post('CHALLENGE_STARTED', { step: step });
+      var already = panel && panel.classList.contains('solved');
+      original.apply(this, arguments);
+      var correct = btn && btn.getAttribute && btn.getAttribute('data-correct') === 'true';
+      post('ANSWER_SUBMITTED', { step: step, correct: !!correct });
+      if (correct && !already) {
+        post('CHALLENGE_COMPLETED', { step: step });
+        var done = (typeof correctAnswersCount !== 'undefined') ? correctAnswersCount : step;
+        reportProgress(done, total);
+        if (done >= total) completeActivity(done * 10, total * 10, done, total);
+      }
+    };
+  }
+
+  function watchEndScreens() {
+    ['endScreen', 'end-screen', 'endscr'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      new MutationObserver(function () {
+        if (el.classList.contains('vis') || el.classList.contains('visible')) {
+          markStarted();
+          var total = (typeof totalQuestions !== 'undefined' && totalQuestions) ? totalQuestions : 5;
+          var done = (typeof correctAnswersCount !== 'undefined') ? correctAnswersCount : total;
+          reportProgress(total, total);
+          completeActivity(done * 10, total * 10, done, total);
+        }
+      }).observe(el, { attributes: true, attributeFilter: ['class'] });
+    });
+  }
+
+  document.addEventListener('click', function () { markStarted(); }, { once: true });
+  document.querySelectorAll('.replay-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () { post('RETRY'); completedPosted = false; });
+  });
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watchEndScreens);
+  else watchEndScreens();
+
+  post('READY');
+})();
+</script>
+
+</body>
+</html>

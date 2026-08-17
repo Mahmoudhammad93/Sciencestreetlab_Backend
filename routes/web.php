@@ -40,6 +40,21 @@ foreach ($redirects as $from => $to) {
 
 Route::get('/', fn () => redirect()->away($frontend, 301));
 
+/*
+|--------------------------------------------------------------------------
+| Sandboxed interactive question assets (no Sanctum session)
+|--------------------------------------------------------------------------
+| Load inside <iframe sandbox="allow-scripts"> from a dedicated origin
+| when possible. Communicates via window.parent.postMessage only.
+*/
+Route::get('/interactive/{uuid}/{path?}', [\App\Modules\Assessment\Http\Controllers\InteractiveActivityController::class, 'show'])
+    ->where('path', '.*')
+    ->name('interactive.activity');
+
+Route::get('/interactive-activities/{uuid}/v{version}/{path?}', [\App\Modules\Assessment\Http\Controllers\InteractiveActivityController::class, 'showPackage'])
+    ->where('path', '.*')
+    ->name('interactive.activity.package');
+
 // SPA fallback for Laravel-served preview (optional)
 Route::get('/app/{any?}', function () {
     return view('spa');

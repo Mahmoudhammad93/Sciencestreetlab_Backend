@@ -22,7 +22,14 @@ final class ShortAnswerGrader implements QuestionGraderInterface
             return false;
         }
 
-        // Manual grading placeholder: accept non-empty for auto-grade in dev
-        return strlen(trim($answer->text_answer)) >= 2;
+        $accepted = AnswerNormalizer::acceptedList($question->answer_key['accepted'] ?? $question->answer_key ?? []);
+
+        if ($accepted === []) {
+            return false;
+        }
+
+        $given = AnswerNormalizer::text($answer->text_answer);
+
+        return in_array($given, $accepted, true);
     }
 }

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Interactive — Select the nucleus</title>
+  <style>
+    :root {
+      --ink: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --brand: #2828a0;
+      --ok: #15803d;
+      --bad: #b91c1c;
+      --bg: #f8fafc;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+      padding: 1.25rem;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    h1 { font-size: 1.15rem; margin: 0 0 0.35rem; }
+    p { margin: 0 0 1rem; color: var(--muted); font-size: 0.95rem; }
+    .opts { display: grid; gap: 0.5rem; margin-bottom: 1rem; }
+    .opt {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.7rem 0.85rem;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      cursor: pointer;
+    }
+    .opt:has(input:checked) {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 2px rgba(40, 40, 160, 0.15);
+    }
+    .actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    button {
+      padding: 0.55rem 0.95rem;
+      border-radius: 8px;
+      border: 0;
+      background: var(--brand);
+      color: #fff;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button.secondary { background: #fff; color: var(--brand); border: 1px solid var(--line); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    #status {
+      margin-top: 1rem;
+      padding: 0.75rem 0.9rem;
+      border-radius: 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      font-size: 0.9rem;
+      min-height: 1.25rem;
+    }
+    #status.ok { border-color: #86efac; background: #f0fdf4; color: var(--ok); }
+    #status.err { border-color: #fecaca; background: #fef2f2; color: var(--bad); }
+    details { margin-top: 0.75rem; color: var(--muted); font-size: 0.75rem; }
+    #log {
+      margin-top: 0.35rem;
+      white-space: pre-wrap;
+      background: #fff;
+      border: 1px solid var(--line);
+      padding: 0.6rem;
+      border-radius: 8px;
+      max-height: 120px;
+      overflow: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>Select the nucleus</h1>
+  <p>Which organelle contains DNA?</p>
+
+  <div class="opts">
+    <label class="opt"><input type="radio" name="a" value="nucleus" /> Nucleus</label>
+    <label class="opt"><input type="radio" name="a" value="mitochondria" /> Mitochondria</label>
+    <label class="opt"><input type="radio" name="a" value="ribosome" /> Ribosome</label>
+  </div>
+
+  <div class="actions">
+    <button type="button" id="start">Start</button>
+    <button type="button" id="submit">Submit answer</button>
+    <button type="button" id="retry" class="secondary">Retry</button>
+  </div>
+
+  <div id="status">Waiting to start…</div>
+
+  <details id="debug-panel" hidden>
+    <summary>Debug events</summary>
+    <div id="log"></div>
+  </details>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const debugMode = params.get('debug') === '1';
+    if (debugMode) {
+      document.getElementById('debug-panel')?.removeAttribute('hidden');
+    }
+    let questionId = params.get('questionId') || '';
+    let attemptId = params.get('attemptId') || '';
+    // Prefer parent origin from INIT; fall back to * so postMessage always works cross-origin
+    let allowedOrigin = params.get('origin') || '*';
+    const logEl = document.getElementById('log');
+    const statusEl = document.getElementById('status');
+    let started = false;
+    let submitted = false;
+
+    function setStatus(text, kind) {
+      statusEl.textContent = text;
+      statusEl.className = kind || '';
+    }
+
+    function log(msg) {
+      if (!debugMode) return;
+      logEl.textContent += msg + '\n';
+    }
+
+    function post(type, extra) {
+      const payload = Object.assign(
+        { type: type, questionId: questionId || null, attemptId: attemptId || null },
+        extra || {}
+      );
+      try {
+        window.parent.postMessage(payload, allowedOrigin);
+      } catch (e) {
+        window.parent.postMessage(payload, '*');
+      }
+      log('→ ' + JSON.stringify(payload));
+    }
+
+    window.addEventListener('message', function (event) {
+      const data = event.data;
+      if (!data || typeof data !== 'object') return;
+      if (data.type === 'INIT') {
+        if (data.questionId) questionId = String(data.questionId);
+        if (data.attemptId) attemptId = String(data.attemptId);
+        if (data.origin) allowedOrigin = String(data.origin);
+        setStatus('Ready — pick an option, then submit.');
+        log('← INIT questionId=' + questionId + ' attemptId=' + attemptId);
+      }
+    });
+
+    post('READY');
+    setStatus('Ready — click Start, pick an option, then submit.');
+
+    document.getElementById('start').onclick = function () {
+      if (started) {
+        setStatus('Already started — select an answer and submit.');
+        return;
+      }
+      started = true;
+      submitted = false;
+      setStatus('Started — select the nucleus, then submit.');
+      post('STARTED');
+    };
+
+    document.getElementById('retry').onclick = function () {
+      started = false;
+      submitted = false;
+      document.querySelectorAll('input[name="a"]').forEach(function (el) {
+        el.checked = false;
+      });
+      setStatus('Reset — click Start to try again.');
+      post('RETRY');
+    };
+
+    document.getElementById('submit').onclick = function () {
+      if (!started) {
+        setStatus('Click Start first.', 'err');
+        post('ERROR', { message: 'Not started' });
+        return;
+      }
+      const selected = document.querySelector('input[name="a"]:checked');
+      if (!selected) {
+        setStatus('Select an option first.', 'err');
+        post('ERROR', { message: 'No option selected' });
+        return;
+      }
+      const answer = { organelle: selected.value };
+      const correct = selected.value === 'nucleus';
+      // clientScore is UNTRUSTED — backend verifies against answer_key
+      post('ANSWER_SUBMITTED', { answer: answer });
+      post('QUESTION_COMPLETED', {
+        answer: answer,
+        clientScore: correct ? 100 : 0,
+        completed: true,
+      });
+      submitted = true;
+      setStatus(
+        correct
+          ? 'Answer sent to the quiz. You can submit the quiz now.'
+          : 'Answer sent (may be incorrect). You can still submit the quiz.',
+        correct ? 'ok' : 'err'
+      );
+    };
+  </script>
+</body>
+</html>

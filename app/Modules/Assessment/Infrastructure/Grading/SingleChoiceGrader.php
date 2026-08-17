@@ -13,7 +13,7 @@ final class SingleChoiceGrader implements QuestionGraderInterface
 {
     public function supports(QuestionType $type): bool
     {
-        return $type === QuestionType::SingleChoice || $type === QuestionType::TrueFalse;
+        return $type === QuestionType::SingleChoice;
     }
 
     public function grade(Question $question, ?QuizAttemptAnswer $answer): bool

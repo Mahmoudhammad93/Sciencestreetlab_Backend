@@ -1,0 +1,7 @@
+body{margin:0;font-family:system-ui,sans-serif;background:#111827;color:#f9fafb;padding:1rem}
+.card{background:#1f2937;border-radius:12px;padding:1rem;margin:0 0 1rem;border:1px solid #374151}
+label{display:block;margin:.5rem 0}input[type=range]{width:100%}
+#canvas{width:100%;height:180px;background:#0b1220;border-radius:10px;position:relative;overflow:hidden}
+#ball{position:absolute;width:28px;height:28px;border-radius:50%;background:#60a5fa;bottom:20px;left:20px;transition:left .15s linear}
+button{background:#8b5cf6;color:#fff;border:0;border-radius:8px;padding:.55rem .9rem;font-weight:700;cursor:pointer;margin-right:.4rem}
+.muted{color:#9ca3af;font-size:.9rem}

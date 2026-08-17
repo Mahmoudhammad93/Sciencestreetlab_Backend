@@ -1,0 +1,821 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>سباق العربية - شارع العلوم</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:Tahoma,"Segoe UI",Arial,sans-serif;
+  background:#07182f;color:#fffaf0;
+  min-height:100vh;display:flex;
+  align-items:center;justify-content:center;padding:10px;
+}
+#game{
+  width:100%;max-width:780px;
+  background:radial-gradient(circle at 10% 15%,rgba(88,222,240,.15),transparent 35%),
+             linear-gradient(145deg,#07182f,#0d4872 55%,#07182f);
+  border:1px solid rgba(255,255,255,.14);border-radius:26px;
+  box-shadow:0 20px 60px rgba(1,8,27,.55);
+  padding:1.1rem;display:grid;gap:.85rem;overflow:hidden;
+}
+
+/* TOP */
+.top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem}
+.brand{display:inline-flex;align-items:center;gap:.4rem;background:#f8d41c;color:#0b1730;
+  border-radius:11px;padding:.45rem .8rem;font-weight:700;font-size:.85rem;white-space:nowrap}
+.pills{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.pill{background:rgba(0,7,24,.6);border:1px solid rgba(255,255,255,.12);border-radius:99px;
+  padding:.28rem .75rem;font-size:.75rem;color:#dbe8f7;display:flex;align-items:center;gap:.3rem}
+.pill b{color:#f8d41c;font-size:.88rem}
+
+/* MISSION */
+.mission{border-right:4px solid #f8d41c;padding:.1rem .85rem .1rem 0}
+.mission small{color:#58def0;font-size:.68rem;display:block;margin-bottom:.1rem}
+.mission h2{font-size:clamp(.95rem,2.8vw,1.45rem);font-weight:600;margin-bottom:.1rem}
+.mission p{color:#cbd8e9;font-size:.78rem}
+
+/* TRACK SCENE */
+.scene{
+  background:linear-gradient(180deg,#87ceeb 0%,#c8e8f8 38%,#c8e8f8 38%,#d4c870 38%,#c8b060 45%,#c8b060 45%,#7a9840 45%,#609030 52%,#609030 100%);
+  border-radius:18px;border:1px solid rgba(255,255,255,.35);
+  padding:.7rem .7rem .5rem;display:grid;gap:.5rem;position:relative;overflow:hidden;
+}
+
+/* sun decoration */
+.scene::before{
+  content:'☀️';position:absolute;top:8px;left:16px;font-size:1.5rem;opacity:.7;
+}
+
+.scene-lbl{display:flex;justify-content:space-between;align-items:center}
+.scene-lbl span{color:#0b3d1a;font-size:.7rem;font-weight:600;background:rgba(255,255,255,.55);
+  padding:.2rem .5rem;border-radius:99px}
+
+/* TRACK SVG wrapper */
+.track-wrap{background:rgba(255,255,255,.12);border-radius:12px;overflow:hidden;position:relative}
+#track-svg{width:100%;height:auto;display:block}
+
+/* CONTROLS */
+.controls{
+  background:rgba(5,18,43,.78);border:1px solid rgba(255,255,255,.14);
+  border-radius:18px;padding:.9rem;display:grid;gap:.7rem
+}
+.ctrl-row{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}
+@media(max-width:500px){.ctrl-row{grid-template-columns:1fr}}
+
+.ctrl-group{display:grid;gap:.28rem}
+.ctrl-lbl{display:flex;justify-content:space-between;align-items:baseline;font-size:.74rem;color:#dbe8f7}
+.ctrl-lbl b{color:#f8d41c;font-size:.86rem}
+
+input[type=range]{
+  -webkit-appearance:none;appearance:none;width:100%;height:5px;
+  border-radius:99px;background:rgba(255,255,255,.15);outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:16px;height:16px;border-radius:50%;
+  background:#f8d41c;border:2px solid #0b1730;cursor:pointer;
+  box-shadow:0 0 5px rgba(248,212,28,.5)
+}
+.rticks{display:flex;justify-content:space-between;font-size:.57rem;color:#6b7c9a;margin-top:-1px}
+
+/* BANDS VISUAL */
+.bands-vis{
+  display:flex;gap:6px;align-items:flex-end;justify-content:center;
+  padding:.3rem .5rem;background:rgba(0,7,24,.4);border-radius:10px;min-height:44px;
+}
+.bv-wrap{display:flex;flex-direction:column;align-items:center;gap:3px}
+.bv-strip{
+  width:12px;border-radius:4px;
+  background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);
+  transition:all .35s ease;
+}
+.bv-strip.on{border-width:2px}
+.bv-strip.c0.on{background:#e04040;border-color:#ff7474;box-shadow:0 0 7px #e0404099;height:32px}
+.bv-strip.c1.on{background:#3137c9;border-color:#6b70f0;box-shadow:0 0 7px #3137c999;height:28px}
+.bv-strip.c2.on{background:#f8d41c;border-color:#ffe96a;box-shadow:0 0 7px #f8d41c99;height:24px}
+.bv-strip:not(.on){height:18px}
+.bv-lbl{font-size:.55rem;color:#6b7c9a}
+
+/* ENERGY BAR */
+.energy-wrap{background:rgba(0,7,24,.5);border:1px solid rgba(88,222,240,.22);
+  border-radius:10px;padding:.5rem .7rem;display:grid;gap:.28rem}
+.energy-top{display:flex;justify-content:space-between;font-size:.67rem}
+.energy-top span{color:#58def0}
+.energy-top b{color:#f8d41c}
+.ebar-track{background:rgba(0,7,24,.6);border-radius:99px;height:9px;overflow:hidden}
+.ebar-fill{height:100%;border-radius:inherit;
+  background:linear-gradient(90deg,#58def0,#f8d41c);transition:width .4s ease;width:5%}
+
+/* GO BTN */
+.go-btn{
+  background:linear-gradient(90deg,#f8d41c,#ffe96a);border:none;border-radius:13px;
+  color:#0b1730;cursor:pointer;font-family:inherit;font-size:1rem;font-weight:700;
+  padding:.68rem;width:100%;transition:transform .15s,box-shadow .15s;
+}
+.go-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 5px 18px rgba(248,212,28,.4)}
+.go-btn:disabled{opacity:.42;cursor:not-allowed;transform:none}
+
+/* RESULT */
+.result-bar{
+  min-height:2em;border-radius:10px;padding:.45rem .8rem;
+  font-size:.82rem;font-weight:500;text-align:center;
+  background:rgba(0,7,24,.45);border:1px solid rgba(255,255,255,.1);
+  transition:all .3s;color:#8a9ab8;
+}
+.result-bar.hit{background:rgba(47,196,174,.15);border-color:#2fc4ae;color:#88f0d6}
+.result-bar.miss{background:rgba(255,185,98,.12);border-color:rgba(255,185,98,.4);color:#ffd087}
+
+/* QUESTION */
+.q-panel{
+  background:rgba(5,18,43,.8);border:1px solid rgba(255,255,255,.14);
+  border-radius:18px;padding:1rem;display:none;flex-direction:column;gap:.6rem;
+}
+.q-panel.vis{display:flex}
+.q-top{display:flex;justify-content:space-between;align-items:center}
+.q-step{color:#aab9d0;font-size:.68rem}
+.q-pts{background:rgba(248,212,28,.15);border:1px solid rgba(248,212,28,.3);
+  border-radius:99px;padding:.2rem .6rem;font-size:.68rem;color:#f8d41c}
+.q-text{color:#fffaf0;font-size:.93rem;font-weight:500;line-height:1.5}
+.q-opts{display:grid;gap:.42rem}
+.q-opt{
+  background:rgba(10,28,57,.85);border:1px solid rgba(255,255,255,.14);
+  border-radius:11px;color:#edf4ff;cursor:pointer;font-family:inherit;font-size:.82rem;
+  padding:.65rem .8rem;text-align:right;transition:background .2s,border-color .2s;width:100%;
+}
+.q-opt:hover:not(:disabled){background:rgba(88,222,240,.1);border-color:#58def0}
+.q-opt.ok{background:rgba(47,196,174,.15);border-color:#2fc4ae;color:#88f0d6}
+.q-opt.no{background:rgba(255,116,116,.12);border-color:#ff7474;color:#ffaaaa}
+.q-opt:disabled{cursor:default}
+.q-fb{border:1px solid rgba(47,196,174,.4);border-radius:9px;color:#c9d6e8;
+  padding:.6rem .8rem;font-size:.79rem;line-height:1.5;display:none}
+.q-fb.vis{display:block}
+.q-fb strong{color:#88f0d6;display:block;margin-bottom:.2rem}
+.q-fb.wfb{border-color:rgba(255,185,98,.45)}
+.q-fb.wfb strong{color:#ffd087}
+.cont-btn{
+  background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);
+  border-radius:10px;color:#fffaf0;cursor:pointer;font-family:inherit;font-size:.82rem;
+  padding:.52rem;display:none;transition:background .2s;
+}
+.cont-btn.vis{display:block}
+.cont-btn:hover{background:rgba(255,255,255,.17)}
+
+/* END */
+.end-screen{
+  display:none;flex-direction:column;align-items:center;gap:.85rem;
+  text-align:center;padding:1.3rem .8rem;
+  background:rgba(5,18,43,.8);border:1px solid rgba(255,255,255,.14);border-radius:18px;
+}
+.end-screen.vis{display:flex}
+.end-icon{font-size:3rem}
+.end-title{font-size:1.4rem;font-weight:700;color:#f8d41c}
+.end-sub{color:#cbd8e9;font-size:.84rem;line-height:1.6;max-width:340px}
+.end-score{font-size:1rem;color:#58def0}
+.replay-btn{
+  background:linear-gradient(90deg,#f8d41c,#ffe96a);border:none;border-radius:11px;
+  color:#0b1730;cursor:pointer;font-family:inherit;font-size:.9rem;font-weight:700;
+  padding:.62rem 1.7rem;transition:transform .15s;
+}
+.replay-btn:hover{transform:translateY(-2px)}
+
+.footer{display:flex;justify-content:space-between;font-size:.65rem;color:#5a6b84}
+
+/* attempts dots */
+.dots{display:flex;gap:4px}
+.dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.18);
+  border:1px solid rgba(255,255,255,.28);transition:all .3s}
+.dot.used{background:#ff7474;border-color:#ff7474}
+.dot.active{background:#f8d41c;border-color:#f8d41c;box-shadow:0 0 6px #f8d41c88}
+</style>
+</head>
+<body>
+<div id="game">
+
+<!-- TOP -->
+<div class="top">
+  <div class="brand">🔬 شارع العلوم</div>
+  <div class="pills">
+    <div class="pill">⭐ <b id="sc">0</b></div>
+    <div class="pill">🔁 محاولات <b id="aleft">5</b></div>
+    <div class="dots" id="dots"></div>
+  </div>
+</div>
+
+<!-- MISSION -->
+<div class="mission">
+  <small>🏎️ سباق العربية</small>
+  <h2>خلّي العربية توصل لخط النهاية!</h2>
+  <p>اضبط اللفات والأشرطة — وشوف الطاقة بتتغير</p>
+</div>
+
+<!-- TRACK SCENE -->
+<div class="scene">
+  <div class="scene-lbl">
+    <span>🏁 التراك</span>
+    <span id="dist-lbl">المسافة: —</span>
+  </div>
+
+  <div class="track-wrap">
+    <svg id="track-svg" viewBox="0 0 600 130" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="road" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#555"/>
+          <stop offset="100%" stop-color="#444"/>
+        </linearGradient>
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="140%">
+          <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity="0.3"/>
+        </filter>
+        <filter id="glow2">
+          <feGaussianBlur stdDeviation="2.5" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <!-- Sky strip -->
+      <rect x="0" y="0" width="600" height="55" fill="#87ceeb" rx="10"/>
+      <!-- Clouds -->
+      <ellipse cx="80" cy="20" rx="30" ry="12" fill="white" opacity=".7"/>
+      <ellipse cx="100" cy="16" rx="22" ry="10" fill="white" opacity=".7"/>
+      <ellipse cx="300" cy="25" rx="25" ry="10" fill="white" opacity=".6"/>
+      <ellipse cx="500" cy="18" rx="28" ry="11" fill="white" opacity=".65"/>
+
+      <!-- Grass -->
+      <rect x="0" y="55" width="600" height="75" fill="#5a8a30" rx="0"/>
+      <rect x="0" y="55" width="600" height="12" fill="#70a840"/>
+
+      <!-- Road surface -->
+      <rect x="0" y="72" width="600" height="40" fill="url(#road)"/>
+      <!-- Road edge lines -->
+      <line x1="0" y1="72" x2="600" y2="72" stroke="#fff" stroke-width="2" stroke-dasharray="20 10" opacity=".5"/>
+      <line x1="0" y1="112" x2="600" y2="112" stroke="#fff" stroke-width="2" stroke-dasharray="20 10" opacity=".5"/>
+      <!-- Center dashes -->
+      <line x1="0" y1="92" x2="600" y2="92" stroke="#f8d41c" stroke-width="1.5" stroke-dasharray="30 15" opacity=".6"/>
+
+      <!-- START gate -->
+      <rect x="0" y="62" width="8" height="52" fill="#e04040"/>
+      <text x="12" y="70" font-size="9" fill="#fff" font-family="Tahoma,Arial" font-weight="bold">START</text>
+      <!-- Catapult gate visual -->
+      <rect x="2" y="74" width="6" height="6" rx="2" fill="#f8d41c"/>
+      <!-- Bands on gate — drawn by JS -->
+      <g id="gate-bands"></g>
+
+      <!-- FINISH line -->
+      <g id="finish-group">
+        <rect x="554" y="62" width="8" height="52" fill="#fff"/>
+        <!-- Checkered pattern -->
+        <rect x="554" y="62" width="4" height="8" fill="#000"/>
+        <rect x="558" y="70" width="4" height="8" fill="#000"/>
+        <rect x="554" y="78" width="4" height="8" fill="#000"/>
+        <rect x="558" y="86" width="4" height="8" fill="#000"/>
+        <rect x="554" y="94" width="4" height="8" fill="#000"/>
+        <rect x="558" y="102" width="4" height="8" fill="#000"/>
+        <!-- FINISH text -->
+        <text x="536" y="70" font-size="8" fill="#fff" font-family="Tahoma,Arial" font-weight="bold">FINISH</text>
+        <!-- Bell -->
+        <text x="540" y="100" font-size="18" filter="url(#shadow)">🔔</text>
+      </g>
+
+      <!-- Distance markers -->
+      <g fill="#aaa" font-size="8" text-anchor="middle" font-family="Tahoma,Arial">
+        <line x1="150" y1="112" x2="150" y2="118" stroke="#aaa" stroke-width="1"/>
+        <text x="150" y="126">25%</text>
+        <line x1="300" y1="112" x2="300" y2="118" stroke="#aaa" stroke-width="1"/>
+        <text x="300" y="126">50%</text>
+        <line x1="450" y1="112" x2="450" y2="118" stroke="#aaa" stroke-width="1"/>
+        <text x="450" y="126">75%</text>
+      </g>
+
+      <!-- CAR -->
+      <g id="car" style="transform:translateX(10px)">
+        <!-- Body -->
+        <rect x="0" y="78" width="48" height="22" rx="6" fill="#e04040" filter="url(#shadow)"/>
+        <!-- Roof -->
+        <rect x="8" y="68" width="28" height="13" rx="5" fill="#c02020"/>
+        <!-- Windows -->
+        <rect x="11" y="70" width="10" height="9" rx="2" fill="#87ceeb" opacity=".85"/>
+        <rect x="24" y="70" width="10" height="9" rx="2" fill="#87ceeb" opacity=".85"/>
+        <!-- Wheels -->
+        <circle cx="10" cy="100" r="8" fill="#222" stroke="#555" stroke-width="1.5"/>
+        <circle cx="10" cy="100" r="4" fill="#777"/>
+        <circle cx="38" cy="100" r="8" fill="#222" stroke="#555" stroke-width="1.5"/>
+        <circle cx="38" cy="100" r="4" fill="#777"/>
+        <!-- Headlight -->
+        <rect x="44" y="83" width="4" height="6" rx="1" fill="#ffe96a" opacity=".9"/>
+        <!-- Stars / speed lines (hidden by default) -->
+        <g id="speed-lines" opacity="0">
+          <line x1="-5" y1="82" x2="-18" y2="82" stroke="#f8d41c" stroke-width="2" stroke-linecap="round"/>
+          <line x1="-5" y1="88" x2="-22" y2="88" stroke="#f8d41c" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="-5" y1="94" x2="-16" y2="94" stroke="#f8d41c" stroke-width="2" stroke-linecap="round"/>
+        </g>
+        <!-- Smoke puffs (shown while moving) -->
+        <g id="smoke" opacity="0">
+          <circle cx="-5" cy="95" r="5" fill="#ccc" opacity=".5"/>
+          <circle cx="-12" cy="92" r="4" fill="#ccc" opacity=".35"/>
+          <circle cx="-18" cy="89" r="3" fill="#ccc" opacity=".2"/>
+        </g>
+      </g>
+
+      <!-- IMPACT celebration -->
+      <g id="celebrate" visibility="hidden">
+        <text id="cel-stars" x="530" y="75" font-size="20" opacity="0">🎉</text>
+      </g>
+    </svg>
+  </div>
+
+  <div class="result-bar" id="rbar">🎯 اضبط الإعدادات واضغط انطلق!</div>
+</div>
+
+<!-- CONTROLS -->
+<div class="controls">
+  <div class="ctrl-row">
+    <!-- Turns -->
+    <div class="ctrl-group">
+      <div class="ctrl-lbl"><span>🔁 عدد اللفات</span><b id="tv">3</b></div>
+      <input type="range" id="turns" min="1" max="9" value="3" step="1">
+      <div class="rticks"><span>١</span><span>٣</span><span>٥</span><span>٧</span><span>٩</span></div>
+    </div>
+    <!-- Bands -->
+    <div class="ctrl-group">
+      <div class="ctrl-lbl"><span>🔴 عدد الأشرطة</span><b id="bv">1</b></div>
+      <input type="range" id="bands" min="1" max="3" value="1" step="1">
+      <div class="rticks"><span>١</span><span>٢</span><span>٣</span></div>
+      <!-- Visual strip indicators -->
+      <div class="bands-vis" id="bvis">
+        <div class="bv-wrap"><div class="bv-strip c0 on" id="bs0"></div><div class="bv-lbl">١</div></div>
+        <div class="bv-wrap"><div class="bv-strip c1" id="bs1"></div><div class="bv-lbl">٢</div></div>
+        <div class="bv-wrap"><div class="bv-strip c2" id="bs2"></div><div class="bv-lbl">٣</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Energy -->
+  <div class="energy-wrap">
+    <div class="energy-top">
+      <span>⚡ الطاقة المختزنة في الأشرطة</span>
+      <b id="etxt">قليلة</b>
+    </div>
+    <div class="ebar-track"><div class="ebar-fill" id="efill"></div></div>
+  </div>
+
+  <button class="go-btn" id="gobtn">🚀 انطلق!</button>
+</div>
+
+<!-- QUESTION -->
+<div class="q-panel" id="qpanel">
+  <div class="q-top">
+    <span class="q-step" id="qstep">سؤال ١ من ٣</span>
+    <span class="q-pts">+١٠ نقطة للإجابة الصح ✨</span>
+  </div>
+  <div class="q-text" id="qtext"></div>
+  <div class="q-opts" id="qopts"></div>
+  <div class="q-fb" id="qfb"></div>
+  <button class="cont-btn" id="contbtn">← العب تاني</button>
+</div>
+
+<!-- END -->
+<div class="end-screen" id="endscr">
+  <div class="end-icon" id="eico">🏆</div>
+  <div class="end-title" id="etit"></div>
+  <div class="end-sub" id="esub"></div>
+  <div class="end-score" id="esc"></div>
+  <button class="replay-btn" onclick="reset()">🔄 العب تاني</button>
+</div>
+
+<div class="footer">
+  <span>🔬 مختبر شارع العلوم</span>
+  <span>طاقة الوضع المرنة 💪</span>
+</div>
+</div><!-- /game -->
+
+<script>
+/* ───────── QUESTIONS ───────── */
+const QS=[
+  {
+    t:"لما زودنا مسافة شد الشريط المطاطي، إيه اللي حصل للعربية؟",
+    opts:[
+      {txt:"مشت مسافة أطول — لأن الشريط خزّن طاقة أكتر",ok:true},
+      {txt:"مشت مسافة أقصر — الشد الزيادة بيبطّل الطاقة",ok:false},
+      {txt:"نفس المسافة — مسافة الشد ما بتفرقش",ok:false},
+    ],
+    fb:{ok:"✅ صح! كل ما شدينا أكتر، الشريط غيّر شكله أكتر وخزّن طاقة أكتر — فالعربية مشت أبعد!",
+        no:"❌ فكر تاني! مسافة الشد بتحدد قد إيه طاقة بتتخزن في الشريط."}
+  },
+  {
+    t:"لما حطينا شريطين بدل شريط واحد بنفس مسافة الشد، إيه اللي اتغير؟",
+    opts:[
+      {txt:"الطاقة اتضاعفت — لأن كل شريط بيخزن طاقته",ok:true},
+      {txt:"الطاقة اتقسمت بينهم — يعني كل واحد أضعف",ok:false},
+      {txt:"ما اتغيرش حاجة — الطاقة من مسافة الشد بس",ok:false},
+    ],
+    fb:{ok:"✅ برافو! كل شريط بيخزن طاقته لوحده — زي حصالتين بدل واحدة. الطاقة بتتجمع!",
+        no:"❌ مش كده! الأشرطة مش بتتقاسم الطاقة — كل واحد منهم بيضيف طاقته الخاصة."}
+  },
+  {
+    t:"إيه الاسم الصح للطاقة اللي بتتخزن في الشريط المطاطي لما بنشده؟",
+    opts:[
+      {txt:"طاقة الوضع المرنة",ok:true},
+      {txt:"طاقة الحركة",ok:false},
+      {txt:"طاقة الاحتكاك",ok:false},
+    ],
+    fb:{ok:"✅ ممتاز! طاقة الوضع المرنة هي الطاقة المختزنة في الأجسام المرنة لما بيتغير شكلها بالشد أو الضغط.",
+        no:"❌ مش كده! الطاقة دي اسمها طاقة الوضع المرنة — لأنها موجودة في 'وضع' الجسم المرن وهو متشدود."}
+  }
+];
+
+/* ───────── STATE ───────── */
+let score=0,attLeft=5,qIdx=0,busy=false,won=false;
+let carX=10; // current car SVG x offset
+
+/* ───────── INIT ───────── */
+function init(){
+  carX=10;
+  moveCar(10,false);
+  document.getElementById('celebrate').setAttribute('visibility','hidden');
+  document.getElementById('rbar').textContent='🎯 اضبط الإعدادات واضغط انطلق!';
+  document.getElementById('rbar').className='result-bar';
+  document.getElementById('dist-lbl').textContent='المسافة: —';
+  renderDots();
+  updateAll();
+}
+
+function renderDots(){
+  const el=document.getElementById('dots');
+  el.innerHTML='';
+  for(let i=0;i<5;i++){
+    const d=document.createElement('div');
+    d.className='dot';d.id='dot'+i;
+    el.appendChild(d);
+  }
+  updateDots();
+}
+function updateDots(){
+  const used=5-attLeft;
+  for(let i=0;i<5;i++){
+    const d=document.getElementById('dot'+i);
+    if(!d)return;
+    d.className='dot';
+    if(i<used)d.classList.add('used');
+    else if(i===used&&attLeft>0)d.classList.add('active');
+  }
+}
+
+/* ───────── SLIDERS ───────── */
+document.getElementById('turns').addEventListener('input',function(){
+  document.getElementById('tv').textContent=this.value;
+  updateAll();
+});
+document.getElementById('bands').addEventListener('input',function(){
+  document.getElementById('bv').textContent=this.value;
+  updateAll();
+});
+
+function updateAll(){
+  updateEnergy();
+  updateBandStrips();
+  updateGateBands();
+}
+
+function calcEnergy(){
+  const t=+document.getElementById('turns').value;
+  const b=+document.getElementById('bands').value;
+  return Math.min(100,(t/9)*60+(b/3)*40);
+}
+
+function updateEnergy(){
+  const e=calcEnergy();
+  document.getElementById('efill').style.width=e+'%';
+  const lbls=['ضعيفة جداً','ضعيفة','متوسطة','قوية','قوية جداً! 💥'];
+  document.getElementById('etxt').textContent=lbls[Math.min(4,Math.floor(e/21))];
+}
+
+function updateBandStrips(){
+  const b=+document.getElementById('bands').value;
+  for(let i=0;i<3;i++){
+    document.getElementById('bs'+i).className='bv-strip c'+i+(i<b?' on':'');
+  }
+}
+
+/* Draw rubber bands on the gate in SVG */
+function updateGateBands(){
+  const b=+document.getElementById('bands').value;
+  const t=+document.getElementById('turns').value;
+  const g=document.getElementById('gate-bands');
+  const cols=['#e04040','#3137c9','#f8d41c'];
+  const strk=['#ff7474','#7b80f0','#ffe96a'];
+  let html='';
+  for(let i=0;i<b;i++){
+    const yo=i*5;
+    const tension=0.5+t*0.05;
+    const w=2+i*0.4;
+    // Band from top anchor through gate post to bottom
+    html+=`
+      <path d="M4,${74+yo} Q${-8-tension*4},${80+yo} 4,${88+yo}"
+        fill="none" stroke="${cols[i]}" stroke-width="${w}"
+        stroke-linecap="round" filter="url(#glow2)" opacity=".9"/>
+      <circle cx="4" cy="${74+yo}" r="2.5" fill="${cols[i]}" opacity=".85"/>
+      <circle cx="4" cy="${88+yo}" r="2.5" fill="${cols[i]}" opacity=".85"/>
+    `;
+  }
+  g.innerHTML=html;
+}
+
+/* ───────── CAR MOVEMENT ───────── */
+function moveCar(x,animate=true){
+  const car=document.getElementById('car');
+  if(animate){
+    car.style.transition='transform .05s linear';
+  } else {
+    car.style.transition='none';
+  }
+  car.style.transform=`translateX(${x}px)`;
+}
+
+/* ───────── GO ───────── */
+document.getElementById('gobtn').addEventListener('click',go);
+
+function go(){
+  if(busy||attLeft<=0)return;
+  busy=true;
+  document.getElementById('gobtn').disabled=true;
+
+  const energy=calcEnergy();
+  // Car travel distance: 0-540 px (track is ~540px usable, finish at ~550)
+  const travelPx=Math.min(545, Math.max(30, energy*5.45));
+  const finishPx=545;
+  const reachedFinish=travelPx>=finishPx;
+
+  // Show speed lines & smoke while moving
+  document.getElementById('speed-lines').style.opacity='1';
+  document.getElementById('smoke').style.opacity='1';
+
+  // Animate car
+  const fps=60,dur=Math.max(600,travelPx*1.2);
+  const startX=10, endX=10+travelPx;
+  const start=performance.now();
+
+  function frame(now){
+    const p=Math.min(1,(now-start)/dur);
+    // Ease out
+    const ep=1-Math.pow(1-p,2);
+    const cx=startX+(endX-startX)*ep;
+    moveCar(cx,false);
+    // Wheel spin effect via slight oscillation
+    if(p<1){requestAnimationFrame(frame)}
+    else{onStop(endX,reachedFinish,travelPx,finishPx)}
+  }
+  requestAnimationFrame(frame);
+}
+
+function onStop(endX,reached,travelPx,finishPx){
+  carX=endX;
+  document.getElementById('speed-lines').style.opacity='0';
+  document.getElementById('smoke').style.opacity='0';
+
+  const pct=Math.round((travelPx/finishPx)*100);
+  document.getElementById('dist-lbl').textContent=`المسافة: ${pct}% من الطريق`;
+
+  const rb=document.getElementById('rbar');
+
+  if(reached){
+    rb.className='result-bar hit';
+    rb.innerHTML='🔔 وصلنا! العربية ضربت الجرس! 🎉';
+    won=true;
+    score+=20;
+    document.getElementById('sc').textContent=score;
+    // Celebrate
+    const cel=document.getElementById('celebrate');
+    cel.setAttribute('visibility','visible');
+    const stars=document.getElementById('cel-stars');
+    let frame=0;
+    const ca=setInterval(()=>{
+      frame++;
+      stars.setAttribute('x',530+(Math.sin(frame)*8));
+      stars.setAttribute('opacity',Math.max(0,1-frame/20));
+      if(frame>=20){clearInterval(ca);cel.setAttribute('visibility','hidden');}
+    },60);
+  } else if(travelPx<finishPx*0.4){
+    rb.className='result-bar miss';
+    rb.innerHTML='😅 الطاقة قليلة — زود اللفات أو الأشرطة!';
+  } else if(travelPx<finishPx*0.75){
+    rb.className='result-bar miss';
+    rb.innerHTML='⚡ قريب! زود شوية طاقة كمان!';
+  } else {
+    rb.className='result-bar miss';
+    rb.innerHTML='😬 لسه شوية — تقدر تعمل كده؟';
+  }
+
+  attLeft--;
+  document.getElementById('aleft').textContent=attLeft;
+  updateDots();
+
+  // Reset car to start after short delay, then show question or end
+  setTimeout(()=>{
+    moveCar(10,true);
+    setTimeout(()=>{
+      busy=false;
+      if(won){showEnd(true);return;}
+      if(attLeft<=0){showEnd(false);return;}
+      if(qIdx<QS.length) showQ();
+      else{
+        document.getElementById('gobtn').disabled=false;
+      }
+    },600);
+  },1200);
+}
+
+/* ───────── QUESTIONS ───────── */
+function showQ(){
+  const q=QS[qIdx];
+  const panel=document.getElementById('qpanel');
+  panel.classList.add('vis');
+  document.getElementById('qstep').textContent=`سؤال ${qIdx+1} من ${QS.length}`;
+  document.getElementById('qtext').textContent=q.t;
+
+  const od=document.getElementById('qopts');
+  od.innerHTML='';
+  q.opts.forEach(opt=>{
+    const btn=document.createElement('button');
+    btn.className='q-opt';
+    btn.textContent=opt.txt;
+    btn.onclick=()=>answer(opt,btn,q);
+    od.appendChild(btn);
+  });
+  document.getElementById('qfb').className='q-fb';
+  document.getElementById('qfb').innerHTML='';
+  document.getElementById('contbtn').className='cont-btn';
+}
+
+let qAnswered=false;
+function answer(opt,btn,q){
+  if(qAnswered)return;
+  qAnswered=true;
+
+  document.querySelectorAll('.q-opt').forEach(b=>{
+    b.disabled=true;
+    const isOk=QS[qIdx].opts.find(o=>o.txt===b.textContent)?.ok;
+    if(isOk)b.classList.add('ok');
+  });
+  if(!opt.ok)btn.classList.add('no');
+
+  const fb=document.getElementById('qfb');
+  fb.className='q-fb vis'+(opt.ok?'':' wfb');
+  fb.innerHTML=`<strong>${opt.ok?'🎉 صح!':'💡 تقريباً!'}</strong>${opt.ok?q.fb.ok:q.fb.no}`;
+
+  if(opt.ok){score+=10;document.getElementById('sc').textContent=score;}
+  document.getElementById('contbtn').className='cont-btn vis';
+  qIdx++;
+}
+
+document.getElementById('contbtn').addEventListener('click',()=>{
+  qAnswered=false;
+  document.getElementById('qpanel').classList.remove('vis');
+  document.getElementById('gobtn').disabled=false;
+});
+
+/* ───────── END ───────── */
+function showEnd(w){
+  document.getElementById('qpanel').classList.remove('vis');
+  document.getElementById('endscr').classList.add('vis');
+  document.getElementById('gobtn').disabled=true;
+
+  if(w){
+    document.getElementById('eico').textContent='🏆';
+    document.getElementById('etit').textContent='وصلنا لخط النهاية!';
+    document.getElementById('esub').textContent='برافو! فهمت إن الطاقة المختزنة في الشريط المطاطي هي اللي بتحرك العربية — وعرفت ازاي تزودها!';
+  } else {
+    const pct=Math.round(((carX-10)/545)*100);
+    document.getElementById('eico').textContent=pct>50?'⚡':'😅';
+    document.getElementById('etit').textContent=pct>50?'وصلت جزء كبير!':'القلعة صمدت!';
+    document.getElementById('esub').textContent=`وصلت ${pct}% من الطريق! المرة الجاية جرب تزود اللفات والأشرطة مع بعض عشان تخزن أكبر طاقة ممكنة.`;
+  }
+  document.getElementById('esc').textContent=`نقاطك: ${score} ⭐`;
+}
+
+function reset(){
+  score=0;attLeft=5;qIdx=0;busy=false;won=false;qAnswered=false;
+  document.getElementById('sc').textContent='0';
+  document.getElementById('aleft').textContent='5';
+  document.getElementById('endscr').classList.remove('vis');
+  document.getElementById('qpanel').classList.remove('vis');
+  document.getElementById('gobtn').disabled=false;
+  document.getElementById('turns').value=3;
+  document.getElementById('bands').value=1;
+  document.getElementById('tv').textContent='3';
+  document.getElementById('bv').textContent='1';
+  init();
+}
+
+/* ───────── START ───────── */
+init();
+</script>
+
+<script>
+/* Science Street Lab postMessage bridge. Does not change game/simulation logic. */
+(function () {
+  if (window.__sslBridge) return;
+  window.__sslBridge = true;
+  var params = new URLSearchParams(location.search);
+  var activityId = params.get('activityId');
+  var attemptId = params.get('attemptId');
+  var targetOrigin = '*';
+  var started = false;
+  var t0 = Date.now();
+  var completedPosted = false;
+
+  function post(type, extra) {
+    try {
+      var payload = Object.assign({ type: type, activityId: activityId, attemptId: attemptId }, extra || {});
+      parent.postMessage(payload, targetOrigin);
+    } catch (err) {}
+  }
+
+  window.addEventListener('message', function (e) {
+    var d = e.data;
+    if (!d || typeof d !== 'object') return;
+    if (d.type === 'INIT') {
+      if (d.activityId != null) activityId = d.activityId;
+      if (d.attemptId != null) attemptId = d.attemptId;
+      if (d.origin) targetOrigin = d.origin;
+    }
+  });
+
+  function markStarted() {
+    if (started) return;
+    started = true;
+    post('STARTED');
+  }
+
+  function reportProgress(completed, total) {
+    var percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+    post('PROGRESS', { progress: { completed: completed, total: total, percentage: percentage } });
+  }
+
+  function completeActivity(score, maxScore, challenges, total) {
+    if (completedPosted) return;
+    completedPosted = true;
+    post('ACTIVITY_COMPLETED', {
+      result: {
+        score: score,
+        max_score: maxScore,
+        percentage: maxScore > 0 ? Math.round((score / maxScore) * 100) : 100,
+        completed: true,
+        time_spent_seconds: Math.round((Date.now() - t0) / 1000),
+        challenges_completed: challenges,
+        total_challenges: total
+      }
+    });
+  }
+
+  if (typeof window.checkAnswer === 'function') {
+    var original = window.checkAnswer;
+    window.checkAnswer = function (btn, msg) {
+      markStarted();
+      var panel = btn && btn.closest ? btn.closest('.q-panel') : null;
+      var panels = document.querySelectorAll('.q-panel');
+      var step = panel ? Array.prototype.indexOf.call(panels, panel) + 1 : 1;
+      var total = (typeof totalQuestions !== 'undefined' && totalQuestions) ? totalQuestions : (panels.length || 5);
+      post('CHALLENGE_STARTED', { step: step });
+      var already = panel && panel.classList.contains('solved');
+      original.apply(this, arguments);
+      var correct = btn && btn.getAttribute && btn.getAttribute('data-correct') === 'true';
+      post('ANSWER_SUBMITTED', { step: step, correct: !!correct });
+      if (correct && !already) {
+        post('CHALLENGE_COMPLETED', { step: step });
+        var done = (typeof correctAnswersCount !== 'undefined') ? correctAnswersCount : step;
+        reportProgress(done, total);
+        if (done >= total) completeActivity(done * 10, total * 10, done, total);
+      }
+    };
+  }
+
+  function watchEndScreens() {
+    ['endScreen', 'end-screen', 'endscr'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      new MutationObserver(function () {
+        if (el.classList.contains('vis') || el.classList.contains('visible')) {
+          markStarted();
+          var total = (typeof totalQuestions !== 'undefined' && totalQuestions) ? totalQuestions : 5;
+          var done = (typeof correctAnswersCount !== 'undefined') ? correctAnswersCount : total;
+          reportProgress(total, total);
+          completeActivity(done * 10, total * 10, done, total);
+        }
+      }).observe(el, { attributes: true, attributeFilter: ['class'] });
+    });
+  }
+
+  document.addEventListener('click', function () { markStarted(); }, { once: true });
+  document.querySelectorAll('.replay-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () { post('RETRY'); completedPosted = false; });
+  });
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watchEndScreens);
+  else watchEndScreens();
+
+  post('READY');
+})();
+</script>
+
+</body>
+</html>

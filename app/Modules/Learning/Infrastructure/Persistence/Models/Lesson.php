@@ -44,4 +44,14 @@ class Lesson extends Model
     {
         return $this->morphMany(\App\Modules\Assessment\Infrastructure\Persistence\Models\Quiz::class, 'quizable');
     }
+
+    public function questionBanks(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Modules\Assessment\Infrastructure\Persistence\Models\QuestionBank::class);
+    }
+
+    public function interactiveActivities(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Modules\Assessment\Infrastructure\Persistence\Models\InteractiveActivity::class);
+    }
 }

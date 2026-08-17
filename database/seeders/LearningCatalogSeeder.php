@@ -33,6 +33,14 @@ final class LearningCatalogSeeder extends Seeder
 {
     private const IMAGE = 'https://sciencestreetlab.com/wp-content/uploads/2026/01/download-37.jpg';
 
+    /** Public sample MP4s that remain reachable (Google gtv bucket now returns 403). */
+    private const SAMPLE_VIDEOS = [
+        'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4',
+        'https://media.w3.org/2010/05/sintel/trailer.mp4',
+        'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4',
+        'https://download.samplelib.com/mp4/sample-5s.mp4',
+    ];
+
     private CertificateTemplate $certificateTemplate;
 
     public function run(): void
@@ -349,7 +357,7 @@ final class LearningCatalogSeeder extends Seeder
                     [
                         'slug' => 'what-is-microscope',
                         'title' => ['ar' => 'ما هو الميكروسكوب؟', 'en' => 'What is a microscope?'],
-                        'video_url' => 'https://example.com/videos/microscope-intro.mp4',
+                        'video_url' => self::SAMPLE_VIDEOS[0],
                         'content' => ['ar' => 'شرح الجهاز', 'en' => 'Device overview'],
                     ],
                 ],
@@ -382,7 +390,7 @@ final class LearningCatalogSeeder extends Seeder
                     [
                         'slug' => 'what-is-stem',
                         'title' => ['ar' => 'ما هو STEM؟', 'en' => 'What is STEM?'],
-                        'video_url' => 'https://example.com/videos/stem-intro.mp4',
+                        'video_url' => self::SAMPLE_VIDEOS[1],
                     ],
                 ],
                 'quiz' => [
@@ -411,7 +419,7 @@ final class LearningCatalogSeeder extends Seeder
                     [
                         'slug' => 'current-voltage',
                         'title' => ['ar' => 'التيار والجهد', 'en' => 'Current and voltage'],
-                        'video_url' => 'https://example.com/videos/electricity-1.mp4',
+                        'video_url' => self::SAMPLE_VIDEOS[2],
                     ],
                 ],
                 'quiz' => [
@@ -440,12 +448,12 @@ final class LearningCatalogSeeder extends Seeder
                     [
                         'slug' => 'assemble-parts',
                         'title' => ['ar' => 'تجميع الأجزاء', 'en' => 'Assemble parts'],
-                        'video_url' => 'https://example.com/videos/electricity-assemble.mp4',
+                        'video_url' => self::SAMPLE_VIDEOS[3],
                     ],
                     [
                         'slug' => 'test-output',
                         'title' => ['ar' => 'اختبار الخرج', 'en' => 'Test output'],
-                        'video_url' => 'https://example.com/videos/electricity-test.mp4',
+                        'video_url' => self::SAMPLE_VIDEOS[0],
                     ],
                 ],
             ],
@@ -461,12 +469,12 @@ final class LearningCatalogSeeder extends Seeder
                     [
                         'slug' => 'ratio-basics',
                         'title' => ['ar' => 'أساسيات النسبة', 'en' => 'Ratio basics'],
-                        'video_url' => 'https://example.com/videos/gears-1.mp4',
+                        'video_url' => self::SAMPLE_VIDEOS[1],
                     ],
                     [
                         'slug' => 'build-truck',
                         'title' => ['ar' => 'بناء الشاحنة', 'en' => 'Build the truck'],
-                        'video_url' => 'https://example.com/videos/gears-2.mp4',
+                        'video_url' => self::SAMPLE_VIDEOS[2],
                     ],
                 ],
                 'quiz' => [
@@ -498,7 +506,7 @@ final class LearningCatalogSeeder extends Seeder
                     [
                         'slug' => 'lab-dos-donts',
                         'title' => ['ar' => 'افعل ولا تفعل', 'en' => 'Dos and don\'ts'],
-                        'video_url' => 'https://example.com/videos/safety.mp4',
+                        'video_url' => self::SAMPLE_VIDEOS[3],
                     ],
                 ],
                 'quiz' => [
@@ -530,7 +538,7 @@ final class LearningCatalogSeeder extends Seeder
                     [
                         'slug' => 'brainstorm',
                         'title' => ['ar' => 'عصف ذهني', 'en' => 'Brainstorm'],
-                        'video_url' => 'https://example.com/videos/creative-1.mp4',
+                        'video_url' => self::SAMPLE_VIDEOS[0],
                         'content' => ['ar' => 'اكتب 10 أفكار', 'en' => 'Write 10 ideas'],
                     ],
                 ],
@@ -543,7 +551,7 @@ final class LearningCatalogSeeder extends Seeder
                     [
                         'slug' => 'build-rough-model',
                         'title' => ['ar' => 'بناء نموذج أولي', 'en' => 'Build a rough model'],
-                        'video_url' => 'https://example.com/videos/creative-2.mp4',
+                        'video_url' => self::SAMPLE_VIDEOS[1],
                     ],
                     [
                         'slug' => 'share-story',
@@ -565,7 +573,7 @@ final class LearningCatalogSeeder extends Seeder
                     [
                         'slug' => 'user-interview',
                         'title' => ['ar' => 'مقابلة المستخدم', 'en' => 'User interview'],
-                        'video_url' => 'https://example.com/videos/design-1.mp4',
+                        'video_url' => self::SAMPLE_VIDEOS[2],
                     ],
                 ],
                 'quiz' => [
@@ -593,12 +601,12 @@ final class LearningCatalogSeeder extends Seeder
                     [
                         'slug' => 'low-fi-prototype',
                         'title' => ['ar' => 'نموذج منخفض الدقة', 'en' => 'Low-fi prototype'],
-                        'video_url' => 'https://example.com/videos/design-2.mp4',
+                        'video_url' => self::SAMPLE_VIDEOS[3],
                     ],
                     [
                         'slug' => 'feedback-loop',
                         'title' => ['ar' => 'حلقة الملاحظات', 'en' => 'Feedback loop'],
-                        'video_url' => 'https://example.com/videos/design-3.mp4',
+                        'video_url' => self::SAMPLE_VIDEOS[0],
                     ],
                 ],
             ],
@@ -614,7 +622,7 @@ final class LearningCatalogSeeder extends Seeder
                     [
                         'slug' => 'what-is-a-robot',
                         'title' => ['ar' => 'ما هو الروبوت؟', 'en' => 'What is a robot?'],
-                        'video_url' => 'https://example.com/videos/robot-1.mp4',
+                        'video_url' => self::SAMPLE_VIDEOS[1],
                     ],
                 ],
             ],
@@ -630,7 +638,7 @@ final class LearningCatalogSeeder extends Seeder
                     [
                         'slug' => 'atom-model',
                         'title' => ['ar' => 'نموذج الذرة', 'en' => 'Atom model'],
-                        'video_url' => 'https://example.com/videos/chem-1.mp4',
+                        'video_url' => self::SAMPLE_VIDEOS[2],
                     ],
                 ],
                 'quiz' => [
@@ -662,7 +670,7 @@ final class LearningCatalogSeeder extends Seeder
                     [
                         'slug' => 'wavelength',
                         'title' => ['ar' => 'الطول الموجي', 'en' => 'Wavelength'],
-                        'video_url' => 'https://example.com/videos/optics-1.mp4',
+                        'video_url' => self::SAMPLE_VIDEOS[3],
                     ],
                 ],
                 'quiz' => [
@@ -690,12 +698,12 @@ final class LearningCatalogSeeder extends Seeder
                     [
                         'slug' => 'convex-concave',
                         'title' => ['ar' => 'محدبة ومقعرة', 'en' => 'Convex and concave'],
-                        'video_url' => 'https://example.com/videos/optics-2.mp4',
+                        'video_url' => self::SAMPLE_VIDEOS[0],
                     ],
                     [
                         'slug' => 'image-formation',
                         'title' => ['ar' => 'تكوين الصورة', 'en' => 'Image formation'],
-                        'video_url' => 'https://example.com/videos/optics-3.mp4',
+                        'video_url' => self::SAMPLE_VIDEOS[1],
                     ],
                 ],
                 'quiz' => [
@@ -723,7 +731,7 @@ final class LearningCatalogSeeder extends Seeder
                     [
                         'slug' => 'build-simple-scope',
                         'title' => ['ar' => 'بناء منظار بسيط', 'en' => 'Build a simple scope'],
-                        'video_url' => 'https://example.com/videos/optics-lab.mp4',
+                        'video_url' => self::SAMPLE_VIDEOS[2],
                     ],
                 ],
             ],

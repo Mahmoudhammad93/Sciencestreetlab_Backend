@@ -6,6 +6,8 @@ namespace App\Modules\Assessment\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Assessment\Application\Services\QuizAttemptService;
+use App\Modules\Assessment\Domain\Enums\AttemptStatus;
+use App\Modules\Assessment\Http\Resources\StudentQuestionResource;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\Quiz;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\QuizAttempt;
 use App\Modules\Learning\Application\Services\CourseAccessService;
@@ -27,29 +29,28 @@ final class QuizController extends Controller
         $enrollment = $this->access->requireEnrollment($request->user(), $lesson->course);
 
         if (! $this->access->canAccessQuiz($enrollment, $quiz)) {
-            return response()->json(['message' => 'Quiz is locked.'], 403);
+            return response()->json(['message' => 'Quiz is locked.', 'code' => 'QUESTION_LOCKED'], 403);
         }
 
-        $quiz->load(['questions.options']);
+        $locale = app()->getLocale();
 
         return response()->json([
             'data' => [
                 'id' => $quiz->id,
-                'title' => $quiz->getTranslation('title', app()->getLocale()),
-                'instructions' => $quiz->getTranslation('instructions', app()->getLocale()),
+                'uuid' => $quiz->uuid,
+                'title' => $quiz->getTranslation('title', $locale),
+                'instructions' => $quiz->getTranslation('instructions', $locale),
                 'passing_score' => (float) $quiz->passing_score,
                 'max_attempts' => $quiz->max_attempts,
                 'time_limit_seconds' => $quiz->time_limit_seconds,
-                'questions' => $quiz->questions->map(fn ($q) => [
-                    'id' => $q->id,
-                    'body' => $q->getTranslation('body', app()->getLocale()),
-                    'question_type' => $q->question_type->value,
-                    'points' => (float) $q->points,
-                    'options' => $q->options->map(fn ($o) => [
-                        'id' => $o->id,
-                        'label' => $o->getTranslation('label', app()->getLocale()),
-                    ]),
-                ]),
+                'selection_mode' => $quiz->selection_mode?->value ?? 'fixed',
+                'shuffle_questions' => (bool) $quiz->shuffle_questions,
+                'is_required' => (bool) $quiz->is_required,
+                // Fixed quizzes may preview question count; generated hides actual set until attempt
+                'question_count' => $quiz->isGenerated()
+                    ? (int) ($quiz->selection_config['total_questions']
+                        ?? array_sum($quiz->selection_config['difficulty'] ?? []))
+                    : $quiz->questions()->count(),
             ],
         ]);
     }
@@ -60,16 +61,57 @@ final class QuizController extends Controller
         $enrollment = $this->access->requireEnrollment($request->user(), $lesson->course);
 
         if (! $this->access->canAccessQuiz($enrollment, $quiz)) {
-            return response()->json(['message' => 'Quiz is locked.'], 403);
+            return response()->json(['message' => 'Quiz is locked.', 'code' => 'QUESTION_LOCKED'], 403);
         }
 
         try {
             $attempt = $this->quizAttempts->start($request->user(), $quiz, $enrollment);
         } catch (DomainException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            $status = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 422;
+
+            return response()->json(['message' => $e->getMessage(), 'code' => $this->codeFromMessage($e->getMessage())], $status);
         }
 
-        return response()->json(['data' => $attempt], 201);
+        $questions = $this->quizAttempts->questionsForAttempt($attempt);
+
+        return response()->json([
+            'data' => [
+                'id' => $attempt->id,
+                'quiz_id' => $attempt->quiz_id,
+                'user_id' => $attempt->user_id,
+                'enrollment_id' => $attempt->enrollment_id,
+                'attempt_number' => $attempt->attempt_number,
+                'status' => $attempt->status->value,
+                'started_at' => $attempt->started_at?->toIso8601String(),
+                'questions' => $questions->map(
+                    fn ($q) => (new StudentQuestionResource($q))->toArray($request)
+                )->values(),
+            ],
+        ], 201);
+    }
+
+    public function showAttempt(Request $request, QuizAttempt $attempt): JsonResponse
+    {
+        if ($attempt->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'Forbidden', 'code' => 'FORBIDDEN'], 403);
+        }
+
+        $questions = $this->quizAttempts->questionsForAttempt($attempt);
+
+        return response()->json([
+            'data' => [
+                'attempt' => [
+                    'id' => $attempt->id,
+                    'quiz_id' => $attempt->quiz_id,
+                    'attempt_number' => $attempt->attempt_number,
+                    'status' => $attempt->status->value,
+                    'started_at' => $attempt->started_at?->toIso8601String(),
+                ],
+                'questions' => $questions->map(
+                    fn ($q) => (new StudentQuestionResource($q))->toArray($request)
+                )->values(),
+            ],
+        ]);
     }
 
     public function submitAttempt(Request $request, QuizAttempt $attempt): JsonResponse
@@ -83,6 +125,11 @@ final class QuizController extends Controller
             'answers.*.question_id' => ['required', 'integer'],
             'answers.*.selected_option_ids' => ['nullable', 'array'],
             'answers.*.text_answer' => ['nullable', 'string'],
+            'answers.*.numeric_answer' => ['nullable', 'numeric'],
+            'answers.*.matching_answer' => ['nullable', 'array'],
+            'answers.*.ordering_answer' => ['nullable', 'array'],
+            'answers.*.interactive_answer' => ['nullable', 'array'],
+            'answers.*.client_result' => ['nullable', 'array'],
         ]);
 
         try {
@@ -92,9 +139,13 @@ final class QuizController extends Controller
         }
 
         $graded->loadMissing('answers');
+        $includeExplanation = in_array($graded->status, [AttemptStatus::Graded, AttemptStatus::PendingReview], true);
+
         $correctAnswers = $graded->answers->where('is_correct', true)->count();
         $wrongAnswers = $graded->answers->where('is_correct', false)->count();
-        $totalQuestions = $graded->answers->count();
+        $pending = $graded->answers->whereNull('is_correct')->count();
+
+        $questions = $this->quizAttempts->questionsForAttempt($graded);
 
         return response()->json([
             'data' => [
@@ -103,12 +154,18 @@ final class QuizController extends Controller
                 'score' => (float) $graded->score,
                 'max_score' => (float) $graded->max_score,
                 'percentage' => (float) $graded->percentage,
-                'total_questions' => $totalQuestions,
+                'total_questions' => $questions->count(),
                 'correct_answers' => $correctAnswers,
                 'wrong_answers' => $wrongAnswers,
-                'passed' => (bool) $graded->passed,
-                'status' => $graded->passed ? 'passed' : 'failed',
+                'pending_review' => $pending,
+                'passed' => $graded->passed,
+                'status' => $graded->status === AttemptStatus::PendingReview
+                    ? 'pending_review'
+                    : ($graded->passed ? 'passed' : 'failed'),
                 'submitted_at' => $graded->submitted_at?->toIso8601String(),
+                'questions' => $includeExplanation
+                    ? $questions->map(fn ($q) => (new StudentQuestionResource($q, true))->toArray($request))->values()
+                    : [],
             ],
         ]);
     }
@@ -119,9 +176,37 @@ final class QuizController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        $attempt->load(['answers.question.options', 'quiz']);
+        if ($attempt->status === AttemptStatus::InProgress) {
+            return response()->json(['message' => 'Attempt not submitted.', 'code' => 'ATTEMPT_IN_PROGRESS'], 422);
+        }
 
-        return response()->json(['data' => $attempt]);
+        $attempt->load(['answers']);
+        $questions = $this->quizAttempts->questionsForAttempt($attempt);
+        $byId = $questions->keyBy('id');
+
+        return response()->json([
+            'data' => [
+                'attempt_id' => $attempt->id,
+                'status' => $attempt->status->value,
+                'score' => (float) $attempt->score,
+                'max_score' => (float) $attempt->max_score,
+                'percentage' => (float) $attempt->percentage,
+                'passed' => $attempt->passed,
+                'answers' => $attempt->answers->map(function ($answer) use ($request, $byId) {
+                    $question = $byId->get($answer->question_id);
+
+                    return [
+                        'question_id' => $answer->question_id,
+                        'is_correct' => $answer->is_correct,
+                        'points_awarded' => $answer->points_awarded !== null ? (float) $answer->points_awarded : null,
+                        'needs_manual_review' => (bool) $answer->needs_manual_review,
+                        'question' => $question
+                            ? (new StudentQuestionResource($question, true))->toArray($request)
+                            : null,
+                    ];
+                })->values(),
+            ],
+        ]);
     }
 
     private function resolveLesson(Quiz $quiz): Lesson
@@ -129,9 +214,21 @@ final class QuizController extends Controller
         $lesson = $quiz->quizable;
 
         if (! $lesson instanceof Lesson) {
-            abort(404, 'Quiz not attached to a lesson.');
+            abort(404, 'Quiz not found for lesson.');
         }
 
         return $lesson;
+    }
+
+    private function codeFromMessage(string $message): string
+    {
+        if (str_starts_with($message, 'MAX_ATTEMPTS_REACHED')) {
+            return 'MAX_ATTEMPTS_REACHED';
+        }
+        if (str_starts_with($message, 'INSUFFICIENT_QUESTIONS')) {
+            return 'INSUFFICIENT_QUESTIONS';
+        }
+
+        return 'QUIZ_ERROR';
     }
 }

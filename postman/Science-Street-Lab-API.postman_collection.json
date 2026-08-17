@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a73e08f0-1975-4c1d-9fb3-5a91721375db",
     "name": "Science Street Lab API",
-    "description": "REST API collection for Science Street Lab (Laravel `/api/v1`).\n\n**Auth:** Laravel Sanctum Bearer token.\nLogin/Register requests auto-save `token` into collection variables.\n\n**Base URL:** set `baseUrl` (default `http://localhost:8000`).\n\nSeeded example values (after `php artisan db:seed`):\n- Product: `science-street-microscope`\n- Course: `microscope-course`\n- Competition: `microscope-100-challenge`\n- Page: `about`\n- Blog: `welcome-to-science-street`\n- Coupon: `SCIENCE10`\n- Admin: `admin@sciencestreetlab.com` / `password`",
+    "description": "REST API collection for Science Street Lab (Laravel `/api/v1`).\n\n**Auth:** Laravel Sanctum Bearer token. Login/Register auto-save `token`.\n**Base URL:** `{{baseUrl}}` (default `http://localhost:8000`).\n\nAssessment demo (`php artisan db:seed --class=AssessmentDemoCoursesSeeder`):\n- Login: `demo@sciencestreetlab.com` / `password`\n- Courses: `intro-biology-lab`, `basic-physics-lab`, `basic-chemistry-lab`\n- Run **Physics Lab Curriculum** or **Biology Lab Curriculum** to populate IDs.\n\n**Interactive Activities** are complete HTML games from `interactive examples/` (Light Lab, Sound Lab, Plant Growth, Rubber Castle, Rubber Race). Hosted in sandboxed iframe; POST `.../progress` and `.../result` for client-reported state.\n\nStudent question payloads never include `is_correct` or `answer_key`.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -111,6 +111,78 @@
     {
       "key": "free_course_slug",
       "value": "intro-to-science"
+    },
+    {
+      "key": "question_bank_id",
+      "value": "1"
+    },
+    {
+      "key": "question_id",
+      "value": "1"
+    },
+    {
+      "key": "option_id",
+      "value": "1"
+    },
+    {
+      "key": "activity_id",
+      "value": "1"
+    },
+    {
+      "key": "activity_attempt_id",
+      "value": "1"
+    },
+    {
+      "key": "course_id",
+      "value": "1"
+    },
+    {
+      "key": "biology_course_slug",
+      "value": "intro-biology-lab"
+    },
+    {
+      "key": "physics_course_slug",
+      "value": "basic-physics-lab"
+    },
+    {
+      "key": "chemistry_course_slug",
+      "value": "basic-chemistry-lab"
+    },
+    {
+      "key": "mixed_quiz_id",
+      "value": "1"
+    },
+    {
+      "key": "light_lab_activity_id",
+      "value": "4"
+    },
+    {
+      "key": "sound_lab_activity_id",
+      "value": "6"
+    },
+    {
+      "key": "plant_growth_activity_id",
+      "value": "5"
+    },
+    {
+      "key": "rubber_castle_activity_id",
+      "value": "7"
+    },
+    {
+      "key": "rubber_race_activity_id",
+      "value": "8"
+    },
+    {
+      "key": "physics_light_mixed_quiz_id",
+      "value": "1"
+    },
+    {
+      "key": "physics_forces_mixed_quiz_id",
+      "value": "1"
+    },
+    {
+      "key": "physics_lesson_id",
+      "value": "1"
     }
   ],
   "item": [
@@ -356,6 +428,69 @@
                   "    pm.collectionVariables.set('user_id', String(json.data.user.id));",
                   "  }",
                   "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login (demo student)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Student enrolled in assessment demo courses (intro-biology-lab, etc.). Saves `token`. Use this before Interactive Activities / Mixed Quiz.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"demo@sciencestreetlab.com\",\n  \"password\": \"password\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.token) {",
+                  "  pm.collectionVariables.set('token', json.data.token);",
+                  "}",
+                  "if (json.data && json.data.user && json.data.user.id) {",
+                  "  pm.collectionVariables.set('user_id', String(json.data.user.id));",
+                  "}",
+                  ""
                 ]
               }
             }
@@ -1218,9 +1353,330 @@
                 "curriculum"
               ]
             },
-            "description": ""
+            "description": "Auth: Sanctum + enrollment.\nEach lesson includes topics, quizzes, and interactive_activities.\nFor biology demo activities, use Biology Lab Curriculum (uses biology_course_slug)."
           },
-          "response": []
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "pm.test('JSON has data', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data');",
+                  "});",
+                  "const data = pm.response.json().data;",
+                  "pm.test('curriculum has lessons', function () {",
+                  "  pm.expect(data.lessons).to.be.an('array');",
+                  "});",
+                  "pm.test('lessons include interactive_activities', function () {",
+                  "  const lesson = data.lessons.find(l => Array.isArray(l.interactive_activities) && l.interactive_activities.length);",
+                  "  pm.expect(lesson, 'at least one lesson with activities').to.exist;",
+                  "});",
+                  "function lessonBySlug(slug) {",
+                  "  return (data.lessons || []).find(l => l.slug === slug);",
+                  "}",
+                  "function firstActivity(lesson) {",
+                  "  return lesson && lesson.interactive_activities && lesson.interactive_activities[0];",
+                  "}",
+                  "function mixedQuizForLesson(lesson) {",
+                  "  if (!lesson || !lesson.quizzes || !lesson.quizzes.length) return null;",
+                  "  const mixed = lesson.quizzes.find(q => String(q.title || '').toLowerCase().includes('mixed'));",
+                  "  return mixed || lesson.quizzes[lesson.quizzes.length - 1];",
+                  "}",
+                  "function setActivityVars(lesson, slugKey, activityKey) {",
+                  "  const act = firstActivity(lesson);",
+                  "  if (act && act.id) {",
+                  "    pm.collectionVariables.set(activityKey, String(act.id));",
+                  "    if (lesson && lesson.id) pm.collectionVariables.set(slugKey + '_lesson_id', String(lesson.id));",
+                  "  }",
+                  "}",
+                  "const plantLesson = lessonBySlug('intro-cells');",
+                  "setActivityVars(plantLesson, 'plant_growth', 'plant_growth_activity_id');",
+                  "const lightLesson = lessonBySlug('light-reflection');",
+                  "setActivityVars(lightLesson, 'light', 'light_lab_activity_id');",
+                  "const soundLesson = lessonBySlug('energy');",
+                  "setActivityVars(soundLesson, 'sound', 'sound_lab_activity_id');",
+                  "const forcesLesson = lessonBySlug('forces');",
+                  "if (forcesLesson && forcesLesson.interactive_activities) {",
+                  "  forcesLesson.interactive_activities.forEach(function (a) {",
+                  "    const t = String(a.title || '').toLowerCase();",
+                  "    if (t.includes('castle') || t.includes('قلعة')) pm.collectionVariables.set('rubber_castle_activity_id', String(a.id));",
+                  "    if (t.includes('race') || t.includes('سباق') || t.includes('car')) pm.collectionVariables.set('rubber_race_activity_id', String(a.id));",
+                  "  });",
+                  "  if (forcesLesson.id) pm.collectionVariables.set('forces_lesson_id', String(forcesLesson.id));",
+                  "  const fq = mixedQuizForLesson(forcesLesson);",
+                  "  if (fq) pm.collectionVariables.set('physics_forces_mixed_quiz_id', String(fq.id));",
+                  "}",
+                  "if (lightLesson) {",
+                  "  const lq = mixedQuizForLesson(lightLesson);",
+                  "  if (lq) pm.collectionVariables.set('physics_light_mixed_quiz_id', String(lq.id));",
+                  "  if (lightLesson.id) pm.collectionVariables.set('physics_lesson_id', String(lightLesson.id));",
+                  "}",
+                  "const firstLesson = data.lessons.find(l => !l.is_locked) || data.lessons[0];",
+                  "if (firstLesson) {",
+                  "  pm.collectionVariables.set('lesson_id', String(firstLesson.id));",
+                  "  if (firstLesson.quizzes && firstLesson.quizzes.length) {",
+                  "    pm.collectionVariables.set('quiz_id', String(firstLesson.quizzes[0].id));",
+                  "  }",
+                  "}",
+                  "const mixed = data.lessons.find(l => (l.interactive_activities || []).length && (l.quizzes || []).length);",
+                  "if (mixed && mixed.quizzes && mixed.quizzes.length) {",
+                  "  const mq = mixedQuizForLesson(mixed);",
+                  "  if (mq) pm.collectionVariables.set('mixed_quiz_id', String(mq.id));",
+                  "}",
+                  "const activityLesson = lightLesson || plantLesson || data.lessons.find(l => (l.interactive_activities || []).length);",
+                  "if (activityLesson) {",
+                  "  pm.collectionVariables.set('lesson_id', String(activityLesson.id));",
+                  "  const act = firstActivity(activityLesson);",
+                  "  if (act) pm.collectionVariables.set('activity_id', String(act.id));",
+                  "}",
+                  "if (data.course_id) pm.collectionVariables.set('course_id', String(data.course_id));",
+                  "if (data.enrollment_id) pm.collectionVariables.set('enrollment_id', String(data.enrollment_id));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Enroll in Biology Lab",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/courses/{{biology_course_slug}}/enroll",
+            "description": "Enroll in intro-biology-lab (free). Demo user is already enrolled after AssessmentDemoCoursesSeeder."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "pm.test('JSON has data', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Biology Lab Curriculum",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/courses/{{biology_course_slug}}/curriculum",
+            "description": "Saves lesson_id, quiz_id, mixed_quiz_id, activity_id from Introduction to Biology."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "pm.test('JSON has data', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data');",
+                  "});",
+                  "const data = pm.response.json().data;",
+                  "pm.test('curriculum has lessons', function () {",
+                  "  pm.expect(data.lessons).to.be.an('array');",
+                  "});",
+                  "pm.test('lessons include interactive_activities', function () {",
+                  "  const lesson = data.lessons.find(l => Array.isArray(l.interactive_activities) && l.interactive_activities.length);",
+                  "  pm.expect(lesson, 'at least one lesson with activities').to.exist;",
+                  "});",
+                  "function lessonBySlug(slug) {",
+                  "  return (data.lessons || []).find(l => l.slug === slug);",
+                  "}",
+                  "function firstActivity(lesson) {",
+                  "  return lesson && lesson.interactive_activities && lesson.interactive_activities[0];",
+                  "}",
+                  "function mixedQuizForLesson(lesson) {",
+                  "  if (!lesson || !lesson.quizzes || !lesson.quizzes.length) return null;",
+                  "  const mixed = lesson.quizzes.find(q => String(q.title || '').toLowerCase().includes('mixed'));",
+                  "  return mixed || lesson.quizzes[lesson.quizzes.length - 1];",
+                  "}",
+                  "function setActivityVars(lesson, slugKey, activityKey) {",
+                  "  const act = firstActivity(lesson);",
+                  "  if (act && act.id) {",
+                  "    pm.collectionVariables.set(activityKey, String(act.id));",
+                  "    if (lesson && lesson.id) pm.collectionVariables.set(slugKey + '_lesson_id', String(lesson.id));",
+                  "  }",
+                  "}",
+                  "const plantLesson = lessonBySlug('intro-cells');",
+                  "setActivityVars(plantLesson, 'plant_growth', 'plant_growth_activity_id');",
+                  "const lightLesson = lessonBySlug('light-reflection');",
+                  "setActivityVars(lightLesson, 'light', 'light_lab_activity_id');",
+                  "const soundLesson = lessonBySlug('energy');",
+                  "setActivityVars(soundLesson, 'sound', 'sound_lab_activity_id');",
+                  "const forcesLesson = lessonBySlug('forces');",
+                  "if (forcesLesson && forcesLesson.interactive_activities) {",
+                  "  forcesLesson.interactive_activities.forEach(function (a) {",
+                  "    const t = String(a.title || '').toLowerCase();",
+                  "    if (t.includes('castle') || t.includes('قلعة')) pm.collectionVariables.set('rubber_castle_activity_id', String(a.id));",
+                  "    if (t.includes('race') || t.includes('سباق') || t.includes('car')) pm.collectionVariables.set('rubber_race_activity_id', String(a.id));",
+                  "  });",
+                  "  if (forcesLesson.id) pm.collectionVariables.set('forces_lesson_id', String(forcesLesson.id));",
+                  "  const fq = mixedQuizForLesson(forcesLesson);",
+                  "  if (fq) pm.collectionVariables.set('physics_forces_mixed_quiz_id', String(fq.id));",
+                  "}",
+                  "if (lightLesson) {",
+                  "  const lq = mixedQuizForLesson(lightLesson);",
+                  "  if (lq) pm.collectionVariables.set('physics_light_mixed_quiz_id', String(lq.id));",
+                  "  if (lightLesson.id) pm.collectionVariables.set('physics_lesson_id', String(lightLesson.id));",
+                  "}",
+                  "const firstLesson = data.lessons.find(l => !l.is_locked) || data.lessons[0];",
+                  "if (firstLesson) {",
+                  "  pm.collectionVariables.set('lesson_id', String(firstLesson.id));",
+                  "  if (firstLesson.quizzes && firstLesson.quizzes.length) {",
+                  "    pm.collectionVariables.set('quiz_id', String(firstLesson.quizzes[0].id));",
+                  "  }",
+                  "}",
+                  "const mixed = data.lessons.find(l => (l.interactive_activities || []).length && (l.quizzes || []).length);",
+                  "if (mixed && mixed.quizzes && mixed.quizzes.length) {",
+                  "  const mq = mixedQuizForLesson(mixed);",
+                  "  if (mq) pm.collectionVariables.set('mixed_quiz_id', String(mq.id));",
+                  "}",
+                  "const activityLesson = lightLesson || plantLesson || data.lessons.find(l => (l.interactive_activities || []).length);",
+                  "if (activityLesson) {",
+                  "  pm.collectionVariables.set('lesson_id', String(activityLesson.id));",
+                  "  const act = firstActivity(activityLesson);",
+                  "  if (act) pm.collectionVariables.set('activity_id', String(act.id));",
+                  "}",
+                  "if (data.course_id) pm.collectionVariables.set('course_id', String(data.course_id));",
+                  "if (data.enrollment_id) pm.collectionVariables.set('enrollment_id', String(data.enrollment_id));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Physics lab curriculum",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/courses/{{physics_course_slug}}/curriculum",
+            "description": "Populates light_lab_activity_id (#4), sound_lab_activity_id (#6), rubber_castle/race IDs, physics_lesson_id, mixed quiz IDs.\nLessons: motion, forces, light-reflection, energy."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "pm.test('JSON has data', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data');",
+                  "});",
+                  "const data = pm.response.json().data;",
+                  "pm.test('curriculum has lessons', function () {",
+                  "  pm.expect(data.lessons).to.be.an('array');",
+                  "});",
+                  "pm.test('lessons include interactive_activities', function () {",
+                  "  const lesson = data.lessons.find(l => Array.isArray(l.interactive_activities) && l.interactive_activities.length);",
+                  "  pm.expect(lesson, 'at least one lesson with activities').to.exist;",
+                  "});",
+                  "function lessonBySlug(slug) {",
+                  "  return (data.lessons || []).find(l => l.slug === slug);",
+                  "}",
+                  "function firstActivity(lesson) {",
+                  "  return lesson && lesson.interactive_activities && lesson.interactive_activities[0];",
+                  "}",
+                  "function mixedQuizForLesson(lesson) {",
+                  "  if (!lesson || !lesson.quizzes || !lesson.quizzes.length) return null;",
+                  "  const mixed = lesson.quizzes.find(q => String(q.title || '').toLowerCase().includes('mixed'));",
+                  "  return mixed || lesson.quizzes[lesson.quizzes.length - 1];",
+                  "}",
+                  "function setActivityVars(lesson, slugKey, activityKey) {",
+                  "  const act = firstActivity(lesson);",
+                  "  if (act && act.id) {",
+                  "    pm.collectionVariables.set(activityKey, String(act.id));",
+                  "    if (lesson && lesson.id) pm.collectionVariables.set(slugKey + '_lesson_id', String(lesson.id));",
+                  "  }",
+                  "}",
+                  "const plantLesson = lessonBySlug('intro-cells');",
+                  "setActivityVars(plantLesson, 'plant_growth', 'plant_growth_activity_id');",
+                  "const lightLesson = lessonBySlug('light-reflection');",
+                  "setActivityVars(lightLesson, 'light', 'light_lab_activity_id');",
+                  "const soundLesson = lessonBySlug('energy');",
+                  "setActivityVars(soundLesson, 'sound', 'sound_lab_activity_id');",
+                  "const forcesLesson = lessonBySlug('forces');",
+                  "if (forcesLesson && forcesLesson.interactive_activities) {",
+                  "  forcesLesson.interactive_activities.forEach(function (a) {",
+                  "    const t = String(a.title || '').toLowerCase();",
+                  "    if (t.includes('castle') || t.includes('قلعة')) pm.collectionVariables.set('rubber_castle_activity_id', String(a.id));",
+                  "    if (t.includes('race') || t.includes('سباق') || t.includes('car')) pm.collectionVariables.set('rubber_race_activity_id', String(a.id));",
+                  "  });",
+                  "  if (forcesLesson.id) pm.collectionVariables.set('forces_lesson_id', String(forcesLesson.id));",
+                  "  const fq = mixedQuizForLesson(forcesLesson);",
+                  "  if (fq) pm.collectionVariables.set('physics_forces_mixed_quiz_id', String(fq.id));",
+                  "}",
+                  "if (lightLesson) {",
+                  "  const lq = mixedQuizForLesson(lightLesson);",
+                  "  if (lq) pm.collectionVariables.set('physics_light_mixed_quiz_id', String(lq.id));",
+                  "  if (lightLesson.id) pm.collectionVariables.set('physics_lesson_id', String(lightLesson.id));",
+                  "}",
+                  "const firstLesson = data.lessons.find(l => !l.is_locked) || data.lessons[0];",
+                  "if (firstLesson) {",
+                  "  pm.collectionVariables.set('lesson_id', String(firstLesson.id));",
+                  "  if (firstLesson.quizzes && firstLesson.quizzes.length) {",
+                  "    pm.collectionVariables.set('quiz_id', String(firstLesson.quizzes[0].id));",
+                  "  }",
+                  "}",
+                  "const mixed = data.lessons.find(l => (l.interactive_activities || []).length && (l.quizzes || []).length);",
+                  "if (mixed && mixed.quizzes && mixed.quizzes.length) {",
+                  "  const mq = mixedQuizForLesson(mixed);",
+                  "  if (mq) pm.collectionVariables.set('mixed_quiz_id', String(mq.id));",
+                  "}",
+                  "const activityLesson = lightLesson || plantLesson || data.lessons.find(l => (l.interactive_activities || []).length);",
+                  "if (activityLesson) {",
+                  "  pm.collectionVariables.set('lesson_id', String(activityLesson.id));",
+                  "  const act = firstActivity(activityLesson);",
+                  "  if (act) pm.collectionVariables.set('activity_id', String(act.id));",
+                  "}",
+                  "if (data.course_id) pm.collectionVariables.set('course_id', String(data.course_id));",
+                  "if (data.enrollment_id) pm.collectionVariables.set('enrollment_id', String(data.enrollment_id));",
+                  ""
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Get Lesson",
@@ -1410,7 +1866,7 @@
     },
     {
       "name": "Assessment",
-      "description": "Quizzes and attempts",
+      "description": "Assessment / Quiz / Interactive Activity APIs.\nStudent contract also lives in postman/Question-Bank.postman_collection.json.\nRecommended order: Login as demo user → Physics/Biology Lab Curriculum → Full Activity Workflow (Light Lab) → Mixed Quiz.\n\nDemo HTML activities: Light Lab (#4), Sound Lab (#6), Plant Growth (#5), Rubber Castle (#7), Rubber Race (#8).",
       "item": [
         {
           "name": "Get Quiz",
@@ -1434,9 +1890,33 @@
                 "{{quiz_id}}"
               ]
             },
-            "description": ""
+            "description": "Quiz metadata including interactive_activities (mixed quizzes)."
           },
-          "response": []
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "pm.test('JSON has data', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data');",
+                  "});",
+                  "const d = pm.response.json().data;",
+                  "pm.test('quiz metadata', function () {",
+                  "  pm.expect(d).to.have.property('id');",
+                  "  pm.expect(d).to.have.property('title');",
+                  "  pm.expect(d.interactive_activities).to.be.an('array');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Start Quiz Attempt",
@@ -1445,6 +1925,10 @@
             "header": [
               {
                 "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
                 "value": "application/json"
               }
             ],
@@ -1461,9 +1945,63 @@
                 "attempts"
               ]
             },
-            "description": ""
+            "description": "POST /quizzes/{quiz}/attempts — starts or resumes.\nFreezes questions. Mixed quizzes also return interactive_activities.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
           },
-          "response": []
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "pm.test('JSON has data', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data');",
+                  "});",
+                  "function assertStudentSafe(payload) {",
+                  "  const raw = JSON.stringify(payload);",
+                  "  pm.expect(raw).to.not.include('\"is_correct\"');",
+                  "  pm.expect(raw).to.not.include('\"answer_key\"');",
+                  "  pm.expect(raw).to.not.include('activity_package_path');",
+                  "  pm.expect(raw).to.not.include('correct_option');",
+                  "}",
+                  "const d = pm.response.json().data;",
+                  "pm.test('attempt_id present', function () {",
+                  "  pm.expect(d.attempt_id || d.id).to.be.a('number');",
+                  "});",
+                  "pm.test('questions are student-safe', function () {",
+                  "  pm.expect(d.questions).to.be.an('array');",
+                  "  assertStudentSafe(d.questions);",
+                  "});",
+                  "pm.test('interactive_activities is an array', function () {",
+                  "  pm.expect(d.interactive_activities).to.be.an('array');",
+                  "});",
+                  "if (d.attempt_id || d.id) pm.collectionVariables.set('attempt_id', String(d.attempt_id || d.id));",
+                  "if (d.questions && d.questions[0] && d.questions[0].id) {",
+                  "  pm.collectionVariables.set('question_id', String(d.questions[0].id));",
+                  "  const opts = d.questions[0].options || [];",
+                  "  if (opts[0] && opts[0].id) pm.collectionVariables.set('option_id', String(opts[0].id));",
+                  "}",
+                  "if (d.interactive_activities && d.interactive_activities[0]) {",
+                  "  pm.collectionVariables.set('activity_id', String(d.interactive_activities[0].id));",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Submit Attempt",
@@ -1531,6 +2069,1464 @@
             "description": ""
           },
           "response": []
+        },
+        {
+          "name": "List lesson question banks",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/lessons/{{lesson_id}}/question-banks"
+          }
+        },
+        {
+          "name": "Question bank details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/question-banks/{{question_bank_id}}"
+          }
+        },
+        {
+          "name": "Bank questions (filter)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/question-banks/{{question_bank_id}}/questions?difficulty=easy&type=single_choice"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "pm.test('JSON has data', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data');",
+                  "});",
+                  "function assertStudentSafe(payload) {",
+                  "  const raw = JSON.stringify(payload);",
+                  "  pm.expect(raw).to.not.include('\"is_correct\"');",
+                  "  pm.expect(raw).to.not.include('\"answer_key\"');",
+                  "  pm.expect(raw).to.not.include('activity_package_path');",
+                  "  pm.expect(raw).to.not.include('correct_option');",
+                  "}",
+                  "const json = pm.response.json();",
+                  "const rows = json.data || [];",
+                  "pm.test('question list is student-safe', function () {",
+                  "  assertStudentSafe(rows);",
+                  "});",
+                  "if (Array.isArray(rows) && rows[0] && rows[0].id) {",
+                  "  pm.collectionVariables.set('question_id', String(rows[0].id));",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Question details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/questions/{{question_id}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "pm.test('JSON has data', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data');",
+                  "});",
+                  "function assertStudentSafe(payload) {",
+                  "  const raw = JSON.stringify(payload);",
+                  "  pm.expect(raw).to.not.include('\"is_correct\"');",
+                  "  pm.expect(raw).to.not.include('\"answer_key\"');",
+                  "  pm.expect(raw).to.not.include('activity_package_path');",
+                  "  pm.expect(raw).to.not.include('correct_option');",
+                  "}",
+                  "const d = pm.response.json().data;",
+                  "pm.test('question payload is student-safe', function () {",
+                  "  assertStudentSafe(d);",
+                  "  pm.expect(d).to.have.property('id');",
+                  "  pm.expect(d).to.not.have.property('answer_key');",
+                  "});",
+                  "if (d.id) pm.collectionVariables.set('question_id', String(d.id));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Interactive signed URL",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/questions/{{question_id}}/interactive"
+          }
+        },
+        {
+          "name": "Resume quiz attempt",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/quiz-attempts/{{attempt_id}}",
+            "description": "Resume after refresh: same frozen questions, saved answers, interactive_activities, remaining_seconds."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "pm.test('JSON has data', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data');",
+                  "});",
+                  "function assertStudentSafe(payload) {",
+                  "  const raw = JSON.stringify(payload);",
+                  "  pm.expect(raw).to.not.include('\"is_correct\"');",
+                  "  pm.expect(raw).to.not.include('\"answer_key\"');",
+                  "  pm.expect(raw).to.not.include('activity_package_path');",
+                  "  pm.expect(raw).to.not.include('correct_option');",
+                  "}",
+                  "const d = pm.response.json().data;",
+                  "pm.test('attempt_id present', function () {",
+                  "  pm.expect(d.attempt_id || d.id).to.be.a('number');",
+                  "});",
+                  "pm.test('questions are student-safe', function () {",
+                  "  pm.expect(d.questions).to.be.an('array');",
+                  "  assertStudentSafe(d.questions);",
+                  "});",
+                  "pm.test('interactive_activities is an array', function () {",
+                  "  pm.expect(d.interactive_activities).to.be.an('array');",
+                  "});",
+                  "if (d.attempt_id || d.id) pm.collectionVariables.set('attempt_id', String(d.attempt_id || d.id));",
+                  "if (d.questions && d.questions[0] && d.questions[0].id) {",
+                  "  pm.collectionVariables.set('question_id', String(d.questions[0].id));",
+                  "  const opts = d.questions[0].options || [];",
+                  "  if (opts[0] && opts[0].id) pm.collectionVariables.set('option_id', String(opts[0].id));",
+                  "}",
+                  "if (d.interactive_activities && d.interactive_activities[0]) {",
+                  "  pm.collectionVariables.set('activity_id', String(d.interactive_activities[0].id));",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit single answer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question_id\": {{question_id}},\n  \"answer\": { \"option_id\": {{option_id}} }\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/quiz-attempts/{{attempt_id}}/answers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "pm.test('JSON has data', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit answer (true/false)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/quiz-attempts/{{attempt_id}}/answers",
+            "description": "True/false uses a single option_id.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question_id\": {{question_id}},\n  \"answer\": { \"option_id\": {{option_id}} }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "pm.test('JSON has data', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit answer (numeric)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/quiz-attempts/{{attempt_id}}/answers",
+            "description": "Numeric answer payload.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question_id\": {{question_id}},\n  \"answer\": { \"numeric\": 9.8 }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "pm.test('JSON has data', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit answer (fill blank)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/quiz-attempts/{{attempt_id}}/answers",
+            "description": "Fill-in-the-blank uses text (or blanks array for multi-blank).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question_id\": {{question_id}},\n  \"answer\": { \"text\": \"nucleus\" }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "pm.test('JSON has data', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit answer (long answer)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/quiz-attempts/{{attempt_id}}/answers",
+            "description": "Long answers are saved and typically marked for manual review.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question_id\": {{question_id}},\n  \"answer\": { \"text\": \"The nucleus stores DNA and controls cell activities.\" }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "pm.test('JSON has data', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit quiz (contract path)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": "{{baseUrl}}/api/v1/quiz-attempts/{{attempt_id}}/submit"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "pm.test('JSON has data', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data');",
+                  "});",
+                  "const d = pm.response.json().data;",
+                  "pm.test('quiz result fields', function () {",
+                  "  pm.expect(d).to.have.property('attempt_id');",
+                  "  pm.expect(d).to.have.property('status');",
+                  "  pm.expect(d).to.have.property('score');",
+                  "  pm.expect(d).to.have.property('percentage');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Quiz result (contract path)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/quiz-attempts/{{attempt_id}}/result"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "pm.test('JSON has data', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data');",
+                  "});",
+                  "const d = pm.response.json().data;",
+                  "pm.test('quiz result fields', function () {",
+                  "  pm.expect(d).to.have.property('attempt_id');",
+                  "  pm.expect(d).to.have.property('status');",
+                  "  pm.expect(d).to.have.property('score');",
+                  "  pm.expect(d).to.have.property('percentage');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Interactive result",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"result\": {},\n  \"interaction_data\": {},\n  \"completed\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/quiz-attempts/{{attempt_id}}/questions/{{question_id}}/interactive-result"
+          }
+        },
+        {
+          "name": "Interactive Activities",
+          "item": [
+            {
+              "name": "Full Activity Workflow (Light Lab)",
+              "description": "End-to-end flow for standalone HTML activity #4 (مختبر الضوء).\nRun after Login + Physics lab curriculum.\nOrder: Launch → Start attempt → Progress → Result → Get result.",
+              "item": [
+                {
+                  "name": "1. Launch Light Lab",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/interactive-activities/{{light_lab_activity_id}}/launch"
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                          "const d = pm.response.json().data;",
+                          "pm.test('signed url + postMessage protocol', () => {",
+                          "  pm.expect(d.url).to.include('signature=');",
+                          "  pm.expect(d.sandbox).to.eql('allow-scripts');",
+                          "  pm.expect(d.protocol).to.eql('postMessage');",
+                          "  pm.expect(d.post_message_events).to.be.an('array');",
+                          "  pm.expect(d.post_message_events).to.include('ACTIVITY_COMPLETED');",
+                          "});",
+                          "pm.collectionVariables.set('activity_id', pm.collectionVariables.get('light_lab_activity_id'));",
+                          ""
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "2. Start Light Lab attempt",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{}"
+                    },
+                    "url": "{{baseUrl}}/api/v1/interactive-activities/{{light_lab_activity_id}}/attempts"
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('HTTP 201', () => pm.expect(pm.response.code).to.eql(201));",
+                          "const d = pm.response.json().data;",
+                          "pm.test('attempt + launch_url', () => {",
+                          "  pm.expect(d.attempt_id).to.be.a('number');",
+                          "  pm.expect(d.launch_url || d.launch.url).to.include('signature=');",
+                          "});",
+                          "pm.collectionVariables.set('activity_attempt_id', String(d.attempt_id));",
+                          "pm.collectionVariables.set('activity_id', String(d.activity_id));",
+                          ""
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "3. Submit progress (2/5 challenges)",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"completed_challenges\": 2,\n  \"total_challenges\": 5,\n  \"percentage\": 40\n}"
+                    },
+                    "url": "{{baseUrl}}/api/v1/interactive-activity-attempts/{{activity_attempt_id}}/progress"
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                          "pm.expect(pm.response.json().data.progress.percentage).to.eql(40);",
+                          ""
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "4. Submit ACTIVITY_COMPLETED result",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                      }
+                    ],
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"completed\": true,\n  \"score\": 40,\n  \"max_score\": 50,\n  \"percentage\": 80,\n  \"time_spent_seconds\": 320,\n  \"challenges_completed\": 5,\n  \"total_challenges\": 5,\n  \"result\": {}\n}"
+                    },
+                    "url": "{{baseUrl}}/api/v1/interactive-activity-attempts/{{activity_attempt_id}}/result",
+                    "description": "Flat payload matching postMessage ACTIVITY_COMPLETED from HTML activity."
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                          "const d = pm.response.json().data;",
+                          "pm.test('completion stored', () => {",
+                          "  pm.expect(d.status).to.eql('completed');",
+                          "  pm.expect(d.client_score).to.eql(40);",
+                          "  pm.expect(d.max_score).to.eql(50);",
+                          "  pm.expect(d.percentage).to.eql(80);",
+                          "});",
+                          ""
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "5. Get stored result",
+                  "request": {
+                    "method": "GET",
+                    "header": [
+                      {
+                        "key": "Accept",
+                        "value": "application/json"
+                      }
+                    ],
+                    "url": "{{baseUrl}}/api/v1/interactive-activity-attempts/{{activity_attempt_id}}/result"
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                          "const d = pm.response.json().data;",
+                          "pm.test('final result', () => {",
+                          "  pm.expect(d.attempt_id).to.be.a('number');",
+                          "  pm.expect(d.activity_id).to.eql(Number(pm.collectionVariables.get('light_lab_activity_id')));",
+                          "  pm.expect(d).to.include.keys('client_score', 'verified_score', 'percentage');",
+                          "});",
+                          ""
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "List lesson interactive activities",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/lessons/{{lesson_id}}/interactive-activities",
+                "description": "Auth: Sanctum. Enrolled + lesson access.\nReturns published InteractiveActivity list (no filesystem paths).\nDemo courses: intro-biology-lab / basic-physics-lab."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 2xx', function () {",
+                      "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                      "});",
+                      "pm.test('JSON has data', function () {",
+                      "  const json = pm.response.json();",
+                      "  pm.expect(json).to.have.property('data');",
+                      "});",
+                      "function assertNoPrivatePaths(payload) {",
+                      "  const raw = JSON.stringify(payload);",
+                      "  pm.expect(raw).to.not.include('activity_package_path');",
+                      "  pm.expect(raw).to.not.include('/storage/app/');",
+                      "  pm.expect(raw).to.not.include('storage_path');",
+                      "}",
+                      "const json = pm.response.json();",
+                      "const items = json.data;",
+                      "pm.test('returns an activity list', function () {",
+                      "  pm.expect(items).to.be.an('array');",
+                      "  pm.expect(items.length).to.be.above(0);",
+                      "});",
+                      "pm.test('activity fields present', function () {",
+                      "  const a = items[0];",
+                      "  pm.expect(a).to.have.property('id');",
+                      "  pm.expect(a).to.have.property('uuid');",
+                      "  pm.expect(a).to.have.property('title');",
+                      "  pm.expect(a).to.have.property('activity_type');",
+                      "});",
+                      "assertNoPrivatePaths(json);",
+                      "if (items[0] && items[0].id) {",
+                      "  pm.collectionVariables.set('activity_id', String(items[0].id));",
+                      "}",
+                      ""
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Show interactive activity",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/interactive-activities/{{activity_id}}",
+                "description": "Auth: Sanctum. Activity metadata for frontend."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 2xx', function () {",
+                      "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                      "});",
+                      "pm.test('JSON has data', function () {",
+                      "  const json = pm.response.json();",
+                      "  pm.expect(json).to.have.property('data');",
+                      "});",
+                      "function assertNoPrivatePaths(payload) {",
+                      "  const raw = JSON.stringify(payload);",
+                      "  pm.expect(raw).to.not.include('activity_package_path');",
+                      "  pm.expect(raw).to.not.include('/storage/app/');",
+                      "  pm.expect(raw).to.not.include('storage_path');",
+                      "}",
+                      "const d = pm.response.json().data;",
+                      "pm.test('activity id matches', function () {",
+                      "  pm.expect(d.id).to.eql(Number(pm.collectionVariables.get('activity_id')));",
+                      "});",
+                      "pm.test('sandbox protocol documented', function () {",
+                      "  pm.expect(d.sandbox).to.include('allow-scripts');",
+                      "  pm.expect(d.protocol).to.eql('postMessage');",
+                      "});",
+                      "assertNoPrivatePaths(d);",
+                      ""
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Launch interactive activity",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/interactive-activities/{{activity_id}}/launch",
+                "description": "Returns signed sandboxed iframe URL + postMessage protocol.\nSandbox: `allow-scripts` only (no cookies/session/parent DOM).\npostMessage events: READY, STARTED, PROGRESS, CHALLENGE_*, ACTIVITY_COMPLETED, RETRY, ERROR."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 2xx', function () {",
+                      "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                      "});",
+                      "pm.test('JSON has data', function () {",
+                      "  const json = pm.response.json();",
+                      "  pm.expect(json).to.have.property('data');",
+                      "});",
+                      "const d = pm.response.json().data;",
+                      "pm.test('signed launch url present', function () {",
+                      "  pm.expect(d.url).to.be.a('string');",
+                      "  pm.expect(d.url).to.include('signature=');",
+                      "  pm.expect(d.activity_id).to.eql(Number(pm.collectionVariables.get('activity_id')));",
+                      "});",
+                      "pm.test('postMessage protocol listed', function () {",
+                      "  pm.expect(d.sandbox).to.eql('allow-scripts');",
+                      "  pm.expect(d.protocol).to.eql('postMessage');",
+                      "  pm.expect(d.post_message_events).to.be.an('array');",
+                      "  pm.expect(d.post_message_events).to.include('PROGRESS');",
+                      "  pm.expect(d.post_message_events).to.include('ACTIVITY_COMPLETED');",
+                      "});",
+                      "pm.test('does not expose filesystem paths', function () {",
+                      "  const raw = JSON.stringify(d);",
+                      "  pm.expect(raw).to.not.include('activity_package_path');",
+                      "  pm.expect(d.url).to.not.include('..');",
+                      "});",
+                      ""
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Start activity attempt",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200 or 201', function () {",
+                      "  pm.expect([200, 201]).to.include(pm.response.code);",
+                      "});",
+                      "const d = pm.response.json().data;",
+                      "pm.test('attempt_id and activity_id present', function () {",
+                      "  pm.expect(d.attempt_id).to.be.a('number');",
+                      "  pm.expect(d.activity_id).to.be.a('number');",
+                      "  pm.expect(d.status).to.be.a('string');",
+                      "});",
+                      "pm.test('launch_url present', function () {",
+                      "  const url = d.launch_url || (d.launch && d.launch.url);",
+                      "  pm.expect(url).to.be.a('string');",
+                      "  pm.expect(url).to.include('signature=');",
+                      "});",
+                      "if (d.attempt_id) pm.collectionVariables.set('activity_attempt_id', String(d.attempt_id));",
+                      "if (d.activity_id) pm.collectionVariables.set('activity_id', String(d.activity_id));",
+                      ""
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"quiz_attempt_id\": null\n}"
+                },
+                "url": "{{baseUrl}}/api/v1/interactive-activities/{{activity_id}}/attempts",
+                "description": "POST /api/v1/interactive-activities/{activity}/attempts\nStarts or resumes an in-progress activity attempt.\nResponse: attempt_id, activity_id, status, started_at, launch / launch_url.\nOptional quiz_attempt_id links mixed quiz assessments."
+              }
+            },
+            {
+              "name": "Get activity attempt",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/interactive-activity-attempts/{{activity_attempt_id}}",
+                "description": "Owner-only. Current attempt state."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 2xx', function () {",
+                      "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                      "});",
+                      "pm.test('JSON has data', function () {",
+                      "  const json = pm.response.json();",
+                      "  pm.expect(json).to.have.property('data');",
+                      "});",
+                      "const d = pm.response.json().data;",
+                      "pm.test('attempt fields', function () {",
+                      "  pm.expect(d.attempt_id).to.eql(Number(pm.collectionVariables.get('activity_attempt_id')));",
+                      "  pm.expect(d.activity_id).to.be.a('number');",
+                      "  pm.expect(d.status).to.be.a('string');",
+                      "});",
+                      ""
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Submit activity progress",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"completed_challenges\": 2,\n  \"total_challenges\": 5,\n  \"percentage\": 40\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/interactive-activity-attempts/{{activity_attempt_id}}/progress",
+                "description": "Stores in-progress challenge progress from postMessage PROGRESS events.\nPlatform does not interpret game logic — only persists client-reported counts."
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 2xx', function () { pm.expect(pm.response.code).to.be.within(200, 299); });",
+                      "const d = pm.response.json().data;",
+                      "pm.test('progress saved', function () {",
+                      "  pm.expect(d.progress.completed_challenges).to.eql(2);",
+                      "  pm.expect(d.progress.total_challenges).to.eql(5);",
+                      "  pm.expect(d.progress.percentage).to.eql(40);",
+                      "});",
+                      ""
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Submit activity result",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"completed\": true,\n  \"score\": 40,\n  \"max_score\": 50,\n  \"percentage\": 80,\n  \"time_spent_seconds\": 320,\n  \"challenges_completed\": 5,\n  \"total_challenges\": 5,\n  \"result\": {}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/interactive-activity-attempts/{{activity_attempt_id}}/result",
+                "description": "Stores client-reported result. Does NOT trust score blindly.\nIf activity_config.expected is set, computes verified_score.\nErrors: 403 FORBIDDEN, 422 ATTEMPT_EXPIRED"
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 2xx', function () {",
+                      "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                      "});",
+                      "pm.test('JSON has data', function () {",
+                      "  const json = pm.response.json();",
+                      "  pm.expect(json).to.have.property('data');",
+                      "});",
+                      "const d = pm.response.json().data;",
+                      "pm.test('result has scores', function () {",
+                      "  pm.expect(d).to.have.property('attempt_id');",
+                      "  pm.expect(d).to.have.property('activity_id');",
+                      "  pm.expect(d).to.have.property('client_score');",
+                      "  pm.expect(d).to.have.property('verified_score');",
+                      "  pm.expect(d).to.have.property('max_score');",
+                      "  pm.expect(d.status).to.be.oneOf(['completed', 'in_progress']);",
+                      "});",
+                      "pm.test('client score stored but not blindly trusted', function () {",
+                      "  pm.expect(d).to.have.property('score_verified');",
+                      "});",
+                      ""
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get activity result",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/interactive-activity-attempts/{{activity_attempt_id}}/result",
+                "description": "Final result when attempt completed. Distinguishes client_score vs verified_score."
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 2xx', function () {",
+                      "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                      "});",
+                      "pm.test('JSON has data', function () {",
+                      "  const json = pm.response.json();",
+                      "  pm.expect(json).to.have.property('data');",
+                      "});",
+                      "const d = pm.response.json().data;",
+                      "pm.test('final result fields', function () {",
+                      "  pm.expect(d.attempt_id).to.be.a('number');",
+                      "  pm.expect(d.activity_id).to.be.a('number');",
+                      "  pm.expect(d).to.include.keys('client_score', 'verified_score', 'percentage');",
+                      "});",
+                      ""
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Launch without auth (expect 401)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/interactive-activities/{{activity_id}}/launch",
+                "description": "Returns signed sandboxed iframe URL + postMessage protocol.\nSandbox: `allow-scripts` only (no cookies/session/parent DOM).\npostMessage events: READY, STARTED, PROGRESS, CHALLENGE_*, ACTIVITY_COMPLETED, RETRY, ERROR.",
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('unauthenticated launch is rejected', function () {",
+                      "  pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+                      "});",
+                      "pm.test('postMessage protocol listed', function () {",
+                      "  pm.expect(d.sandbox).to.eql('allow-scripts');",
+                      "  pm.expect(d.protocol).to.eql('postMessage');",
+                      "  pm.expect(d.post_message_events).to.be.an('array');",
+                      "  pm.expect(d.post_message_events).to.include('PROGRESS');",
+                      "  pm.expect(d.post_message_events).to.include('ACTIVITY_COMPLETED');",
+                      "});",
+                      ""
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Mixed Quiz (questions + activities)",
+          "description": "A quiz can contain standard questions AND attached Interactive Activities.\nRun after Physics/Biology Lab Curriculum so mixed_quiz_id / activity_id are set.\n1) Start mixed quiz  2) Start activity with quiz_attempt_id  3) Submit activity progress  4) Submit activity result  5) Submit quiz  6) Get result",
+          "item": [
+            {
+              "name": "Start mixed quiz attempt",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/quizzes/{{mixed_quiz_id}}/attempts",
+                "description": "Starts (or resumes) a mixed quiz. Response includes questions plus interactive_activities.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 2xx', function () {",
+                      "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                      "});",
+                      "pm.test('JSON has data', function () {",
+                      "  const json = pm.response.json();",
+                      "  pm.expect(json).to.have.property('data');",
+                      "});",
+                      "function assertStudentSafe(payload) {",
+                      "  const raw = JSON.stringify(payload);",
+                      "  pm.expect(raw).to.not.include('\"is_correct\"');",
+                      "  pm.expect(raw).to.not.include('\"answer_key\"');",
+                      "  pm.expect(raw).to.not.include('activity_package_path');",
+                      "  pm.expect(raw).to.not.include('correct_option');",
+                      "}",
+                      "const d = pm.response.json().data;",
+                      "pm.test('attempt_id present', function () {",
+                      "  pm.expect(d.attempt_id || d.id).to.be.a('number');",
+                      "});",
+                      "pm.test('questions are student-safe', function () {",
+                      "  pm.expect(d.questions).to.be.an('array');",
+                      "  assertStudentSafe(d.questions);",
+                      "});",
+                      "pm.test('interactive_activities is an array', function () {",
+                      "  pm.expect(d.interactive_activities).to.be.an('array');",
+                      "});",
+                      "if (d.attempt_id || d.id) pm.collectionVariables.set('attempt_id', String(d.attempt_id || d.id));",
+                      "if (d.questions && d.questions[0] && d.questions[0].id) {",
+                      "  pm.collectionVariables.set('question_id', String(d.questions[0].id));",
+                      "  const opts = d.questions[0].options || [];",
+                      "  if (opts[0] && opts[0].id) pm.collectionVariables.set('option_id', String(opts[0].id));",
+                      "}",
+                      "if (d.interactive_activities && d.interactive_activities[0]) {",
+                      "  pm.collectionVariables.set('activity_id', String(d.interactive_activities[0].id));",
+                      "}",
+                      ""
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Start activity linked to quiz attempt",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/interactive-activities/{{activity_id}}/attempts",
+                "description": "Links the activity attempt to the current quiz via quiz_attempt_id so scores can be aggregated on quiz submit.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"quiz_attempt_id\": {{attempt_id}}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 200 or 201', function () {",
+                      "  pm.expect([200, 201]).to.include(pm.response.code);",
+                      "});",
+                      "const d = pm.response.json().data;",
+                      "pm.test('attempt_id and activity_id present', function () {",
+                      "  pm.expect(d.attempt_id).to.be.a('number');",
+                      "  pm.expect(d.activity_id).to.be.a('number');",
+                      "  pm.expect(d.status).to.be.a('string');",
+                      "});",
+                      "pm.test('launch_url present', function () {",
+                      "  const url = d.launch_url || (d.launch && d.launch.url);",
+                      "  pm.expect(url).to.be.a('string');",
+                      "  pm.expect(url).to.include('signature=');",
+                      "});",
+                      "if (d.attempt_id) pm.collectionVariables.set('activity_attempt_id', String(d.attempt_id));",
+                      "if (d.activity_id) pm.collectionVariables.set('activity_id', String(d.activity_id));",
+                      ""
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Submit linked activity progress",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"completed_challenges\": 2,\n  \"total_challenges\": 5,\n  \"percentage\": 40\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": "{{baseUrl}}/api/v1/interactive-activity-attempts/{{activity_attempt_id}}/progress",
+                "description": "Simulates postMessage PROGRESS from the HTML activity iframe.\nPlatform stores client-reported counts only — no game logic on server."
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 2xx', function () { pm.expect(pm.response.code).to.be.within(200, 299); });",
+                      "const d = pm.response.json().data;",
+                      "pm.test('progress saved', function () {",
+                      "  pm.expect(d.progress.completed_challenges).to.eql(2);",
+                      "  pm.expect(d.progress.total_challenges).to.eql(5);",
+                      "  pm.expect(d.progress.percentage).to.eql(40);",
+                      "});",
+                      ""
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Submit linked activity result",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/interactive-activity-attempts/{{activity_attempt_id}}/result",
+                "description": "Client-reported score is stored as client_score. verified_score is only set when activity_config.expected exists.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"completed\": true,\n  \"score\": 40,\n  \"max_score\": 50,\n  \"percentage\": 80,\n  \"time_spent_seconds\": 320,\n  \"challenges_completed\": 5,\n  \"total_challenges\": 5,\n  \"result\": {}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 2xx', function () {",
+                      "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                      "});",
+                      "pm.test('JSON has data', function () {",
+                      "  const json = pm.response.json();",
+                      "  pm.expect(json).to.have.property('data');",
+                      "});",
+                      "const d = pm.response.json().data;",
+                      "pm.test('result has scores', function () {",
+                      "  pm.expect(d).to.have.property('attempt_id');",
+                      "  pm.expect(d).to.have.property('activity_id');",
+                      "  pm.expect(d).to.have.property('client_score');",
+                      "  pm.expect(d).to.have.property('verified_score');",
+                      "  pm.expect(d).to.have.property('max_score');",
+                      "  pm.expect(d.status).to.be.oneOf(['completed', 'in_progress']);",
+                      "});",
+                      "pm.test('client score stored but not blindly trusted', function () {",
+                      "  pm.expect(d).to.have.property('score_verified');",
+                      "});",
+                      ""
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Submit mixed quiz",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/quiz-attempts/{{attempt_id}}/submit",
+                "description": "Finalizes the quiz. Completed activity attempts linked by quiz_attempt_id are included in the score.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"answers\": []\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 2xx', function () {",
+                      "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                      "});",
+                      "pm.test('JSON has data', function () {",
+                      "  const json = pm.response.json();",
+                      "  pm.expect(json).to.have.property('data');",
+                      "});",
+                      "const d = pm.response.json().data;",
+                      "pm.test('quiz result fields', function () {",
+                      "  pm.expect(d).to.have.property('attempt_id');",
+                      "  pm.expect(d).to.have.property('status');",
+                      "  pm.expect(d).to.have.property('score');",
+                      "  pm.expect(d).to.have.property('percentage');",
+                      "});",
+                      ""
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Mixed quiz result",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/quiz-attempts/{{attempt_id}}/result",
+                "description": "Returns status, score, percentage. question_results may include is_correct after grading (result API only)."
+              },
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('HTTP 2xx', function () {",
+                      "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                      "});",
+                      "pm.test('JSON has data', function () {",
+                      "  const json = pm.response.json();",
+                      "  pm.expect(json).to.have.property('data');",
+                      "});",
+                      "const d = pm.response.json().data;",
+                      "pm.test('quiz result fields', function () {",
+                      "  pm.expect(d).to.have.property('attempt_id');",
+                      "  pm.expect(d).to.have.property('status');",
+                      "  pm.expect(d).to.have.property('score');",
+                      "  pm.expect(d).to.have.property('percentage');",
+                      "});",
+                      ""
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
         }
       ]
     },

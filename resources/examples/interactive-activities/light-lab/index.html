@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مختبر الضوء - شارع العلوم</title>
+    <style>
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{
+            font-family:Tahoma,"Segoe UI",Arial,sans-serif;
+            background:#07182f;color:#fffaf0;
+            min-height:100vh;display:flex;
+            align-items:center;justify-content:center;padding:15px;
+        }
+        #game{
+            width:100%;max-width:1150px;
+            background:radial-gradient(circle at 10% 15%,rgba(88,222,240,.15),transparent 35%),
+                       linear-gradient(145deg,#07182f,#0d4872 55%,#07182f);
+            border:1px solid rgba(255,255,255,.14);border-radius:26px;
+            box-shadow:0 20px 60px rgba(1,8,27,.55);
+            padding:1.5rem;display:grid;gap:1.2rem;overflow:hidden;
+        }
+
+        /* TOP */
+        .top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem}
+        .brand{display:inline-flex;align-items:center;gap:.4rem;background:#f8d41c;color:#0b1730;
+            border-radius:11px;padding:.45rem .8rem;font-weight:700;font-size:.85rem;white-space:nowrap}
+        .pills{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+        .pill{background:rgba(0,7,24,.6);border:1px solid rgba(255,255,255,.12);border-radius:99px;
+            padding:.28rem .75rem;font-size:.75rem;color:#dbe8f7;display:flex;align-items:center;gap:.3rem}
+        .pill b{color:#f8d41c;font-size:.88rem}
+
+        /* MISSION */
+        .mission{border-right:4px solid #f8d41c;padding:.1rem .85rem .1rem 0; margin-bottom: 0.5rem;}
+        .mission small{color:#58def0;font-size:.68rem;display:block;margin-bottom:.3rem}
+        .mission h2{font-size:clamp(1.1rem,2.8vw,1.45rem);font-weight:600;margin-bottom:.3rem}
+        .mission p{color:#cbd8e9;font-size:.85rem; line-height: 1.5;}
+
+        /* LAYOUT */
+        .main-layout { display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: flex-start; }
+        .lab-side { flex: 1; min-width: 600px; display: flex; flex-direction: column; gap: 1rem; }
+        
+        .quiz-side { 
+            width: 380px; display: flex; flex-direction: column; gap: 1rem; 
+            max-height: 550px; overflow-y: auto; padding-right: 5px; scroll-behavior: smooth;
+        }
+        
+        /* SCROLLBAR FOR QUIZ SIDE */
+        .quiz-side::-webkit-scrollbar { width: 6px; }
+        .quiz-side::-webkit-scrollbar-track { background: rgba(255,255,255,.05); border-radius: 10px; }
+        .quiz-side::-webkit-scrollbar-thumb { background: rgba(88,222,240,.3); border-radius: 10px; }
+        .quiz-side::-webkit-scrollbar-thumb:hover { background: rgba(88,222,240,.6); }
+
+        /* CONTROLS */
+        .controls {
+            background:rgba(5,18,43,.78);border:1px solid rgba(255,255,255,.14);
+            border-radius:18px;padding:.9rem 1.2rem;
+        }
+        .ctrl-row{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+        .ctrl-group{display:grid;gap:.5rem}
+        .ctrl-lbl{display:flex;justify-content:space-between;align-items:baseline;font-size:.8rem;color:#dbe8f7; font-weight: 600;}
+        
+        .theme-select {
+            background: rgba(0,7,24,.6); border: 1px solid rgba(255,255,255,.18);
+            color: #fffaf0; padding: .65rem; border-radius: 11px; font-family: inherit;
+            font-size: .85rem; font-weight: 500; outline: none; cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .theme-select:hover, .theme-select:focus { border-color: #58def0; }
+        .theme-select option { background: #0b1730; color: #fffaf0; }
+
+        /* CANVAS SCENE */
+        .scene {
+            background: radial-gradient(circle at center, #112641, #07182f);
+            border-radius: 18px; border: 1px solid rgba(255,255,255,.2);
+            position: relative; overflow: hidden; box-shadow: inset 0 0 30px rgba(0,0,0,0.5);
+            display: flex;
+        }
+        canvas { display: block; width: 100%; height: auto; border-radius: 18px; }
+
+        /* THERMOMETER */
+        #thermometer {
+            position: absolute; top: 20px; left: 20px; width: 45px; height: 110px;
+            background: rgba(5,18,43,.85); border: 1px solid #58def0; border-radius: 25px;
+            cursor: grab; display: flex; flex-direction: column; align-items: center;
+            padding-top: 8px; box-sizing: border-box; user-select: none;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.6); z-index: 10;
+        }
+        #thermometer:active { cursor: grabbing; }
+        .temp-display { font-weight: bold; margin-bottom: 5px; color: #f8d41c; font-size: 13px;}
+        .bulb { width: 26px; height: 26px; background: #e04040; border-radius: 50%; position: absolute; bottom: 6px; box-shadow: 0 0 10px rgba(224,64,64,.6); }
+        .liquid { width: 8px; height: 50px; background: linear-gradient(0deg, #e04040, #ff7474); position: absolute; bottom: 28px; transition: height 0.3s; }
+
+        /* QUESTION PANEL */
+        .q-panel{
+            background:rgba(5,18,43,.8);border:1px solid rgba(255,255,255,.14);
+            border-radius:18px;padding:1rem;display:flex;flex-direction:column;gap:.7rem;
+            transition: box-shadow 0.3s, border-color 0.3s;
+        }
+        .q-panel.solved {
+            border-color: rgba(47,196,174,.5);
+            box-shadow: 0 0 15px rgba(47,196,174,.1);
+        }
+        .q-top{display:flex;justify-content:space-between;align-items:center}
+        .q-step{color:#aab9d0;font-size:.7rem; font-weight: 600;}
+        .q-pts{background:rgba(248,212,28,.15);border:1px solid rgba(248,212,28,.3);
+            border-radius:99px;padding:.2rem .6rem;font-size:.68rem;color:#f8d41c}
+        .q-text{color:#fffaf0;font-size:.9rem;font-weight:600;line-height:1.6}
+        .q-opts{display:grid;gap:.42rem}
+        .q-opt{
+            background:rgba(10,28,57,.85);border:1px solid rgba(255,255,255,.14);
+            border-radius:11px;color:#edf4ff;cursor:pointer;font-family:inherit;font-size:.82rem;
+            padding:.65rem .8rem;text-align:right;transition:background .2s,border-color .2s;width:100%;
+            line-height: 1.5;
+        }
+        .q-opt:hover:not(:disabled){background:rgba(88,222,240,.1);border-color:#58def0}
+        .q-opt.ok{background:rgba(47,196,174,.15);border-color:#2fc4ae;color:#88f0d6}
+        .q-opt.no{background:rgba(255,116,116,.12);border-color:#ff7474;color:#ffaaaa}
+        .q-opt:disabled{cursor:default}
+        
+        .q-fb{border:1px solid rgba(47,196,174,.4);border-radius:9px;color:#c9d6e8;
+            padding:.6rem .8rem;font-size:.79rem;line-height:1.5;display:none}
+        .q-fb.vis{display:block}
+        .q-fb strong{color:#88f0d6;display:block;margin-bottom:.3rem; font-size: .85rem;}
+        .q-fb.wfb{border-color:rgba(255,185,98,.45)}
+        .q-fb.wfb strong{color:#ffd087}
+
+        /* BIG SUCCESS MESSAGE */
+        .end-screen {
+            display:none; flex-direction:column; align-items:center; gap:1.2rem;
+            text-align:center; padding:2.5rem 1.5rem; margin-top:1rem; margin-bottom: 2rem;
+            background: linear-gradient(145deg, rgba(47,196,174,.15), rgba(5,18,43,.9));
+            border: 2px solid #2fc4ae; border-radius: 20px;
+            box-shadow: 0 0 35px rgba(47,196,174,.25);
+        }
+        .end-screen.vis { 
+            display:flex; 
+            animation: popIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
+        }
+        .end-icon { font-size:4.5rem; line-height: 1; text-shadow: 0 0 20px rgba(248,212,28,.4); }
+        .end-title { font-size:1.6rem;font-weight:700;color:#f8d41c; }
+        .end-sub { color:#edf4ff;font-size:1.05rem;line-height:1.7; }
+        
+        .replay-btn {
+            background: linear-gradient(90deg, #2fc4ae, #58def0);
+            border: none; border-radius: 12px; margin-top: 10px;
+            color: #07182f; cursor: pointer; font-family: inherit;
+            font-size: 1.05rem; font-weight: 700; padding: .8rem 2rem;
+            transition: transform .2s, box-shadow .2s;
+        }
+        .replay-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(88,222,240,.4);
+        }
+
+        @keyframes popIn { 
+            0% { transform: scale(0.8) translateY(30px); opacity: 0; } 
+            100% { transform: scale(1) translateY(0); opacity: 1; } 
+        }
+
+        @media (max-width: 1024px) {
+            .lab-side { min-width: 0; width: 100%; }
+            .quiz-side { width: 100%; max-height: none; overflow-y: visible; }
+            .ctrl-row { grid-template-columns: 1fr; gap: .8rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="game">
+    <!-- TOP -->
+    <div class="top">
+        <div class="brand">🔬 شارع العلوم</div>
+        <div class="pills">
+            <div class="pill">🌟 <b>مختبر الضوء</b></div>
+        </div>
+    </div>
+
+    <!-- MISSION -->
+    <div class="mission">
+        <small>🔦 تفاعل واستكشف</small>
+        <h2>مختبر الضوء وألعاب التحدي</h2>
+        <p>اسحب الكشاف أو الشمس أو الترمومتر بالماوس! استخدم المختبر لتجربة الإجابات عملياً قبل اختيارها من الأسئلة.</p>
+    </div>
+
+    <div class="main-layout">
+        
+        <!-- الجانب الأيمن: المختبر -->
+        <div class="lab-side">
+            <div class="controls">
+                <div class="ctrl-row">
+                    <div class="ctrl-group">
+                        <div class="ctrl-lbl"><span>١. اختر مصدر الضوء:</span></div>
+                        <select id="lightSource" class="theme-select">
+                            <option value="flashlight">🔦 كشاف الموبايل (مستقيم)</option>
+                            <option value="sun">☀️ الشمس (منتشر)</option>
+                        </select>
+                    </div>
+                    <div class="ctrl-group">
+                        <div class="ctrl-lbl"><span>٢. اختر الجسم المعترض:</span></div>
+                        <select id="scenario" class="theme-select">
+                            <option value="shadow">كورة معتمة (الظل مع الانعكاس)</option>
+                            <option value="mirror">مراية ملساء (انعكاس منتظم)</option>
+                            <option value="wood">لوح خشب (انعكاس غير منتظم)</option>
+                            <option value="lens">عدسة مكبرة (تجميع الضوء)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="scene">
+                <div id="thermometer">
+                    <div class="temp-display" id="tempText">25°</div>
+                    <div class="liquid" id="tempLiquid"></div>
+                    <div class="bulb"></div>
+                </div>
+                <canvas id="simCanvas" width="800" height="450"></canvas>
+            </div>
+        </div>
+
+        <!-- الجانب الأيسر: الأسئلة -->
+        <div class="quiz-side">
+            
+            <!-- السؤال 1 -->
+            <div class="q-panel vis">
+                <div class="q-top">
+                    <span class="q-step">التحدي ١ من ٥</span>
+                    <span class="q-pts">+١٠ نقطة ✨</span>
+                </div>
+                <div class="q-text">اختبر "الشمس" مع "كورة معتمة"، وحرك الشمس لليمين واليسار.. متى يكون الظل أطول ما يمكن؟</div>
+                <div class="q-opts">
+                    <button class="q-opt" data-correct="true" onclick="checkAnswer(this, '<strong>✅ ممتاز!</strong> كلما كانت الشمس مائلة بشدة أصبح الظل أطول.')">عندما تكون الشمس مائلة بشدة على الجانبين</button>
+                    <button class="q-opt" data-correct="false" onclick="checkAnswer(this, '<strong>❌ فكر مرة أخرى!</strong> جرب وضع الشمس فوق الكرة تماماً ولاحظ الظل.')">عندما تكون الشمس عمودية فوق الكرة تماماً</button>
+                </div>
+                <div class="q-fb"></div>
+            </div>
+
+            <!-- السؤال 2 -->
+            <div class="q-panel vis">
+                <div class="q-top">
+                    <span class="q-step">التحدي ٢ من ٥</span>
+                    <span class="q-pts">+١٠ نقطة ✨</span>
+                </div>
+                <div class="q-text">استخدم "الترمومتر" وضعه داخل بقعة الظل الداكنة.. ماذا يحدث لدرجة الحرارة؟</div>
+                <div class="q-opts">
+                    <button class="q-opt" data-correct="false" onclick="checkAnswer(this, '<strong>❌ إجابة خاطئة.</strong> الظل يمنع وصول أشعة الشمس.')">ترتفع درجة الحرارة جداً</button>
+                    <button class="q-opt" data-correct="true" onclick="checkAnswer(this, '<strong>✅ بطل!</strong> الظل يحجب أشعة الشمس وحرارتها؛ فتنخفض الحرارة.')">تنخفض درجة الحرارة بشكل ملحوظ</button>
+                </div>
+                <div class="q-fb"></div>
+            </div>
+
+            <!-- السؤال 3 -->
+            <div class="q-panel vis">
+                <div class="q-top">
+                    <span class="q-step">التحدي ٣ من ٥</span>
+                    <span class="q-pts">+١٠ نقطة ✨</span>
+                </div>
+                <div class="q-text">عند اختيار "العدسة المكبرة"، ووضع الترمومتر عند بؤرة التجمع.. ماذا يحدث؟</div>
+                <div class="q-opts">
+                    <button class="q-opt" data-correct="true" onclick="checkAnswer(this, '<strong>✅ أحسنت!</strong> العدسة تجمع أشعة الضوء والحرارة في نقطة واحدة مما يسبب حريقاً 🔥.')">تتجمع الأشعة وترتفع الحرارة جداً 🔥</button>
+                    <button class="q-opt" data-correct="false" onclick="checkAnswer(this, '<strong>❌ إجابة خاطئة.</strong> جرب العدسة ولاحظ أين تذهب الخطوط المضيئة.')">تتشتت الأشعة وتنخفض الحرارة</button>
+                </div>
+                <div class="q-fb"></div>
+            </div>
+
+            <!-- السؤال 4 -->
+            <div class="q-panel vis">
+                <div class="q-top">
+                    <span class="q-step">التحدي ٤ من ٥</span>
+                    <span class="q-pts">+١٠ نقطة ✨</span>
+                </div>
+                <div class="q-text">اختبر "لوح الخشب".. لماذا لا تتكون صورة واضحة لنا عليه مثل المراية؟</div>
+                <div class="q-opts">
+                    <button class="q-opt" data-correct="false" onclick="checkAnswer(this, '<strong>❌ غير دقيق.</strong> الخشب يقوم بعكس جزء كبير من الضوء أيضاً ولكن بطريقة مختلفة.')">لأن الخشب يمتص الضوء ولا يعكسه تماماً.</button>
+                    <button class="q-opt" data-correct="true" onclick="checkAnswer(this, '<strong>✅ صحيح!</strong> سطح الخشب خشن فيعكس الأشعة في كل الاتجاهات (انعكاس غير منتظم).')">لأن سطحه خشن، فيعكس الأشعة بشكل عشوائي ومشتت.</button>
+                </div>
+                <div class="q-fb"></div>
+            </div>
+            
+            <!-- السؤال 5 -->
+            <div class="q-panel vis">
+                <div class="q-top">
+                    <span class="q-step">التحدي ٥ من ٥</span>
+                    <span class="q-pts">+١٠ نقطة ✨</span>
+                </div>
+                <div class="q-text">راقب أشعة الضوء وهي تخرج من الكشاف.. ما هو شكل مسارها؟</div>
+                <div class="q-opts">
+                    <button class="q-opt" data-correct="false" onclick="checkAnswer(this, '<strong>❌ دقق النظر،</strong> هل ترى أي انحناء في الضوء أثناء سيره؟')">تسير في خطوط متعرجة ومنحنية.</button>
+                    <button class="q-opt" data-correct="true" onclick="checkAnswer(this, '<strong>✅ ممتاز!</strong> الضوء يسير دائماً في خطوط مستقيمة كطابور منتظم.')">تسير في خطوط مستقيمة ومنتظمة.</button>
+                </div>
+                <div class="q-fb"></div>
+            </div>
+
+            <!-- رسالة النجاح الكبيرة (تظهر بعد الإجابة على كل الأسئلة بشكل صحيح) -->
+            <div class="end-screen" id="endScreen">
+                <div class="end-icon">🏅</div>
+                <div class="end-title">أحسنت يا عالم المستقبل!</div>
+                <div class="end-sub">لقد أتممت جميع تحديات مختبر الضوء بنجاح بفضل ملاحظتك الدقيقة وتفكيرك العلمي.<br><br>أنت الآن تعرف كيف يمر الضوء وينعكس وكيف يتفاعل مع المواد المختلفة.. أنت جاهز تماماً للمرحلة القادمة! 🚀✨</div>
+                <button class="replay-btn" onclick="location.reload()">🔄 إعادة التجربة</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    let correctAnswersCount = 0;
+    const totalQuestions = 5;
+
+    function checkAnswer(selectedBtn, message) {
+        const isCorrect = selectedBtn.getAttribute('data-correct') === 'true';
+        const panel = selectedBtn.closest('.q-panel');
+        const allBtns = panel.querySelectorAll('.q-opt');
+        const feedbackBox = panel.querySelector('.q-fb');
+
+        allBtns.forEach(btn => {
+            btn.disabled = true;
+            if (btn.getAttribute('data-correct') === 'true') {
+                btn.classList.add('ok');
+            }
+        });
+
+        if (!isCorrect) {
+            selectedBtn.classList.add('no');
+            feedbackBox.className = 'q-fb vis wfb';
+        } else {
+            feedbackBox.className = 'q-fb vis';
+            
+            // حساب الإجابات الصحيحة وتفعيل رسالة النجاح الكبيرة
+            if (!panel.classList.contains('solved')) {
+                panel.classList.add('solved');
+                correctAnswersCount++;
+                
+                if (correctAnswersCount === totalQuestions) {
+                    setTimeout(() => {
+                        const endScreen = document.getElementById('endScreen');
+                        endScreen.classList.add('vis');
+                        // التمرير للأسفل لرؤية الرسالة الاحتفالية
+                        endScreen.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                    }, 600);
+                }
+            }
+        }
+        feedbackBox.innerHTML = message;
+    }
+
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    const lightSelect = document.getElementById('lightSource');
+    const scenarioSelect = document.getElementById('scenario');
+    
+    let lightObj = { x: 350, y: 20, w: 100, h: 40 }; 
+    let sunObj = { x: 400, y: 50, r: 40 }; 
+    let targetObj = { x: 400, y: 250, w: 200, h: 20, r: 50 }; 
+    
+    let lightType = 'flashlight';
+    let scenario = 'shadow'; 
+    let particles = [];
+    let frameCount = 0;
+    
+    const thermo = document.getElementById('thermometer');
+    const tempText = document.getElementById('tempText');
+    const tempLiquid = document.getElementById('tempLiquid');
+    let thermoX = 20, thermoY = 20;
+    let draggedItem = null;
+    let offsetX = 0, offsetY = 0;
+    let isThermoDragging = false;
+
+    function getMousePos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        return {
+            x: (e.clientX - rect.left) * scaleX,
+            y: (e.clientY - rect.top) * scaleY,
+            cssX: e.clientX - rect.left,
+            cssY: e.clientY - rect.top
+        };
+    }
+
+    thermo.addEventListener('mousedown', () => { isThermoDragging = true; });
+    window.addEventListener('mouseup', () => { isThermoDragging = false; draggedItem = null; canvas.style.cursor = 'default'; });
+    
+    canvas.addEventListener('mousemove', (e) => {
+        let pos = getMousePos(e);
+
+        if (isThermoDragging) {
+            thermoX = pos.cssX - 22; 
+            thermoY = pos.cssY - 55;  
+            const rect = canvas.getBoundingClientRect();
+            thermoX = Math.max(0, Math.min(thermoX, rect.width - 45));
+            thermoY = Math.max(0, Math.min(thermoY, rect.height - 110));
+            thermo.style.left = thermoX + 'px'; thermo.style.top = thermoY + 'px';
+            return;
+        }
+
+        if (draggedItem) {
+            draggedItem.x = pos.x - offsetX;
+            draggedItem.y = pos.y - offsetY;
+        } else {
+            let hoverLight = (lightType === 'flashlight' && pos.x > lightObj.x && pos.x < lightObj.x + lightObj.w && pos.y > lightObj.y && pos.y < lightObj.y + lightObj.h);
+            let hoverSun = (lightType === 'sun' && Math.hypot(pos.x - sunObj.x, pos.y - sunObj.y) < sunObj.r);
+            
+            let hoverTarget = false;
+            if (scenario === 'shadow') {
+                hoverTarget = (Math.hypot(pos.x - targetObj.x, pos.y - targetObj.y) < targetObj.r);
+            } else {
+                let tw = (scenario === 'lens') ? 120 : targetObj.w;
+                let th = (scenario === 'lens') ? 30 : targetObj.h;
+                hoverTarget = (pos.x > targetObj.x && pos.x < targetObj.x + tw && pos.y > targetObj.y && pos.y < targetObj.y + th);
+            }
+
+            if (hoverLight || hoverSun || hoverTarget || 
+               (pos.x > (thermoX*canvas.width/canvas.getBoundingClientRect().width) && 
+                pos.x < (thermoX*canvas.width/canvas.getBoundingClientRect().width)+45 && 
+                pos.y > (thermoY*canvas.height/canvas.getBoundingClientRect().height) && 
+                pos.y < (thermoY*canvas.height/canvas.getBoundingClientRect().height)+110)) {
+                canvas.style.cursor = 'grab';
+            } else {
+                canvas.style.cursor = 'default';
+            }
+        }
+    });
+
+    canvas.addEventListener('mousedown', (e) => {
+        let pos = getMousePos(e);
+        
+        let tX = thermoX * (canvas.width/canvas.getBoundingClientRect().width);
+        let tY = thermoY * (canvas.height/canvas.getBoundingClientRect().height);
+        if (pos.x > tX && pos.x < tX + 45 && pos.y > tY && pos.y < tY + 110) {
+            isThermoDragging = true;
+            return;
+        }
+
+        if (lightType === 'flashlight' && pos.x > lightObj.x && pos.x < lightObj.x + lightObj.w && pos.y > lightObj.y && pos.y < lightObj.y + lightObj.h) {
+            draggedItem = lightObj; offsetX = pos.x - lightObj.x; offsetY = pos.y - lightObj.y;
+            canvas.style.cursor = 'grabbing';
+        } 
+        else if (lightType === 'sun' && Math.hypot(pos.x - sunObj.x, pos.y - sunObj.y) < sunObj.r) {
+            draggedItem = sunObj; offsetX = pos.x - sunObj.x; offsetY = pos.y - sunObj.y;
+            canvas.style.cursor = 'grabbing';
+        }
+        else {
+            let hitTarget = false;
+            let tw = (scenario === 'lens') ? 120 : targetObj.w;
+            let th = (scenario === 'lens') ? 30 : targetObj.h;
+            
+            if (scenario === 'shadow') {
+                hitTarget = (Math.hypot(pos.x - targetObj.x, pos.y - targetObj.y) < targetObj.r);
+                if (hitTarget) { offsetX = pos.x - targetObj.x; offsetY = pos.y - targetObj.y; }
+            } else {
+                hitTarget = (pos.x > targetObj.x && pos.x < targetObj.x + tw && pos.y > targetObj.y && pos.y < targetObj.y + th);
+                if (hitTarget) { offsetX = pos.x - targetObj.x; offsetY = pos.y - targetObj.y; }
+            }
+            
+            if (hitTarget) { draggedItem = targetObj; canvas.style.cursor = 'grabbing'; }
+        }
+    });
+
+    class LightRay {
+        constructor(x, y, vx, vy) {
+            this.x = x; this.y = y; this.vx = vx; this.vy = vy;
+            this.size = 3.5; this.color = '#f8d41c'; 
+            this.bounced = false;
+        }
+        update() {
+            this.x += this.vx; this.y += this.vy;
+            let hit = false;
+            let tw = (scenario === 'lens') ? 120 : targetObj.w;
+            let th = (scenario === 'lens') ? 30 : targetObj.h;
+
+            if (scenario === 'shadow') {
+                if (Math.hypot(this.x - targetObj.x, this.y - targetObj.y) < targetObj.r) hit = true;
+            } else {
+                if (this.x > targetObj.x && this.x < targetObj.x + tw && this.y > targetObj.y && this.y < targetObj.y + th) hit = true;
+            }
+
+            if (hit && !this.bounced) {
+                if (scenario === 'mirror') {
+                    this.vy = -this.vy; this.bounced = true;
+                } 
+                else if (scenario === 'wood') {
+                    this.vy = - (Math.random() * 2 + 1);
+                    this.vx = (Math.random() - 0.5) * 4; 
+                    this.bounced = true;
+                }
+                else if (scenario === 'lens') {
+                    let focalX = targetObj.x + tw/2;
+                    let focalY = targetObj.y + 120; 
+                    let dx = focalX - this.x; let dy = focalY - this.y;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+                    this.vx = (dx / dist) * 3.5; this.vy = (dy / dist) * 3.5;
+                    this.bounced = true;
+                }
+                else if (scenario === 'shadow') {
+                    let nx = this.x - targetObj.x;
+                    let ny = this.y - targetObj.y;
+                    let len = Math.sqrt(nx*nx + ny*ny);
+                    nx /= len; ny /= len; 
+                    
+                    let dot = this.vx * nx + this.vy * ny;
+                    this.vx = this.vx - 2 * dot * nx; 
+                    this.vy = this.vy - 2 * dot * ny;
+                    
+                    this.x += this.vx; this.y += this.vy; 
+                    this.bounced = true;
+                }
+            }
+        }
+        draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fillStyle = this.color; ctx.fill();
+        }
+    }
+
+    function drawScene() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Shadow Drawing
+        if (scenario === 'shadow') {
+            let sourceX = (lightType === 'sun') ? sunObj.x : lightObj.x + lightObj.w/2;
+            let sourceY = (lightType === 'sun') ? sunObj.y : lightObj.y + lightObj.h;
+            let angleToBall = Math.atan2(targetObj.y - sourceY, targetObj.x - sourceX);
+            
+            let p1x = targetObj.x + targetObj.r * Math.cos(angleToBall + Math.PI/2);
+            let p1y = targetObj.y + targetObj.r * Math.sin(angleToBall + Math.PI/2);
+            let p2x = targetObj.x + targetObj.r * Math.cos(angleToBall - Math.PI/2);
+            let p2y = targetObj.y + targetObj.r * Math.sin(angleToBall - Math.PI/2);
+            
+            ctx.beginPath();
+            ctx.moveTo(p1x, p1y);
+            ctx.lineTo(p1x + Math.cos(angleToBall)*1200, p1y + Math.sin(angleToBall)*1200);
+            ctx.lineTo(p2x + Math.cos(angleToBall)*1200, p2y + Math.sin(angleToBall)*1200);
+            ctx.lineTo(p2x, p2y);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fill();
+        }
+
+        frameCount++;
+        if (frameCount % 12 === 0) {
+            if (lightType === 'flashlight') {
+                let columns = [15, 30, 45, 60, 75, 90];
+                for(let col of columns) {
+                    if(col < lightObj.w) particles.push(new LightRay(lightObj.x + col, lightObj.y + lightObj.h, 0, 3.5));
+                }
+            } else if (lightType === 'sun') {
+                let tw = (scenario === 'lens') ? 120 : targetObj.w;
+                let targetCenterX = (scenario === 'shadow') ? targetObj.x : targetObj.x + tw/2;
+                let targetCenterY = (scenario === 'shadow') ? targetObj.y : targetObj.y + targetObj.h/2;
+                let angle = Math.atan2(targetCenterY - sunObj.y, targetCenterX - sunObj.x);
+                let perpAngle = angle + Math.PI/2;
+                
+                for(let i=-600; i<=600; i+= 25) {
+                    let startX = sunObj.x + Math.cos(perpAngle) * i;
+                    let startY = sunObj.y + Math.sin(perpAngle) * i;
+                    particles.push(new LightRay(startX, startY, Math.cos(angle) * 3.5, Math.sin(angle) * 3.5));
+                }
+            }
+        }
+
+        // Targets Drawing
+        if (scenario === 'mirror') {
+            ctx.fillStyle = '#6b7c9a'; ctx.fillRect(targetObj.x, targetObj.y, targetObj.w, targetObj.h);
+            ctx.fillStyle = '#fffaf0'; ctx.font = '16px Tahoma'; ctx.fillText("مراية", targetObj.x + targetObj.w/2 - 20, targetObj.y + 15);
+        } 
+        else if (scenario === 'wood') {
+            ctx.fillStyle = '#a52a2a';
+            ctx.beginPath(); ctx.moveTo(targetObj.x, targetObj.y + targetObj.h);
+            for(let i=0; i<=targetObj.w; i+=10) ctx.lineTo(targetObj.x + i, targetObj.y + (i%20===0?5:0));
+            ctx.lineTo(targetObj.x + targetObj.w, targetObj.y + targetObj.h); ctx.fill();
+            ctx.fillStyle = '#fffaf0'; ctx.font = '16px Tahoma'; ctx.fillText("خشب", targetObj.x + targetObj.w/2 - 20, targetObj.y + 15);
+        }
+        else if (scenario === 'lens') {
+            let tw = 120; let th = 30;
+            ctx.beginPath();
+            ctx.ellipse(targetObj.x + tw/2, targetObj.y + th/2, tw/2, th/2, 0, 0, Math.PI*2);
+            ctx.fillStyle = 'rgba(88, 222, 240, 0.3)'; ctx.fill();
+            ctx.strokeStyle = '#58def0'; ctx.stroke();
+            
+            let focalX = targetObj.x + tw/2;
+            let focalY = targetObj.y + 120;
+            ctx.fillStyle = '#58def0'; ctx.fillRect(focalX - 10, focalY - 2, 20, 4);
+        }
+        else if (scenario === 'shadow') {
+            ctx.beginPath(); ctx.arc(targetObj.x, targetObj.y, targetObj.r, 0, Math.PI*2);
+            ctx.fillStyle = '#e04040'; ctx.fill();
+            ctx.fillStyle = '#fffaf0'; ctx.font = 'bold 16px Tahoma'; ctx.fillText("جسم معتم", targetObj.x - 35, targetObj.y + 5);
+        }
+
+        // Lights Drawing
+        if (lightType === 'flashlight') {
+            ctx.fillStyle = '#0b1730'; ctx.fillRect(lightObj.x, lightObj.y, lightObj.w, lightObj.h); 
+            ctx.fillStyle = '#f8d41c'; ctx.fillRect(lightObj.x + 10, lightObj.y + lightObj.h, lightObj.w - 20, 10); 
+            ctx.fillStyle = '#58def0'; ctx.font = '14px Tahoma'; ctx.fillText("كشاف", lightObj.x + 30, lightObj.y + 25);
+        } else if (lightType === 'sun') {
+            ctx.beginPath(); ctx.arc(sunObj.x, sunObj.y, sunObj.r, 0, Math.PI*2);
+            ctx.fillStyle = '#f8d41c'; ctx.shadowBlur = 25; ctx.shadowColor = '#ffe96a'; ctx.fill(); ctx.shadowBlur = 0;
+            ctx.fillStyle = '#0b1730'; ctx.font = 'bold 16px Tahoma'; ctx.fillText("الشمس", sunObj.x - 22, sunObj.y + 5);
+        }
+
+        for(let i=particles.length-1; i>=0; i--) {
+            let p = particles[i];
+            p.update(); p.draw();
+            if (p.x < -100 || p.x > 900 || p.y > 600 || p.y < -100 || p.toDelete) {
+                particles.splice(i, 1);
+            }
+        }
+        calculateTemperature();
+    }
+
+    function calculateTemperature() {
+        const rect = canvas.getBoundingClientRect();
+        let checkX = (thermoX + 22.5) * (canvas.width / rect.width);
+        let checkY = (thermoY + 95) * (canvas.height / rect.height);
+        let targetTemp = 25; 
+
+        if (scenario === 'lens') {
+            let tw = 120;
+            let focalX = targetObj.x + tw/2;
+            let focalY = targetObj.y + 120;
+            let dist = Math.sqrt((checkX - focalX)**2 + (checkY - focalY)**2);
+            
+            if (dist < 30) {
+                targetTemp = 100; 
+                ctx.fillStyle = '#fffaf0'; ctx.font = '35px Arial'; ctx.fillText("🔥", focalX - 15, focalY - 15);
+            } else if (dist < 80) targetTemp = 50;
+        } 
+        else if (scenario === 'shadow') {
+            targetTemp = (lightType === 'sun') ? 45 : 30;
+            let sourceX = (lightType === 'sun') ? sunObj.x : lightObj.x + lightObj.w/2;
+            let sourceY = (lightType === 'sun') ? sunObj.y : lightObj.y + lightObj.h;
+            let angleToThermo = Math.atan2(checkY - sourceY, checkX - sourceX);
+            let angleToBall = Math.atan2(targetObj.y - sourceY, targetObj.x - sourceX);
+            let distToThermo = Math.hypot(checkX - sourceX, checkY - sourceY);
+            let distToBall = Math.hypot(targetObj.x - sourceX, targetObj.y - sourceY);
+            let angleDiff = Math.abs(angleToThermo - angleToBall);
+            if (angleDiff > Math.PI) angleDiff = 2*Math.PI - angleDiff;
+            let shadowConeAngle = Math.atan2(targetObj.r, distToBall); 
+            
+            if (distToThermo > distToBall && angleDiff < shadowConeAngle) { targetTemp = 20; }
+        } else {
+            if (lightType === 'flashlight' && checkX > lightObj.x && checkX < lightObj.x + lightObj.w && checkY > lightObj.y + lightObj.h && checkY < targetObj.y) {
+                targetTemp = 35;
+            }
+        }
+        tempText.innerText = targetTemp + '°';
+        let heightPercent = (targetTemp / 100) * 80;
+        tempLiquid.style.height = heightPercent + 'px';
+    }
+
+    function animate() {
+        drawScene();
+        requestAnimationFrame(animate);
+    }
+
+    lightSelect.addEventListener('change', (e) => { lightType = e.target.value; particles = []; });
+    scenarioSelect.addEventListener('change', (e) => {
+        scenario = e.target.value; particles = [];
+        targetObj.x = 300; targetObj.y = 300;
+        if(scenario === 'shadow') { targetObj.x = 400; targetObj.y = 250; }
+    });
+
+    animate();
+</script>
+
+<script>
+/* Science Street Lab postMessage bridge. Does not change game/simulation logic. */
+(function () {
+  if (window.__sslBridge) return;
+  window.__sslBridge = true;
+  var params = new URLSearchParams(location.search);
+  var activityId = params.get('activityId');
+  var attemptId = params.get('attemptId');
+  var targetOrigin = '*';
+  var started = false;
+  var t0 = Date.now();
+  var completedPosted = false;
+
+  function post(type, extra) {
+    try {
+      var payload = Object.assign({ type: type, activityId: activityId, attemptId: attemptId }, extra || {});
+      parent.postMessage(payload, targetOrigin);
+    } catch (err) {}
+  }
+
+  window.addEventListener('message', function (e) {
+    var d = e.data;
+    if (!d || typeof d !== 'object') return;
+    if (d.type === 'INIT') {
+      if (d.activityId != null) activityId = d.activityId;
+      if (d.attemptId != null) attemptId = d.attemptId;
+      if (d.origin) targetOrigin = d.origin;
+    }
+  });
+
+  function markStarted() {
+    if (started) return;
+    started = true;
+    post('STARTED');
+  }
+
+  function reportProgress(completed, total) {
+    var percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+    post('PROGRESS', { progress: { completed: completed, total: total, percentage: percentage } });
+  }
+
+  function completeActivity(score, maxScore, challenges, total) {
+    if (completedPosted) return;
+    completedPosted = true;
+    post('ACTIVITY_COMPLETED', {
+      result: {
+        score: score,
+        max_score: maxScore,
+        percentage: maxScore > 0 ? Math.round((score / maxScore) * 100) : 100,
+        completed: true,
+        time_spent_seconds: Math.round((Date.now() - t0) / 1000),
+        challenges_completed: challenges,
+        total_challenges: total
+      }
+    });
+  }
+
+  if (typeof window.checkAnswer === 'function') {
+    var original = window.checkAnswer;
+    window.checkAnswer = function (btn, msg) {
+      markStarted();
+      var panel = btn && btn.closest ? btn.closest('.q-panel') : null;
+      var panels = document.querySelectorAll('.q-panel');
+      var step = panel ? Array.prototype.indexOf.call(panels, panel) + 1 : 1;
+      var total = (typeof totalQuestions !== 'undefined' && totalQuestions) ? totalQuestions : (panels.length || 5);
+      post('CHALLENGE_STARTED', { step: step });
+      var already = panel && panel.classList.contains('solved');
+      original.apply(this, arguments);
+      var correct = btn && btn.getAttribute && btn.getAttribute('data-correct') === 'true';
+      post('ANSWER_SUBMITTED', { step: step, correct: !!correct });
+      if (correct && !already) {
+        post('CHALLENGE_COMPLETED', { step: step });
+        var done = (typeof correctAnswersCount !== 'undefined') ? correctAnswersCount : step;
+        reportProgress(done, total);
+        if (done >= total) completeActivity(done * 10, total * 10, done, total);
+      }
+    };
+  }
+
+  function watchEndScreens() {
+    ['endScreen', 'end-screen', 'endscr'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      new MutationObserver(function () {
+        if (el.classList.contains('vis') || el.classList.contains('visible')) {
+          markStarted();
+          var total = (typeof totalQuestions !== 'undefined' && totalQuestions) ? totalQuestions : 5;
+          var done = (typeof correctAnswersCount !== 'undefined') ? correctAnswersCount : total;
+          reportProgress(total, total);
+          completeActivity(done * 10, total * 10, done, total);
+        }
+      }).observe(el, { attributes: true, attributeFilter: ['class'] });
+    });
+  }
+
+  document.addEventListener('click', function () { markStarted(); }, { once: true });
+  document.querySelectorAll('.replay-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () { post('RETRY'); completedPosted = false; });
+  });
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watchEndScreens);
+  else watchEndScreens();
+
+  post('READY');
+})();
+</script>
+
+</body>
+</html>

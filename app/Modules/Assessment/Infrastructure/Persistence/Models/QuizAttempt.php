@@ -52,4 +52,9 @@ class QuizAttempt extends Model
     {
         return $this->hasMany(QuizAttemptAnswer::class);
     }
+
+    public function frozenQuestions(): HasMany
+    {
+        return $this->hasMany(QuizAttemptQuestion::class)->orderBy('sort_order');
+    }
 }

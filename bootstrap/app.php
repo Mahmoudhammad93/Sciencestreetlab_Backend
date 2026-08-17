@@ -32,4 +32,16 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*'),
         );
+
+        $exceptions->render(function (\Illuminate\Validation\ValidationException $e, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            return response()->json([
+                'message' => 'Validation failed',
+                'code' => 'VALIDATION_ERROR',
+                'errors' => $e->errors(),
+            ], 422);
+        });
     })->create();

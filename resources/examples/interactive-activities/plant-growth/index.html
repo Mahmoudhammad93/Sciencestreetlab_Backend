@@ -1,0 +1,714 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>رحلة نمو البذور | شارع العلوم</title>
+<style>
+:root{--yellow:#fdd402;--cyan:#55d9ff;--navy:#10172d;--blue:#0e4770;--paper:#f6f4ea;--muted:#aab7d1;--red:#ff6b6b;--green:#2ed8ad;--soil-dry:#7a5233;--soil-wet:#4a3220;--stem:#3fae5c;--leaf:#48c46a}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Tahoma,"Segoe UI",Arial,sans-serif; user-select: none;}
+body{color:var(--paper);background:radial-gradient(circle at 14% 18%,#55d9ff26,transparent 27%),radial-gradient(circle at 88% 88%,#fdd40218,transparent 26%),linear-gradient(145deg,#0d1b38,#0e4770 48%,#10172d);min-height:100vh;overflow-x:hidden}
+button{font:inherit}button:focus-visible{outline:3px solid var(--cyan);outline-offset:3px}
+.shell{min-height:100vh;display:flex;flex-direction:column;position:relative}
+.shell:before{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(174deg,transparent 0 52px,#ffffff07 54px,transparent 58px)}
+header{position:relative;z-index:2;width:min(1480px,calc(100% - 36px));min-height:96px;margin:auto auto 12px;display:grid;grid-template-columns:220px 1fr 390px;align-items:center;gap:24px}
+.brand{width:214px;height:54px;overflow:hidden;border:1px solid #fdd40257;border-radius:13px;background:var(--yellow);box-shadow:0 10px 30px #0003;display:flex;align-items:center;justify-content:center;color:var(--navy);font-weight:900;font-size:20px}
+.progress-copy{display:flex;justify-content:space-between;font-size:13px;color:#dce7f7;margin-bottom:8px}
+.track{height:8px;border-radius:99px;background:#ffffff14;overflow:hidden}
+.track span{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--yellow));transition:width .5s ease}
+main{position:relative;z-index:1;width:min(1480px,calc(100% - 36px));min-height:650px;margin:0 auto 30px;border:1px solid #ffffff25;border-radius:28px;background:linear-gradient(135deg,#ffffff0c,transparent 44%),#0a1630ef;box-shadow:0 30px 80px #01081d70;overflow:hidden}
+.screen{min-height:650px;padding:46px 54px;display:flex;flex-direction:column;justify-content:center}
+.two{display:grid;grid-template-columns:1fr 1.1fr;gap:56px;align-items:center}
+.eyebrow{display:inline-block;color:var(--cyan);font-size:15px;font-weight:900;margin-bottom:10px}
+.screen h1,.screen h2{margin:0 0 14px;line-height:1.25}
+.screen h1{font-size:clamp(30px,4vw,46px)}
+.screen h2{font-size:clamp(24px,3vw,34px)}
+.lead{font-size:18px;line-height:1.8;color:#cad6e9;max-width:720px}
+.objective{margin:22px 0;padding:17px 20px;border-right:4px solid var(--yellow);border-radius:14px;background:#ffffff0b}
+.objective small{display:block;color:var(--yellow);font-weight:900;margin-bottom:7px;font-size:14px}
+.objective b{line-height:1.7}
+.primary,.secondary{min-height:52px;padding:0 26px;border-radius:14px;font-weight:900;cursor:pointer;font-size:16px;transition:.2s}
+.primary{border:0;background:linear-gradient(90deg,var(--yellow),#ffe95b);color:#10172d;box-shadow:0 12px 30px #fdd40225}
+.primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 15px 35px #fdd40240}
+.primary:disabled{opacity:.32;cursor:not-allowed;box-shadow:none}
+.secondary{border:1px solid #ffffff35;background:#ffffff0d;color:var(--paper)}
+.secondary:hover{background:#ffffff1a}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.cards{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;margin:26px 0}
+.card{padding:22px;border:1px solid #ffffff20;border-radius:20px;background:#ffffff0a;cursor:pointer;transition:.3s;text-align:center}
+.card:hover{background:#ffffff15;border-color:var(--cyan);transform:translateY(-3px)}
+.card b{font-size:16px}
+.feedback{max-width:900px;padding:16px 19px;border:1px solid #55d9ff5c;border-radius:14px;background:#55d9ff11;line-height:1.7;display:none;margin-top:18px;animation:pop .4s ease}
+.feedback.error{border-color:var(--red);background:#ff6b6b15}
+.feedback.success{border-color:var(--green);background:#2ed8ad15}
+.feedback b{display:block;margin-bottom:4px}
+.feedback.error b{color:var(--red)}
+.feedback.success b{color:var(--green)}
+.hidden{display:none!important}
+@keyframes pop{from{opacity:0;transform:scale(.78)}to{opacity:1;transform:scale(1)}}
+@keyframes riseIn{from{opacity:0;transform:translateY(14px) scale(.9)}to{opacity:1;transform:translateY(0) scale(1)}}
+
+/* Bench / pot scene */
+.bench{position:relative;min-height:460px;padding:22px;border:1px solid #ffffff1d;border-radius:24px;background:radial-gradient(circle at 50% 0,#55d9ff20,transparent 45%),linear-gradient(#0e2f53,#0a1834);display:flex;align-items:flex-end;justify-content:center;overflow:hidden}
+.pot-wrap{position:relative;width:280px;height:420px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end}
+.plant-slot{position:relative;width:260px;height:280px;display:flex;align-items:flex-end;justify-content:center;z-index:2}
+.plant-stage-content{animation:riseIn .6s cubic-bezier(.2,.8,.3,1.2) both}
+.pot-svg{position:relative;z-index:3;margin-top:-14px}
+.tool-row{display:flex;gap:14px;margin-top:20px;justify-content:center;flex-wrap:wrap;position:relative;z-index:4}
+.tool-btn{display:flex;flex-direction:column;align-items:center;gap:6px;background:#ffffff10;border:1px solid #ffffff2a;border-radius:16px;padding:12px 18px;cursor:pointer;color:var(--paper);transition:.2s}
+.tool-btn:hover:not(:disabled){background:#ffffff1c;transform:translateY(-2px)}
+.tool-btn:disabled{opacity:.3;cursor:not-allowed}
+.tool-btn span{font-size:13px;font-weight:800}
+.particle{position:absolute;border-radius:50%;pointer-events:none;animation:fly 900ms ease-out forwards}
+@keyframes fly{0%{opacity:1;transform:translate(0,0) scale(1)}100%{opacity:0;transform:var(--fly-to) scale(.4)}}
+.droplet{position:absolute;width:7px;height:11px;border-radius:50% 50% 50% 0;background:#8fe3ff;rotate:45deg;pointer-events:none;animation:drop 650ms ease-in forwards}
+@keyframes drop{0%{opacity:0;transform:translateY(-40px)}20%{opacity:1}100%{opacity:0;transform:translateY(70px)}}
+.spark{position:absolute;width:6px;height:6px;background:var(--yellow);border-radius:50%;pointer-events:none;animation:sparkle 800ms ease-out forwards}
+@keyframes sparkle{0%{opacity:1;transform:scale(0) translate(0,0)}100%{opacity:0;transform:scale(1) translate(var(--sx),var(--sy))}}
+.tool-btn.pouring{animation:pour 1.1s ease-in-out}
+@keyframes pour{0%{transform:translate(0,0) rotate(0)}30%{transform:translate(-4px,-10px) rotate(-22deg)}70%{transform:translate(-4px,-10px) rotate(-22deg)}100%{transform:translate(0,0) rotate(0)}}
+.dig-shovel{animation:dig 700ms ease-in-out}
+@keyframes dig{0%{transform:translateY(0) rotate(0)}30%{transform:translateY(6px) rotate(-12deg)}60%{transform:translateY(-4px) rotate(8deg)}100%{transform:translateY(0) rotate(0)}}
+
+/* parts matching */
+.parts-wrap{display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:center}
+.parts-labels{display:flex;flex-direction:column;gap:12px}
+.part-chip{padding:14px 18px;border-radius:14px;border:1px solid #ffffff25;background:#ffffff0b;cursor:pointer;font-weight:900;text-align:center;transition:.2s}
+.part-chip:hover{background:#ffffff18}
+.part-chip.selected{border-color:var(--cyan);background:#55d9ff22}
+.part-chip.done{border-color:var(--green);background:#2ed8ad1e;opacity:.65;cursor:default}
+.marker{position:absolute;width:30px;height:30px;border-radius:50%;background:#ffffff20;border:2px solid var(--yellow);color:var(--yellow);font-weight:900;display:flex;align-items:center;justify-content:center;cursor:pointer;transform:translate(-50%,-50%);transition:.2s}
+.marker:hover{background:#fdd40233}
+.marker.done{background:var(--green);border-color:var(--green);color:#08251b}
+.func-note{margin-top:8px;font-size:14px;color:#cfe0f2;line-height:1.6;min-height:22px}
+.confetti{position:absolute;width:9px;height:9px;top:-10px;pointer-events:none;animation:confetti 2.4s linear forwards}
+@keyframes confetti{to{transform:translateY(520px) rotate(540deg);opacity:.15}}
+
+@media(max-width:900px){header{grid-template-columns:1fr 1fr}.progress{grid-column:1/-1;grid-row:2}.screen{padding:26px 18px}.two,.parts-wrap{grid-template-columns:1fr}.bench{min-height:340px}}
+</style>
+</head>
+<body onclick="initAudio()">
+<div class="shell">
+<header>
+<div class="brand">شارع العلوم</div>
+<div class="progress">
+<div class="progress-copy"><b id="progress-text">مستوى 1 من 6</b></div>
+<div class="track"><span id="progress-bar" style="width:16%"></span></div>
+</div>
+</header>
+
+<main>
+<div class="screen">
+<div class="two" id="stage-area">
+
+<div class="content">
+<span class="eyebrow">التجربة التفاعلية (انقر للبدء وتفعيل الصوت)</span>
+<h1 id="main-title">رحلة نمو البذور</h1>
+<p class="lead" id="main-desc">تبدأ حياة معظم النباتات من البذور. دعنا نزرع بذرة بأيدينا ونتابع نموها خطوة بخطوة!</p>
+
+<div class="objective">
+<small>المهمة الحالية:</small>
+<b id="task-text">اختر البذرة التي تريد زراعتها للبدء.</b>
+</div>
+
+<!-- Stage: choose seed -->
+<div id="stage-seed" class="cards"></div>
+
+<!-- Stage: season quiz -->
+<div id="stage-season" class="cards hidden"></div>
+
+<!-- Stage: planting tools -->
+<div id="stage-plant" class="tool-row hidden"></div>
+
+<!-- Stage: leaves quiz -->
+<div id="stage-leaves" class="cards hidden"></div>
+
+<!-- Stage: flower/fruit quiz -->
+<div id="stage-flower" class="cards hidden"></div>
+
+<!-- Stage: parts matching -->
+<div id="stage-parts" class="hidden">
+  <div class="parts-wrap">
+    <div class="parts-labels" id="parts-labels"></div>
+    <div style="position:relative" id="parts-plant"></div>
+  </div>
+  <div class="func-note" id="parts-note"></div>
+</div>
+
+<!-- Stage: complete -->
+<div id="stage-done" class="hidden">
+<button class="primary" onclick="location.reload()">جرّب زراعة بذرة أخرى</button>
+</div>
+
+<div id="feedback-box" class="feedback">
+<b id="feedback-title"></b>
+<span id="feedback-text"></span>
+</div>
+</div>
+
+<div class="bench" id="bench">
+<div class="pot-wrap">
+<div class="plant-slot" id="plant-slot"></div>
+<svg class="pot-svg" width="220" height="140" viewBox="0 0 220 140">
+<path d="M20 10 H200 L178 130 Q110 148 42 130 Z" fill="#a8622f" stroke="#6e3f1c" stroke-width="4"/>
+<rect x="10" y="0" width="200" height="22" rx="10" fill="#c97b3e" stroke="#6e3f1c" stroke-width="4"/>
+</svg>
+<div class="tool-row" id="tool-icons"></div>
+</div>
+</div>
+
+</div>
+</div>
+</main>
+</div>
+
+<script>
+/* ---------- Audio Engine ---------- */
+let audioCtx;
+let audioInitialized = false;
+
+function initAudio() {
+  if (!audioInitialized) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    audioInitialized = true;
+  }
+}
+
+function playSound(type) {
+  if (!audioCtx) return;
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  const now = audioCtx.currentTime;
+
+  if (type === 'success') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.setValueAtTime(554, now + 0.1);
+      osc.frequency.setValueAtTime(659, now + 0.2);
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+      osc.start(now); osc.stop(now + 0.4);
+  } else if (type === 'error') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(150, now);
+      osc.frequency.linearRampToValueAtTime(100, now + 0.3);
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      osc.start(now); osc.stop(now + 0.3);
+  } else if (type === 'pop') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, now);
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+      osc.start(now); osc.stop(now + 0.1);
+  } else if (type === 'water') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, now);
+      osc.frequency.exponentialRampToValueAtTime(200, now + 0.3);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      osc.start(now); osc.stop(now + 0.3);
+  } else if (type === 'magic') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(300, now);
+      osc.frequency.linearRampToValueAtTime(600, now + 1.5);
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.3, now + 0.75);
+      gain.gain.linearRampToValueAtTime(0, now + 1.5);
+      osc.start(now); osc.stop(now + 1.5);
+  }
+}
+
+/* ---------- Game Logic & Data ---------- */
+const seedInfo={
+ fava:{name:'الفول',color:'#d9c07a',stroke:'#8a6a2c',season:'oct-nov',stem:'#3fae5c',leaf:'#48c46a',petal:'#f4f0ff',petalStroke:'#8f7fc4',fruit:'#4d9a4a'},
+ sunflower:{name:'دوّار الشمس',color:'#3a2c22',stroke:'#1c1410',season:'mar-apr',stem:'#4cae4c',leaf:'#57c057',petal:'#fdd402',petalStroke:'#c79e00',fruit:'#6b4a26'}
+};
+let seed='',dug=false,placed=false,covered=false,watered=false;
+const matched={root:false,stem:false,leaf:false,flower:false};
+
+const $=id=>document.getElementById(id);
+const progressBar=$('progress-bar'),progressText=$('progress-text'),taskText=$('task-text');
+const feedbackBox=$('feedback-box'),feedbackTitle=$('feedback-title'),feedbackText=$('feedback-text');
+const slot=$('plant-slot'),toolIcons=$('tool-icons'),bench=$('bench');
+
+const STAGES=['seed','season','plant','leaves','flower','parts','done'];
+function setProgress(key,label){
+ const i=STAGES.indexOf(key);
+ progressBar.style.width=(i/(STAGES.length-1)*100)+'%';
+ progressText.innerText=label;
+}
+function hideAll(){
+ ['stage-seed','stage-season','stage-plant','stage-leaves','stage-flower','stage-parts','stage-done'].forEach(id=>$(id).classList.add('hidden'));
+ feedbackBox.classList.remove('error','success');feedbackBox.style.display='none';
+}
+function showFeedback(type,title,text){
+ if(type === 'success') playSound('success');
+ else if(type === 'error') playSound('error');
+ feedbackBox.classList.remove('error','success');feedbackBox.classList.add(type);
+ feedbackTitle.innerText=title;feedbackText.innerText=text;feedbackBox.style.display='block';
+}
+function setPlant(svg){slot.innerHTML='<div class="plant-stage-content">'+svg+'</div>';}
+
+/* ---------- SVG builders ---------- */
+function svgSeedCard(type){
+ const s=seedInfo[type];
+ if(type==='fava') return `<svg width="46" height="46" viewBox="0 0 46 46"><ellipse cx="23" cy="23" rx="16" ry="12" fill="${s.color}" stroke="${s.stroke}" stroke-width="3"/></svg>`;
+ return `<svg width="46" height="46" viewBox="0 0 46 46"><ellipse cx="23" cy="23" rx="10" ry="16" fill="${s.color}" stroke="${s.stroke}" stroke-width="3"/><path d="M23 10v26" stroke="#5c4936" stroke-width="1.5"/></svg>`;
+}
+function svgHole(){return `<svg width="200" height="60" viewBox="0 0 200 60"><ellipse cx="100" cy="28" rx="60" ry="18" fill="${'#3a2515'}"/><ellipse cx="100" cy="24" rx="52" ry="13" fill="#1f150c"/></svg>`;}
+function svgSeedInHole(type){
+ const seedSvg=type==='fava'?`<ellipse cx="100" cy="26" rx="15" ry="11" fill="${seedInfo[type].color}" stroke="${seedInfo[type].stroke}" stroke-width="3"/>`:`<ellipse cx="100" cy="26" rx="9" ry="15" fill="${seedInfo[type].color}" stroke="${seedInfo[type].stroke}" stroke-width="3"/>`;
+ return `<svg width="200" height="60" viewBox="0 0 200 60"><ellipse cx="100" cy="28" rx="60" ry="18" fill="#3a2515"/><ellipse cx="100" cy="24" rx="52" ry="13" fill="#1f150c"/>${seedSvg}</svg>`;
+}
+function svgCoveredMound(){return `<svg width="220" height="70" viewBox="0 0 220 70"><ellipse cx="110" cy="40" rx="90" ry="26" fill="${'#5a3a20'}"/><ellipse cx="110" cy="34" rx="78" ry="20" fill="${'#7a5233'}"/></svg>`;}
+function svgSprout(type,wet){
+ const s=seedInfo[type];const soil=wet?'#4a3220':'#7a5233';
+ return `<svg width="220" height="180" viewBox="0 0 220 180">
+ <ellipse cx="110" cy="160" rx="95" ry="20" fill="${soil}"/>
+ <path d="M110 158 C108 120 108 95 110 70" stroke="${s.stem}" stroke-width="7" fill="none" stroke-linecap="round"/>
+ <ellipse cx="93" cy="72" rx="20" ry="12" fill="${s.leaf}" transform="rotate(-25 93 72)"/>
+ <ellipse cx="128" cy="72" rx="20" ry="12" fill="${s.leaf}" transform="rotate(25 128 72)"/>
+ </svg>`;
+}
+function svgTrueLeaves(type){
+ const s=seedInfo[type];
+ return `<svg width="220" height="220" viewBox="0 0 220 220">
+ <ellipse cx="110" cy="200" rx="95" ry="20" fill="#4a3220"/>
+ <path d="M110 198 C106 150 106 100 110 45" stroke="${s.stem}" stroke-width="8" fill="none" stroke-linecap="round"/>
+ <ellipse cx="90" cy="150" rx="17" ry="10" fill="${s.leaf}" opacity=".55" transform="rotate(-20 90 150)"/>
+ <ellipse cx="130" cy="150" rx="17" ry="10" fill="${s.leaf}" opacity=".55" transform="rotate(20 130 150)"/>
+ <path d="M110 95 C80 90 65 65 70 40 C95 48 112 68 110 95Z" fill="${s.leaf}"/>
+ <path d="M110 95 C140 90 155 65 150 40 C125 48 108 68 110 95Z" fill="${s.leaf}"/>
+ <path d="M110 70 C88 66 76 48 80 30 C100 36 112 52 110 70Z" fill="${s.leaf}"/>
+ </svg>`;
+}
+function svgFlower(type){
+ const s=seedInfo[type];
+ const petals=type==='fava'
+ ?`<g id="flower-petals" style="transform-origin: 110px 44px; transition: all 2s ease-in-out;">${[0,60,120,180,240,300].map(a=>`<ellipse cx="110" cy="26" rx="11" ry="17" fill="${s.petal}" stroke="${s.petalStroke}" stroke-width="1.5" transform="rotate(${a} 110 44)"/>`).join('')}</g>`
+ :`<g id="flower-petals" style="transform-origin: 110px 44px; transition: all 2s ease-in-out;">${[0,30,60,90,120,150,180,210,240,270,300,330].map(a=>`<ellipse cx="110" cy="20" rx="9" ry="20" fill="${s.petal}" transform="rotate(${a} 110 44)"/>`).join('')}</g>`;
+ 
+ const center=type==='fava'
+ ? `<circle id="flower-center" cx="110" cy="44" r="7" fill="#f4c542" style="transform-origin: 110px 44px; transition: all 2s ease-in-out;"/>`
+ : `<circle id="flower-center" cx="110" cy="44" r="16" fill="${s.fruit}" style="transform-origin: 110px 44px; transition: all 2s ease-in-out;"/>`;
+
+ return `<svg width="220" height="240" viewBox="0 0 220 240">
+ <ellipse cx="110" cy="220" rx="95" ry="20" fill="#4a3220"/>
+ <path d="M110 218 C106 160 106 110 110 60" stroke="${s.stem}" stroke-width="8" fill="none" stroke-linecap="round"/>
+ <path d="M110 150 C82 145 68 122 74 100 C98 108 112 128 110 150Z" fill="${s.leaf}"/>
+ <path d="M110 150 C138 145 152 122 146 100 C122 108 108 128 110 150Z" fill="${s.leaf}"/>
+ <path d="M110 110 C86 106 74 88 78 68 C100 76 112 92 110 110Z" fill="${s.leaf}"/>
+ <g transform="translate(0,0)">
+    ${petals}
+    ${center}
+ </g>
+ </svg>`;
+}
+function svgFruit(type){
+ const s=seedInfo[type];
+ const fruitPart=type==='fava'
+ ?`<path d="M96 40 C90 60 92 82 100 96 C108 108 122 108 128 96 C134 82 132 58 124 40 Z" fill="${s.fruit}" stroke="#2f5c2c" stroke-width="2"/>`
+ :`<circle cx="110" cy="46" r="30" fill="${s.fruit}"/><g>${Array.from({length:24}).map((_,i)=>{const a=i*15*Math.PI/180,r=20,x=110+Math.cos(a)*r,y=46+Math.sin(a)*r;return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6" fill="#2a1c10"/>`}).join('')}</g>`;
+ return `<svg width="220" height="220" viewBox="0 0 220 220">
+ <ellipse cx="110" cy="200" rx="95" ry="20" fill="#4a3220"/>
+ <path d="M110 198 C106 150 106 100 110 60" stroke="${s.stem}" stroke-width="8" fill="none" stroke-linecap="round"/>
+ <path d="M110 140 C86 136 74 118 78 98 C100 106 112 122 110 140Z" fill="${s.leaf}"/>
+ <path d="M110 140 C134 136 146 118 142 98 C120 106 108 122 110 140Z" fill="${s.leaf}"/>
+ ${fruitPart}
+ </svg>`;
+}
+
+/* ---------- NEW: Labeled Plant with Bloom Animation ---------- */
+function svgLabeledPlant(type){
+ const s=seedInfo[type];
+ 
+ // إنشاء البتلات وتجهيزها للتفتح (مخفية بالحجم 0 في البداية)
+ const petals = type === 'fava'
+   ? `<g id="bloom-petals" style="transform-origin: 130px 66px; transform: scale(0); transition: all 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+        ${[0,60,120,180,240,300].map(a=>`<ellipse cx="130" cy="40" rx="12" ry="18" fill="${s.petal}" stroke="${s.petalStroke}" stroke-width="1.5" transform="rotate(${a} 130 66)"/>`).join('')}
+      </g>`
+   : `<g id="bloom-petals" style="transform-origin: 130px 66px; transform: scale(0); transition: all 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+        ${[0,30,60,90,120,150,180,210,240,270,300,330].map(a=>`<ellipse cx="130" cy="30" rx="10" ry="24" fill="${s.petal}" transform="rotate(${a} 130 66)"/>`).join('')}
+      </g>`;
+
+ const centerR = type === 'fava' ? 14 : 24;
+
+ return `<svg width="260" height="300" viewBox="0 0 260 300">
+ <ellipse cx="130" cy="270" rx="115" ry="24" fill="#4a3220"/>
+ <path d="M130 268 C90 285 60 270 55 250" stroke="#c98a4a" stroke-width="5" fill="none" stroke-linecap="round"/>
+ <path d="M130 268 C165 288 195 268 200 246" stroke="#c98a4a" stroke-width="5" fill="none" stroke-linecap="round"/>
+ <path d="M130 265 C122 200 122 140 130 90" stroke="${s.stem}" stroke-width="9" fill="none" stroke-linecap="round"/>
+ <path d="M130 190 C98 184 82 162 88 138 C114 148 128 168 130 190Z" fill="${s.leaf}"/>
+ <path d="M130 190 C162 184 178 162 172 138 C146 148 132 168 130 190Z" fill="${s.leaf}"/>
+ <path d="M130 130 C104 126 90 106 94 84 C118 92 132 110 130 130Z" fill="${s.leaf}"/>
+ 
+ ${petals}
+ <circle id="bloom-center" cx="130" cy="66" r="${centerR}" fill="${s.fruit}" style="transition: all 1s ease;"/>
+ </svg>`;
+}
+
+/* ---------- particles ---------- */
+function burst(container,count,color,x,y){
+ for(let i=0;i<count;i++){
+ const p=document.createElement('div');
+ p.className='particle';
+ const ang=Math.random()*Math.PI*2,dist=30+Math.random()*40;
+ p.style.setProperty('--fly-to',`translate(${Math.cos(ang)*dist}px,${Math.sin(ang)*dist}px)`);
+ p.style.width=p.style.height=(3+Math.random()*4)+'px';
+ p.style.background=color;p.style.left=x+'px';p.style.top=y+'px';
+ container.appendChild(p);setTimeout(()=>p.remove(),950);
+ }
+}
+function sparkBurst(container,x,y){
+ for(let i=0;i<10;i++){
+ const p=document.createElement('div');p.className='spark';
+ const ang=Math.random()*Math.PI*2,dist=26+Math.random()*30;
+ p.style.setProperty('--sx',(Math.cos(ang)*dist)+'px');p.style.setProperty('--sy',(Math.sin(ang)*dist)+'px');
+ p.style.left=x+'px';p.style.top=y+'px';container.appendChild(p);setTimeout(()=>p.remove(),850);
+ }
+}
+function dropletRain(container,x,y){
+ for(let i=0;i<8;i++){
+ const d=document.createElement('div');d.className='droplet';
+ d.style.left=(x-16+Math.random()*32)+'px';d.style.top=y+'px';
+ d.style.animationDelay=(i*70)+'ms';
+ container.appendChild(d);setTimeout(()=>d.remove(),1300);
+ }
+}
+
+/* ---------- flow ---------- */
+function selectSeed(type){
+ playSound('pop');
+ seed=type;hideAll();
+ renderSeedStage(false);
+ $('stage-season').classList.remove('hidden');
+ renderSeasonStage();
+ taskText.innerText=`اخترت بذرة ${seedInfo[type].name}. متى الوقت الأنسب لزراعتها؟`;
+ setPlant(svgSeedCard(type).replace('width="46" height="46"','width="90" height="90"'));
+ setProgress('season','مستوى 2 من 6 — التوقيت المناسب');
+ showFeedback('success','اختيار موفّق!','كل بذرة لها وقت زراعة يناسبها، فلنكتشفه معًا.');
+}
+function renderSeedStage(){
+ $('stage-seed').innerHTML=`
+ <div class="card" onclick="selectSeed('fava')">${svgSeedCard('fava')}<b>بذرة الفول</b></div>
+ <div class="card" onclick="selectSeed('sunflower')">${svgSeedCard('sunflower')}<b>بذرة دوّار الشمس</b></div>`;
+}
+function renderSeasonStage(){
+ $('stage-season').innerHTML=`
+ <div class="card" onclick="checkSeason('mar-apr')"><b>مارس - إبريل</b></div>
+ <div class="card" onclick="checkSeason('oct-nov')"><b>أكتوبر - نوفمبر</b></div>`;
+}
+function checkSeason(val){
+ playSound('pop');
+ if(val===seedInfo[seed].season){
+ hideAll();$('stage-plant').classList.remove('hidden');
+ $('stage-plant').innerHTML='<div class="card" style="cursor:default"><b>استخدم أدوات الزراعة الموجودة بجانب الأصيص، خطوة بخطوة بالترتيب.</b></div>';
+ renderPlantingTools();
+ taskText.innerText='حان وقت الزراعة الحقيقية! اضغط على الأدوات بالترتيب لتزرع بذرتك بنفسك.';
+ setProgress('plant','مستوى 3 من 6 — ازرع بيدك');
+ setPlant(svgHole().replace('width="200" height="60"','width="180" height="54"'));
+ showFeedback('success','توقيت صحيح!','التوقيت السليم للزراعة مهم جدًا لنمو النبات.');
+ }else{
+ showFeedback('error','إجابة خاطئة!',seed==='fava'?'الفول يُفضَّل زراعته في أكتوبر - نوفمبر.':'دوّار الشمس يُفضَّل زراعته في مارس - إبريل.');
+ }
+}
+
+function renderPlantingTools(){
+ toolIcons.innerHTML=`
+ <button class="tool-btn" id="btn-dig" onclick="digHole()"><svg width="30" height="30" viewBox="0 0 30 30"><path d="M6 24 L20 10" stroke="#c9a15a" stroke-width="4" stroke-linecap="round"/><path d="M18 8 L26 4 L28 8 L22 12Z" fill="#9fb4c9"/></svg><span>احفر حفرة</span></button>
+ <button class="tool-btn" id="btn-seed" onclick="placeSeedInHole()" disabled><svg width="30" height="30" viewBox="0 0 30 30"><ellipse cx="15" cy="15" rx="10" ry="7" fill="${seedInfo[seed].color}" stroke="${seedInfo[seed].stroke}" stroke-width="2"/></svg><span>ضع البذرة</span></button>
+ <button class="tool-btn" id="btn-cover" onclick="coverSeedHole()" disabled><svg width="30" height="30" viewBox="0 0 30 30"><ellipse cx="15" cy="20" rx="12" ry="6" fill="#7a5233"/></svg><span>غطِّ بالتربة</span></button>
+ <button class="tool-btn" id="btn-water" onclick="waterSeed()" disabled><svg width="30" height="30" viewBox="0 0 30 30"><path d="M6 14 h12 a4 4 0 0 1 4 4 v0 a4 4 0 0 1 -4 4 H10 l-6 4 v-8 Z" fill="#55d9ff" stroke="#1a6f8f" stroke-width="1.5"/></svg><span>اسقِ الزرع</span></button>`;
+}
+function digHole(){
+ if(dug)return;dug=true;
+ playSound('pop');
+ const b=$('btn-dig');b.classList.add('dig-shovel');
+ setPlant(svgHole());
+ burst(bench,14,'#8a5a30',110,300);
+ taskText.innerText='ممتاز! الحفرة جاهزة. اضغط لتضع البذرة بداخلها.';
+ $('btn-seed').disabled=false;
+ setTimeout(()=>b.classList.remove('dig-shovel'),700);
+}
+function placeSeedInHole(){
+ if(!dug||placed)return;placed=true;
+ playSound('pop');
+ setPlant(svgSeedInHole(seed));
+ burst(bench,10,seedInfo[seed].color,110,300);
+ taskText.innerText='رائع! والآن غطِّ البذرة بالتربة برفق.';
+ $('btn-cover').disabled=false;
+}
+function coverSeedHole(){
+ if(!placed||covered)return;covered=true;
+ playSound('pop');
+ setPlant(svgCoveredMound());
+ burst(bench,14,'#7a5233',110,300);
+ taskText.innerText='ممتاز! بذرتك مدفونة بأمان. الآن اسقِها بكمية كافية من الماء.';
+ $('btn-water').disabled=false;
+}
+function waterSeed(){
+ if(!covered||watered)return;watered=true;
+ playSound('pop');
+ const b=$('btn-water');b.classList.add('pouring');
+ dropletRain(bench,110,260);
+ 
+ setTimeout(()=>playSound('water'), 200);
+ setTimeout(()=>playSound('water'), 500);
+ setTimeout(()=>playSound('water'), 800);
+
+ setTimeout(()=>{
+ sparkBurst(bench,110,300);
+ setPlant(svgSprout(seed,true));
+ taskText.innerText='سُقيت البذرة جيدًا! بعد أيام من الانتظار ستبدأ في الإنبات... وها هي النبتة الصغيرة! ما أول أوراق تظهر لها؟';
+ hideAll();$('stage-leaves').classList.remove('hidden');renderLeavesStage();
+ setProgress('leaves','مستوى 4 من 6 — الإنبات');
+ showFeedback('success','نجحت زراعتك!','السقي بكمية مناسبة يمنح البذرة الرطوبة التي تحتاجها لتنبت.');
+ },1200);
+}
+
+function renderLeavesStage(){
+ $('stage-leaves').innerHTML=`
+ <div class="card" onclick="checkLeaves('true')"><b>الأوراق الحقيقية</b></div>
+ <div class="card" onclick="checkLeaves('seed')"><b>الأوراق البذرية</b></div>`;
+}
+function checkLeaves(type){
+ playSound('pop');
+ if(type==='seed'){
+ hideAll();$('stage-flower').classList.remove('hidden');renderFlowerStage();
+ setPlant(svgFlower(seed));
+ taskText.innerText='بالضبط! تظهر الأوراق البذرية أولًا ثم الحقيقية. الآن كبر النبات وكوّن أزهارًا، ماذا يحدث بعد تفتّحها؟';
+ setProgress('flower','مستوى 5 من 6 — الأزهار والثمار');
+ showFeedback('success','عمل رائع!','الأوراق البذرية هي أول أوراق، وبعدها تظهر الأوراق الحقيقية ويزداد ارتفاع النبات.');
+ }else{
+ showFeedback('error','إجابة غير دقيقة!','تذكّر ما درسناه: تبدأ النبتة بنمو أوراق تُسمّى "الأوراق البذرية" أولًا.');
+ }
+}
+
+function renderFlowerStage(){
+ $('stage-flower').innerHTML=`
+ <div class="card" onclick="checkFlower('fruit')"><b>تذبل الأزهار وتتحول القاعدة إلى ثمرة بها بذور</b></div>
+ <div class="card" onclick="checkFlower('die')"><b>تسقط الأزهار ويموت النبات</b></div>`;
+}
+
+function checkFlower(action){
+ playSound('pop');
+ if(action==='fruit'){
+   playSound('magic');
+   $('stage-flower').classList.add('hidden'); 
+   taskText.innerText='شاهد المعجزة! تذبل أوراق الزهرة الملونة وتسقط... ويبدأ الجزء السفلي في الانتفاخ ليتحول إلى ثمرة!';
+   
+   const petals = document.getElementById('flower-petals');
+   const center = document.getElementById('flower-center');
+   
+   if (petals) {
+       petals.style.transform = 'translateY(100px) scale(0) rotate(90deg)';
+       petals.style.opacity = '0';
+   }
+   if (center) {
+       center.style.transform = seed === 'fava' ? 'scale(3.5)' : 'scale(1.8)';
+       if (seed === 'fava') center.style.fill = seedInfo.fava.fruit;
+   }
+
+   setTimeout(() => {
+       hideAll();
+       $('stage-parts').classList.remove('hidden');
+       setPlant(svgLabeledPlant(seed));
+       taskText.innerText='ألف مبروك! أكملت دورة النمو. والآن هيا نتعرف على أجزاء النبات ووظيفة كل جزء.';
+       setProgress('parts','مستوى 6 من 6 — أجزاء النبات');
+       showFeedback('success','تحول رائع!','كما درسنا: بعد أن تذبل الزهرة وتجف ينتفخ الجزء السفلي منها، ويتحول إلى ثمرة بداخلها بذور جديدة.');
+       renderPartsActivity();
+   }, 2500);
+
+ }else{
+   showFeedback('error','فكّر مرة أخرى!','الأزهار مرحلة مهمة جدًا لإنتاج الجيل التالي من البذور، ولا يموت النبات بمجرد تفتّحها.');
+ }
+}
+
+/* ---------- parts matching activity ---------- */
+const PARTS=[
+ {key:'root',name:'الجذور',x:75,y:262,func:'تمتد تحت سطح التربة، وتثبّت النبات فيها، وتمتص الماء منها.'},
+ {key:'stem',name:'الساق',x:132,y:170,func:'تدعم النبات، وتعمل كممرّ لنقل الماء من الجذور إلى الأوراق والأزهار.'},
+ {key:'leaf',name:'الأوراق',x:100,y:150,func:'بعضها عريض ومسطّح ليلتقط أكبر قدر ممكن من ضوء الشمس.'},
+ {key:'flower',name:'الزهرة',x:130,y:66,func:'تنتج الثمار التي تتكوّن بداخلها البذور.'}
+];
+let selectedChip=null;
+function renderPartsActivity(){
+ $('parts-labels').innerHTML=PARTS.map(p=>`<div class="part-chip" id="chip-${p.key}" onclick="selectChip('${p.key}')"><b>${p.name}</b></div>`).join('');
+ $('parts-plant').innerHTML=svgLabeledPlant(seed)+PARTS.map(p=>`<div class="marker" id="mk-${p.key}" style="left:${p.x}px;top:${p.y}px" onclick="selectMarker('${p.key}')">؟</div>`).join('');
+ $('parts-plant').style.position='relative';
+ $('parts-note').innerText='اضغط على اسم جزء النبات، ثم اضغط على مكانه الصحيح فوق الرسم.';
+}
+function selectChip(key){
+ if(matched[key])return;
+ playSound('pop');
+ selectedChip=key;
+ document.querySelectorAll('.part-chip').forEach(c=>c.classList.remove('selected'));
+ $('chip-'+key).classList.add('selected');
+}
+
+/* ---------- NEW: Bloom Trigger logic ---------- */
+function selectMarker(key){
+ if(!selectedChip||matched[key])return;
+ if(selectedChip===key){
+ matched[key]=true;
+ playSound('success');
+ $('chip-'+selectedChip).classList.add('done');$('chip-'+selectedChip).classList.remove('selected');
+ const mk=$('mk-'+key);mk.classList.add('done');mk.innerText='✓';
+ const p=PARTS.find(p=>p.key===key);
+ $('parts-note').innerText=p.name+': '+p.func;
+ selectedChip=null;
+ 
+ // إذا كانت الإجابة الصحيحة هي الزهرة، نطلق تأثير التفتح
+ if(key === 'flower') {
+     const bloomPetals = document.getElementById('bloom-petals');
+     if(bloomPetals) {
+         bloomPetals.style.transform = 'scale(1)'; // تكبير البتلات لتبدو متفتحة
+         playSound('magic'); // إضافة صوت مميز لتفتح الزهرة
+     }
+ }
+
+ if(Object.values(matched).every(Boolean)){
+ setTimeout(()=>{
+ hideAll();$('stage-done').classList.remove('hidden');
+ taskText.innerText='أتممت رحلة نمو البذرة بالكامل، أحسنت!';
+ setProgress('done','اكتملت التجربة!');
+ setPlant(svgFruit(seed));
+ launchConfetti();
+ showFeedback('success','بطل النباتات!','عرفت كيف تُزرع البذرة، وكيف تنمو، وما وظيفة كل جزء من أجزاء النبات.');
+ },1500); // زدنا الوقت قليلاً ليستمتع الطفل بشكل الزهرة
+ }
+ }else{
+ playSound('error');
+ showFeedback('error','حاول مرة أخرى','هذا ليس مكان '+PARTS.find(p=>p.key===selectedChip).name+'، انظر جيدًا إلى الرسم وحاول ثانية.');
+ }
+}
+
+function launchConfetti(){
+ const colors=['#fdd402','#55d9ff','#2ed8ad','#ff6b6b'];
+ for(let i=0;i<40;i++){
+ const c=document.createElement('div');c.className='confetti';
+ c.style.left=(Math.random()*100)+'%';
+ c.style.background=colors[i%colors.length];
+ c.style.animationDelay=(Math.random()*600)+'ms';
+ bench.appendChild(c);setTimeout(()=>c.remove(),2600);
+ }
+}
+
+/* init */
+renderSeedStage();
+</script>
+
+<script>
+/* Science Street Lab postMessage bridge. Does not change game/simulation logic. */
+(function () {
+  if (window.__sslBridge) return;
+  window.__sslBridge = true;
+  var params = new URLSearchParams(location.search);
+  var activityId = params.get('activityId');
+  var attemptId = params.get('attemptId');
+  var targetOrigin = '*';
+  var started = false;
+  var t0 = Date.now();
+  var completedPosted = false;
+
+  function post(type, extra) {
+    try {
+      var payload = Object.assign({ type: type, activityId: activityId, attemptId: attemptId }, extra || {});
+      parent.postMessage(payload, targetOrigin);
+    } catch (err) {}
+  }
+
+  window.addEventListener('message', function (e) {
+    var d = e.data;
+    if (!d || typeof d !== 'object') return;
+    if (d.type === 'INIT') {
+      if (d.activityId != null) activityId = d.activityId;
+      if (d.attemptId != null) attemptId = d.attemptId;
+      if (d.origin) targetOrigin = d.origin;
+    }
+  });
+
+  function markStarted() {
+    if (started) return;
+    started = true;
+    post('STARTED');
+  }
+
+  function reportProgress(completed, total) {
+    var percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+    post('PROGRESS', { progress: { completed: completed, total: total, percentage: percentage } });
+  }
+
+  function completeActivity(score, maxScore, challenges, total) {
+    if (completedPosted) return;
+    completedPosted = true;
+    post('ACTIVITY_COMPLETED', {
+      result: {
+        score: score,
+        max_score: maxScore,
+        percentage: maxScore > 0 ? Math.round((score / maxScore) * 100) : 100,
+        completed: true,
+        time_spent_seconds: Math.round((Date.now() - t0) / 1000),
+        challenges_completed: challenges,
+        total_challenges: total
+      }
+    });
+  }
+
+  if (typeof window.checkAnswer === 'function') {
+    var original = window.checkAnswer;
+    window.checkAnswer = function (btn, msg) {
+      markStarted();
+      var panel = btn && btn.closest ? btn.closest('.q-panel') : null;
+      var panels = document.querySelectorAll('.q-panel');
+      var step = panel ? Array.prototype.indexOf.call(panels, panel) + 1 : 1;
+      var total = (typeof totalQuestions !== 'undefined' && totalQuestions) ? totalQuestions : (panels.length || 5);
+      post('CHALLENGE_STARTED', { step: step });
+      var already = panel && panel.classList.contains('solved');
+      original.apply(this, arguments);
+      var correct = btn && btn.getAttribute && btn.getAttribute('data-correct') === 'true';
+      post('ANSWER_SUBMITTED', { step: step, correct: !!correct });
+      if (correct && !already) {
+        post('CHALLENGE_COMPLETED', { step: step });
+        var done = (typeof correctAnswersCount !== 'undefined') ? correctAnswersCount : step;
+        reportProgress(done, total);
+        if (done >= total) completeActivity(done * 10, total * 10, done, total);
+      }
+    };
+  }
+
+  function watchEndScreens() {
+    ['endScreen', 'end-screen', 'endscr'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      new MutationObserver(function () {
+        if (el.classList.contains('vis') || el.classList.contains('visible')) {
+          markStarted();
+          var total = (typeof totalQuestions !== 'undefined' && totalQuestions) ? totalQuestions : 5;
+          var done = (typeof correctAnswersCount !== 'undefined') ? correctAnswersCount : total;
+          reportProgress(total, total);
+          completeActivity(done * 10, total * 10, done, total);
+        }
+      }).observe(el, { attributes: true, attributeFilter: ['class'] });
+    });
+  }
+
+  document.addEventListener('click', function () { markStarted(); }, { once: true });
+  document.querySelectorAll('.replay-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () { post('RETRY'); completedPosted = false; });
+  });
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watchEndScreens);
+  else watchEndScreens();
+
+  post('READY');
+})();
+</script>
+
+</body>
+</html>

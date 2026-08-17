@@ -10,12 +10,12 @@ enum QuestionType: string
     case MultipleChoice = 'multiple_choice';
     case TrueFalse = 'true_false';
     case ShortAnswer = 'short_answer';
-}
-
-enum AttemptStatus: string
-{
-    case InProgress = 'in_progress';
-    case Submitted = 'submitted';
-    case Graded = 'graded';
-    case Abandoned = 'abandoned';
+    case LongAnswer = 'long_answer';
+    case FillBlank = 'fill_blank';
+    case Matching = 'matching';
+    case Ordering = 'ordering';
+    case Numeric = 'numeric';
+    case InteractiveHtml = 'interactive_html';
+    /** Links a quiz item to a first-class InteractiveActivity package. */
+    case InteractiveActivity = 'interactive_activity';
 }

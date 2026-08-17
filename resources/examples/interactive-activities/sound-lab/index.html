@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مختبر خصائص الصوت - شارع العلوم</title>
+    <style>
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{
+            font-family:Tahoma,"Segoe UI",Arial,sans-serif;
+            background:#07182f;color:#fffaf0;
+            min-height:100vh;display:flex;
+            align-items:center;justify-content:center;padding:15px;
+        }
+        #game{
+            width:100%;max-width:1150px;
+            background:radial-gradient(circle at 10% 15%,rgba(88,222,240,.15),transparent 35%),
+                       linear-gradient(145deg,#07182f,#0d4872 55%,#07182f);
+            border:1px solid rgba(255,255,255,.14);border-radius:26px;
+            box-shadow:0 20px 60px rgba(1,8,27,.55);
+            padding:1.5rem;display:grid;gap:1.2rem;overflow:hidden;
+        }
+
+        /* TOP SECTION */
+        .top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem}
+        .brand{display:inline-flex;align-items:center;gap:.4rem;background:#f8d41c;color:#0b1730;
+            border-radius:11px;padding:.45rem .8rem;font-weight:700;font-size:.85rem;white-space:nowrap}
+        .pills{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+        .pill{background:rgba(0,7,24,.6);border:1px solid rgba(255,255,255,.12);border-radius:99px;
+            padding:.28rem .75rem;font-size:.75rem;color:#dbe8f7;display:flex;align-items:center;gap:.3rem}
+        .pill b{color:#f8d41c;font-size:.88rem}
+
+        /* MISSION */
+        .mission{border-right:4px solid #f8d41c;padding:.1rem .85rem .1rem 0; margin-bottom: 0.5rem;}
+        .mission small{color:#58def0;font-size:.68rem;display:block;margin-bottom:.3rem; font-weight: bold;}
+        .mission h2{font-size:clamp(1.1rem,2.8vw,1.45rem);font-weight:600;margin-bottom:.4rem}
+        .mission p{color:#cbd8e9;font-size:.85rem; line-height: 1.6;}
+
+        /* LAYOUT */
+        .main-layout { display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: flex-start; }
+        .lab-side { flex: 1; min-width: 600px; display: flex; flex-direction: column; gap: 1rem; }
+        
+        .quiz-side { 
+            width: 380px; display: flex; flex-direction: column; gap: 1rem; 
+            max-height: 550px; overflow-y: auto; padding-right: 5px; scroll-behavior: smooth;
+        }
+        
+        /* SCROLLBAR */
+        .quiz-side::-webkit-scrollbar { width: 6px; }
+        .quiz-side::-webkit-scrollbar-track { background: rgba(255,255,255,.05); border-radius: 10px; }
+        .quiz-side::-webkit-scrollbar-thumb { background: rgba(88,222,240,.3); border-radius: 10px; }
+        .quiz-side::-webkit-scrollbar-thumb:hover { background: rgba(88,222,240,.6); }
+
+        /* CONTROLS */
+        .controls {
+            background:rgba(5,18,43,.78);border:1px solid rgba(255,255,255,.14);
+            border-radius:18px;padding:.9rem 1.2rem;
+        }
+        .ctrl-row{display:grid;grid-template-columns:1fr;gap:1rem}
+        .ctrl-group{display:grid;gap:.5rem;}
+        .ctrl-lbl{display:flex;justify-content:space-between;align-items:baseline;font-size:.85rem;color:#dbe8f7; font-weight: 600;}
+        
+        .theme-select {
+            background: rgba(0,7,24,.6); border: 1px solid rgba(255,255,255,.18);
+            color: #fffaf0; padding: .65rem; border-radius: 11px; font-family: inherit;
+            font-size: .85rem; font-weight: 500; outline: none; cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .theme-select:hover, .theme-select:focus { border-color: #58def0; }
+        .theme-select option { background: #0b1730; color: #fffaf0; }
+
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none; width: 100%; height: 6px; background: rgba(255,255,255,.15);
+            border-radius: 5px; outline: none; margin-top: 5px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none; width: 18px; height: 18px;
+            border-radius: 50%; background: #f8d41c; cursor: pointer; border: 2px solid #07182f;
+            box-shadow: 0 0 8px rgba(248,212,28,.6);
+        }
+
+        /* Action Buttons */
+        .action-btn {
+            background: linear-gradient(90deg, #2fc4ae, #58def0);
+            border: none; border-radius: 8px; color: #07182f; cursor: pointer;
+            font-family: inherit; font-size: .85rem; font-weight: bold;
+            padding: .6rem; transition: transform .2s, opacity .2s;
+        }
+        .action-btn:hover { transform: translateY(-2px); }
+        .action-btn:active { transform: translateY(0); }
+        
+        .btn-group { display: flex; gap: 10px; margin-top: 5px;}
+        .btn-group .action-btn { flex: 1; }
+
+        /* Dynamic Control Sections */
+        .dyn-ctrl { display: none; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.1); }
+        .dyn-ctrl.active { display: block; animation: fadeIn .3s ease; }
+
+        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+        /* CANVAS SCENE */
+        .scene {
+            background: radial-gradient(circle at center, #112641, #07182f);
+            border-radius: 18px; border: 1px solid rgba(255,255,255,.2);
+            position: relative; overflow: hidden; box-shadow: inset 0 0 30px rgba(0,0,0,0.5);
+            display: flex; height: 350px;
+        }
+        canvas { display: block; width: 100%; height: 100%; border-radius: 18px; }
+
+        /* QUESTION PANEL */
+        .q-panel{
+            background:rgba(5,18,43,.8);border:1px solid rgba(255,255,255,.14);
+            border-radius:18px;padding:1rem;display:flex;flex-direction:column;gap:.7rem;
+            transition: box-shadow 0.3s, border-color 0.3s;
+        }
+        .q-panel.solved {
+            border-color: rgba(47,196,174,.5);
+            box-shadow: 0 0 15px rgba(47,196,174,.1);
+        }
+        .q-top{display:flex;justify-content:space-between;align-items:center}
+        .q-step{color:#aab9d0;font-size:.7rem; font-weight: 600;}
+        .q-pts{background:rgba(248,212,28,.15);border:1px solid rgba(248,212,28,.3);
+            border-radius:99px;padding:.2rem .6rem;font-size:.68rem;color:#f8d41c}
+        .q-text{color:#fffaf0;font-size:.9rem;font-weight:600;line-height:1.6}
+        .q-opts{display:grid;gap:.42rem}
+        .q-opt{
+            background:rgba(10,28,57,.85);border:1px solid rgba(255,255,255,.14);
+            border-radius:11px;color:#edf4ff;cursor:pointer;font-family:inherit;font-size:.82rem;
+            padding:.65rem .8rem;text-align:right;transition:background .2s,border-color .2s;width:100%;
+            line-height: 1.5;
+        }
+        .q-opt:hover:not(:disabled){background:rgba(88,222,240,.1);border-color:#58def0}
+        .q-opt.ok{background:rgba(47,196,174,.15);border-color:#2fc4ae;color:#88f0d6}
+        .q-opt.no{background:rgba(255,116,116,.12);border-color:#ff7474;color:#ffaaaa}
+        .q-opt:disabled{cursor:default}
+        
+        .q-fb{border:1px solid rgba(47,196,174,.4);border-radius:9px;color:#c9d6e8;
+            padding:.6rem .8rem;font-size:.79rem;line-height:1.5;display:none}
+        .q-fb.vis{display:block; animation: fadeIn .3s ease;}
+        .q-fb strong{color:#88f0d6;display:block;margin-bottom:.3rem; font-size: .85rem;}
+        .q-fb.wfb{border-color:rgba(255,185,98,.45)}
+        .q-fb.wfb strong{color:#ffd087}
+
+        /* BIG SUCCESS MESSAGE */
+        .end-screen {
+            display:none; flex-direction:column; align-items:center; gap:1.2rem;
+            text-align:center; padding:2.5rem 1.5rem; margin-top:1rem; margin-bottom: 2rem;
+            background: linear-gradient(145deg, rgba(47,196,174,.15), rgba(5,18,43,.9));
+            border: 2px solid #2fc4ae; border-radius: 20px;
+            box-shadow: 0 0 35px rgba(47,196,174,.25);
+        }
+        .end-screen.vis { 
+            display:flex; 
+            animation: popIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
+        }
+        .end-icon { font-size:4.5rem; line-height: 1; text-shadow: 0 0 20px rgba(248,212,28,.4); }
+        .end-title { font-size:1.6rem;font-weight:700;color:#f8d41c; }
+        .end-sub { color:#edf4ff;font-size:1.05rem;line-height:1.7; }
+        
+        .replay-btn {
+            background: linear-gradient(90deg, #2fc4ae, #58def0);
+            border: none; border-radius: 12px; margin-top: 10px;
+            color: #07182f; cursor: pointer; font-family: inherit;
+            font-size: 1.05rem; font-weight: 700; padding: .8rem 2rem;
+            transition: transform .2s, box-shadow .2s;
+        }
+        .replay-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(88,222,240,.4);
+        }
+
+        @keyframes popIn { 
+            0% { transform: scale(0.8) translateY(30px); opacity: 0; } 
+            100% { transform: scale(1) translateY(0); opacity: 1; } 
+        }
+
+        @media (max-width: 1024px) {
+            .lab-side { min-width: 0; width: 100%; }
+            .quiz-side { width: 100%; max-height: none; overflow-y: visible; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="game">
+    <!-- TOP -->
+    <div class="top">
+        <div class="brand">🔬 شارع العلوم</div>
+        <div class="pills">
+            <div class="pill">🔊 <b>مختبر خصائص الصوت</b></div>
+        </div>
+    </div>
+
+    <!-- MISSION -->
+    <div class="mission">
+        <small>عنان ومروة يستكشفان الأسرار!</small>
+        <h2>كيف ينشأ وينتقل الصوت؟</h2>
+        <p>استخدم هذا المختبر التفاعلي لاكتشاف كيف ينشأ الصوت بالاهتزاز، وكيف تتغير شدته، وكيف ينتقل عبر المواد كسباق التتابع!</p>
+    </div>
+
+    <div class="main-layout">
+        
+        <!-- الجانب الأيمن: المختبر -->
+        <div class="lab-side">
+            <div class="controls">
+                <div class="ctrl-row">
+                    <div class="ctrl-group">
+                        <div class="ctrl-lbl"><span>١. اختر التجربة العلمية:</span></div>
+                        <select id="experimentSelect" class="theme-select">
+                            <option value="ruler">📏 تجربة المسطرة (كيف ينشأ الصوت؟)</option>
+                            <option value="rubberBand">〰️ الشريط المطاطي (شدة الصوت والاهتزاز)</option>
+                            <option value="telephone">☎️ هاتف الخيط (انتقال الصوت في الأجسام الصلبة)</option>
+                        </select>
+                    </div>
+
+                    <!-- التحكم الخاص بالمسطرة -->
+                    <div id="ctrl-ruler" class="dyn-ctrl active">
+                        <div class="ctrl-lbl"><span>اضغط على طرف المسطرة للأسفل ثم اتركها:</span></div>
+                        <input type="range" id="rulerPull" min="0" max="100" value="0">
+                        <div class="btn-group">
+                            <button class="action-btn" onclick="releaseRuler()">أفلت المسطرة لتسمع الصوت!</button>
+                        </div>
+                    </div>
+
+                    <!-- التحكم الخاص بالشريط المطاطي -->
+                    <div id="ctrl-rubberBand" class="dyn-ctrl">
+                        <div class="ctrl-lbl"><span>جرب النقر على الشريط المطاطي ولاحظ المسافة:</span></div>
+                        <div class="btn-group">
+                            <button class="action-btn" style="background: linear-gradient(90deg, #f8d41c, #ffe96a);" onclick="pluckBand('soft')">نقر برفق (مسافة صغيرة)</button>
+                            <button class="action-btn" style="background: linear-gradient(90deg, #e04040, #ff7474); color: white;" onclick="pluckBand('hard')">نقر بقوة (مسافة كبيرة)</button>
+                        </div>
+                    </div>
+
+                    <!-- التحكم الخاص بالتليفون -->
+                    <div id="ctrl-telephone" class="dyn-ctrl">
+                        <div class="ctrl-lbl"><span>تحكم في حالة الخيط ولاحظ انتقال الاهتزازات (سباق التتابع):</span></div>
+                        <div class="btn-group">
+                            <button class="action-btn" style="background: #2ecc71; color:white;" onclick="setPhoneState('taut')">خيط مشدود</button>
+                            <button class="action-btn" style="background: #e67e22; color:white;" onclick="setPhoneState('loose')">خيط مرتخٍ</button>
+                            <button class="action-btn" style="background: #e74c3c; color:white;" onclick="setPhoneState('blocked')">الإمساك بالخيط</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="scene">
+                <canvas id="simCanvas" width="800" height="350"></canvas>
+            </div>
+        </div>
+
+        <!-- الجانب الأيسر: الأسئلة -->
+        <div class="quiz-side">
+            
+            <!-- السؤال 1 -->
+            <div class="q-panel vis">
+                <div class="q-top"><span class="q-step">التحدي ١ من ٥</span><span class="q-pts">+١٠ نقطة ✨</span></div>
+                <div class="q-text">ينشأ الصوت نتيجة لـ...... الأجسام، ويتوقف تماماً عندما تتوقف عنها.</div>
+                <div class="q-opts">
+                    <button class="q-opt" data-correct="false" onclick="checkAnswer(this, '<strong>❌ إجابة غير دقيقة!</strong> السكون لا يولد صوتاً.')">سكون وثبات</button>
+                    <button class="q-opt" data-correct="true" onclick="checkAnswer(this, '<strong>✅ ممتاز!</strong> كما رأينا في تجربة حنجرتك وتجربة المسطرة.')">اهتزاز</button>
+                </div>
+                <div class="q-fb"></div>
+            </div>
+
+            <!-- السؤال 2 -->
+            <div class="q-panel vis">
+                <div class="q-top"><span class="q-step">التحدي ٢ من ٥</span><span class="q-pts">+١٠ نقطة ✨</span></div>
+                <div class="q-text">في تجربة الشريط المطاطي، عندما ننقر الشريط بقوة يهتز لمسافة كبيرة ويكون الصوت الناتج:</div>
+                <div class="q-opts">
+                    <button class="q-opt" data-correct="true" onclick="checkAnswer(this, '<strong>✅ رائع!</strong> فكلما زاد مقدار اهتزاز الجسم، زادت شدة الصوت وأصبح أعلى.')">صوتاً عالياً (شديداً).</button>
+                    <button class="q-opt" data-correct="false" onclick="checkAnswer(this, '<strong>❌ فكر مجدداً!</strong> النقر بقوة ينتج طاقة أكبر وصوتاً أشد.')">صوتاً منخفضاً (خافتاً).</button>
+                </div>
+                <div class="q-fb"></div>
+            </div>
+
+            <!-- السؤال 3 -->
+            <div class="q-panel vis">
+                <div class="q-top"><span class="q-step">التحدي ٣ من ٥</span><span class="q-pts">+١٠ نقطة ✨</span></div>
+                <div class="q-text">تنتقل الاهتزازات عبر الهواء، من جزء إلى الجزء الذي يليه حتى تصل إلى الأذن، وهذا يشبه:</div>
+                <div class="q-opts">
+                    <button class="q-opt" data-correct="false" onclick="checkAnswer(this, '<strong>❌ لا!</strong> سباق السيارات لا يشرح انتقال الموجات بين الجزيئات.')">سباق السيارات السريعة.</button>
+                    <button class="q-opt" data-correct="true" onclick="checkAnswer(this, '<strong>✅ صحيح!</strong> يشبه انتقال الصوت عبر جزيئات الهواء انتقال العصا بين اللاعبين في سباق التتابع.')">سباق التتابع.</button>
+                </div>
+                <div class="q-fb"></div>
+            </div>
+
+            <!-- السؤال 4 -->
+            <div class="q-panel vis">
+                <div class="q-top"><span class="q-step">التحدي ٤ من ٥</span><span class="q-pts">+١٠ نقطة ✨</span></div>
+                <div class="q-text">في تجربة هاتف الخيط، في أي حالة يُسمع الصوت بوضوح وينتقل بسهولة؟</div>
+                <div class="q-opts">
+                    <button class="q-opt" data-correct="true" onclick="checkAnswer(this, '<strong>✅ أحسنت!</strong> الخيط المشدود ينقل الاهتزازات بسهولة. أما المرتخي فيضعفها.')">عندما يكون الخيط مشدوداً.</button>
+                    <button class="q-opt" data-correct="false" onclick="checkAnswer(this, '<strong>❌ غير صحيح!</strong> الإمساك بالخيط أو ارتخاؤه يمنع الاهتزازات من الانتقال.')">عندما يكون الخيط مرتخياً أو ممسوكاً باليد.</button>
+                </div>
+                <div class="q-fb"></div>
+            </div>
+            
+            <!-- السؤال 5 -->
+            <div class="q-panel vis">
+                <div class="q-top"><span class="q-step">التحدي ٥ من ٥</span><span class="q-pts">+١٠ نقطة ✨</span></div>
+                <div class="q-text">عند سماع صوت دقات الساعة بوضوح شديد عند وضع أذنك على الطاولة الخشبية، نستنتج أن:</div>
+                <div class="q-opts">
+                    <button class="q-opt" data-correct="false" onclick="checkAnswer(this, '<strong>❌ خطأ!</strong> التجربة تثبت عكس ذلك تماماً.')">الصوت لا ينتقل أبداً في المواد الصلبة.</button>
+                    <button class="q-opt" data-correct="true" onclick="checkAnswer(this, '<strong>✅ بطل العلوم!</strong> المواد الصلبة كالخشب تنقل الاهتزازات بكفاءة أكبر وأفضل من الهواء.')">الخشب ينقل الاهتزازات بشكل أفضل (بكفاءة أكبر) من الهواء.</button>
+                </div>
+                <div class="q-fb"></div>
+            </div>
+
+            <!-- رسالة النجاح الكبيرة -->
+            <div class="end-screen" id="endScreen">
+                <div class="end-icon">🏅</div>
+                <div class="end-title">أحسنت أيها العالم الصغير!</div>
+                <div class="end-sub">لقد أتممت جميع تحديات "خصائص الصوت" بنجاح مبهر.<br><br>الآن أنت تعرف أن الصوت ينشأ بالاهتزاز، وأن شدته تزيد بزيادة مقدار الاهتزاز، وأنه ينتقل كسباق التتابع في الهواء والمواد الصلبة! 🚀✨</div>
+                <button class="replay-btn" onclick="location.reload()">🔄 إعادة التجارب</button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    /* ---------------- UI & Quiz Logic ---------------- */
+    let correctAnswersCount = 0;
+    const totalQuestions = 5;
+
+    function checkAnswer(selectedBtn, message) {
+        const isCorrect = selectedBtn.getAttribute('data-correct') === 'true';
+        const panel = selectedBtn.closest('.q-panel');
+        const allBtns = panel.querySelectorAll('.q-opt');
+        const feedbackBox = panel.querySelector('.q-fb');
+
+        allBtns.forEach(btn => {
+            btn.disabled = true;
+            if (btn.getAttribute('data-correct') === 'true') btn.classList.add('ok');
+        });
+
+        if (!isCorrect) {
+            selectedBtn.classList.add('no');
+            feedbackBox.className = 'q-fb vis wfb';
+        } else {
+            feedbackBox.className = 'q-fb vis';
+            if (!panel.classList.contains('solved')) {
+                panel.classList.add('solved');
+                correctAnswersCount++;
+                if (correctAnswersCount === totalQuestions) {
+                    setTimeout(() => {
+                        const endScreen = document.getElementById('endScreen');
+                        endScreen.classList.add('vis');
+                        endScreen.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                    }, 600);
+                }
+            }
+        }
+        feedbackBox.innerHTML = message;
+    }
+
+    // Handle Experiment Selection
+    const expSelect = document.getElementById('experimentSelect');
+    const ctrls = document.querySelectorAll('.dyn-ctrl');
+    let currentExp = 'ruler';
+
+    expSelect.addEventListener('change', (e) => {
+        currentExp = e.target.value;
+        ctrls.forEach(c => c.classList.remove('active'));
+        document.getElementById('ctrl-' + currentExp).classList.add('active');
+        resetSimulations();
+    });
+
+    /* ---------------- Canvas Animations & Simulations ---------------- */
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    let animationId;
+    
+    /* ---- RULER STATE ---- */
+    let rulerPull = 0; 
+    let rulerY = 0; 
+    let rulerVibrating = false;
+    let rulerAmplitude = 0;
+    let rulerDecay = 0.96;
+    let rulerPhase = 0;
+
+    document.getElementById('rulerPull').addEventListener('input', (e) => {
+        rulerPull = parseInt(e.target.value);
+        if(!rulerVibrating) {
+            rulerY = rulerPull; // Bending down before release
+        }
+    });
+
+    function releaseRuler() {
+        if(rulerVibrating || rulerPull == 0) return;
+        rulerVibrating = true;
+        rulerAmplitude = rulerPull;
+        rulerPhase = Math.PI / 2; 
+        document.getElementById('rulerPull').value = 0; // reset slider visually
+        rulerPull = 0;
+    }
+
+    /* ---- RUBBER BAND STATE ---- */
+    let bandVibrating = false;
+    let bandAmplitude = 0;
+    let bandPhase = 0;
+    let bandText = "";
+
+    function pluckBand(force) {
+        bandVibrating = true;
+        bandPhase = 0;
+        if(force === 'hard') {
+            bandAmplitude = 60;
+            bandText = "يهتز لمسافة كبيرة -> يصدر صوتاً عالياً";
+        } else {
+            bandAmplitude = 20;
+            bandText = "يهتز لمسافة صغيرة -> يصدر صوتاً منخفضاً";
+        }
+    }
+
+    /* ---- TELEPHONE STATE ---- */
+    let phoneState = 'taut'; // taut, loose, blocked
+    let particles = [];
+    let phoneTimer = 0;
+
+    function setPhoneState(state) {
+        phoneState = state;
+        particles = []; // Clear current vibrations
+        phoneTimer = 0;
+    }
+
+    /* ---- RESET ---- */
+    function resetSimulations() {
+        rulerVibrating = false;
+        rulerY = 0;
+        document.getElementById('rulerPull').value = 0;
+        
+        bandVibrating = false;
+        bandAmplitude = 0;
+        bandText = "";
+        
+        phoneState = 'taut';
+        particles = [];
+    }
+
+    /* ---- DRAWING FUNCTIONS ---- */
+    function drawRulerSim() {
+        // Table (Brown Box)
+        ctx.fillStyle = '#6b4e31'; 
+        ctx.fillRect(0, 200, 250, 150);
+        ctx.fillStyle = '#8a6540';
+        ctx.fillRect(0, 190, 250, 10); 
+
+        // Calculate Ruler position
+        if(rulerVibrating) {
+            rulerY = Math.sin(rulerPhase) * rulerAmplitude;
+            rulerPhase += 0.8; 
+            rulerAmplitude *= rulerDecay; 
+            if(rulerAmplitude < 0.5) {
+                rulerVibrating = false;
+                rulerY = 0;
+            }
+        }
+
+        // Draw Ruler (Plastic Blue)
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(150, 195); // fixed point
+        ctx.quadraticCurveTo(350, 195 + (rulerY*0.5), 550, 195 + rulerY);
+        ctx.lineWidth = 14;
+        ctx.strokeStyle = 'rgba(52, 152, 219, 0.8)'; // Blue ruler
+        ctx.stroke();
+        
+        // Draw Hand holding it if pulling
+        if(!rulerVibrating && rulerY > 0) {
+            ctx.fillStyle = '#f39c12';
+            ctx.beginPath();
+            ctx.arc(550, 195 + rulerY + 10, 15, 0, Math.PI*2);
+            ctx.fill();
+        }
+        ctx.restore();
+
+        // Sound Waves
+        if(rulerVibrating && Math.abs(rulerAmplitude) > 5) {
+            ctx.beginPath();
+            ctx.arc(550, 195 + rulerY, Math.abs(rulerAmplitude)*1.5, 0, Math.PI*2);
+            ctx.strokeStyle = `rgba(88, 222, 240, ${Math.abs(rulerAmplitude)/100})`;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+
+        // Labels
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.font = 'bold 16px Tahoma';
+        ctx.fillText('حافة الطاولة', 80, 250);
+        if(!rulerVibrating && rulerY == 0) {
+            ctx.fillText('اسحب المؤشر لأسفل لثني المسطرة 👆', 300, 130);
+        } else if (rulerVibrating) {
+            ctx.fillStyle = '#f8d41c';
+            ctx.fillText('الاهتزاز ينتج صوتاً!', 350, 130);
+        }
+    }
+
+    function drawRubberBandSim() {
+        let nail1X = 200, nail2X = 600, nailY = 200;
+
+        // Draw Nails
+        ctx.fillStyle = '#95a5a6';
+        ctx.fillRect(nail1X - 5, nailY - 20, 10, 40);
+        ctx.fillRect(nail2X - 5, nailY - 20, 10, 40);
+
+        // Calculate Band Position
+        let currentAmp = 0;
+        if(bandVibrating) {
+            currentAmp = Math.sin(bandPhase) * bandAmplitude;
+            bandPhase += 0.5;
+            bandAmplitude *= 0.97; // Decay
+            if(bandAmplitude < 0.5) bandVibrating = false;
+        }
+
+        // Draw Shadows/Motion blur lines if plucking hard
+        if(bandVibrating && Math.abs(bandAmplitude) > 20) {
+            ctx.beginPath(); ctx.moveTo(nail1X, nailY); ctx.quadraticCurveTo(400, nailY - bandAmplitude, nail2X, nailY);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; ctx.lineWidth = 2; ctx.stroke();
+            
+            ctx.beginPath(); ctx.moveTo(nail1X, nailY); ctx.quadraticCurveTo(400, nailY + bandAmplitude, nail2X, nailY);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; ctx.lineWidth = 2; ctx.stroke();
+        }
+
+        // Draw Main Band
+        ctx.beginPath();
+        ctx.moveTo(nail1X, nailY);
+        ctx.quadraticCurveTo(400, nailY + currentAmp, nail2X, nailY);
+        ctx.strokeStyle = '#f8d41c';
+        ctx.lineWidth = 5;
+        ctx.stroke();
+
+        // Text
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.font = 'bold 18px Tahoma';
+        ctx.textAlign = 'center';
+        ctx.fillText(bandText, 400, 100);
+        ctx.textAlign = 'right'; // reset
+    }
+
+    function drawTelephoneSim() {
+        const leftCupX = 150, leftCupY = 180;
+        const rightCupX = 650, rightCupY = 180;
+
+        // String Physics
+        let sag = 0;
+        if (phoneState === 'loose') sag = 60;
+        
+        // Draw String
+        ctx.beginPath();
+        ctx.moveTo(leftCupX + 25, leftCupY + 20); 
+        ctx.quadraticCurveTo(400, leftCupY + 20 + sag, rightCupX - 25, rightCupY + 20);
+        ctx.strokeStyle = (phoneState === 'loose') ? 'rgba(255,255,255,0.5)' : '#fffaf0';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Draw Block Hand
+        if (phoneState === 'blocked') {
+            ctx.fillStyle = '#e67e22'; // Hand color
+            ctx.fillRect(380, leftCupY + 5, 40, 30);
+            ctx.fillStyle = '#fff';
+            ctx.font = '14px Tahoma';
+            ctx.fillText('يد تمسك الخيط', 360, leftCupY - 10);
+        }
+
+        // Particle generation (Relay race analogy)
+        phoneTimer++;
+        if (phoneTimer % 10 === 0 && phoneState === 'taut') {
+            particles.push({ t: 0 }); // spawn new vibration
+        } else if (phoneTimer % 15 === 0 && phoneState === 'blocked') {
+            particles.push({ t: 0 }); // spawn new vibration but it will die
+        }
+
+        // Draw Vibrations
+        for(let i = particles.length-1; i >= 0; i--) {
+            let p = particles[i];
+            p.t += 0.015; // move along curve
+            
+            // Bezier curve math
+            let cx = 400; let cy = leftCupY + 20 + sag;
+            let p0x = leftCupX+25, p0y = leftCupY+20;
+            let p2x = rightCupX-25, p2y = rightCupY+20;
+            
+            let x = Math.pow(1-p.t, 2)*p0x + 2*(1-p.t)*p.t*cx + Math.pow(p.t, 2)*p2x;
+            let y = Math.pow(1-p.t, 2)*p0y + 2*(1-p.t)*p.t*cy + Math.pow(p.t, 2)*p2y;
+
+            // Kill particle if blocked
+            if (phoneState === 'blocked' && p.t > 0.45) {
+                particles.splice(i, 1);
+                continue;
+            }
+
+            ctx.beginPath();
+            ctx.arc(x, y, 6, 0, Math.PI*2);
+            ctx.fillStyle = '#58def0';
+            ctx.fill();
+            ctx.strokeStyle = '#f8d41c';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            if(p.t >= 1) {
+                particles.splice(i, 1);
+                // Sound reached!
+                ctx.beginPath();
+                ctx.arc(rightCupX + 20, rightCupY, 20, 0, Math.PI*2);
+                ctx.strokeStyle = '#2fc4ae';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+        }
+
+        // Speaker Cup 
+        ctx.fillStyle = '#e04040';
+        ctx.beginPath(); ctx.moveTo(leftCupX, leftCupY); ctx.lineTo(leftCupX + 30, leftCupY + 10); ctx.lineTo(leftCupX + 30, leftCupY + 30); ctx.lineTo(leftCupX, leftCupY + 40); ctx.fill();
+        ctx.fillStyle = '#0b1730'; ctx.beginPath(); ctx.ellipse(leftCupX, leftCupY+20, 8, 20, 0, 0, Math.PI*2); ctx.fill();
+        
+        // Receiver Cup 
+        ctx.fillStyle = '#e04040';
+        ctx.beginPath(); ctx.moveTo(rightCupX, rightCupY); ctx.lineTo(rightCupX - 30, rightCupY + 10); ctx.lineTo(rightCupX - 30, rightCupY + 30); ctx.lineTo(rightCupX, rightCupY + 40); ctx.fill();
+        ctx.fillStyle = '#0b1730'; ctx.beginPath(); ctx.ellipse(rightCupX, rightCupY+20, 8, 20, 0, 0, Math.PI*2); ctx.fill();
+
+        // Animated speech waves
+        if(phoneState !== 'loose') {
+            ctx.beginPath(); ctx.arc(leftCupX - 20, leftCupY + 20, 10 + Math.sin(phoneTimer*0.1)*5, 0, Math.PI*2);
+            ctx.strokeStyle = '#f8d41c'; ctx.stroke();
+        }
+
+        // Labels
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.font = 'bold 16px Tahoma';
+        ctx.fillText('مصدر الصوت', leftCupX - 30, leftCupY - 15);
+        ctx.fillText('المستقبل (الأذن)', rightCupX - 50, rightCupY - 15);
+        
+        ctx.textAlign = 'center';
+        if(phoneState == 'taut') ctx.fillText('الاهتزازات تنتقل بسهولة في الخيط المشدود', 400, 280);
+        else if (phoneState == 'loose') ctx.fillText('الخيط المرتخي لا ينقل الاهتزازات (يُسمع بصعوبة)', 400, 280);
+        else ctx.fillText('الإمساك بالخيط يوقف انتقال الاهتزاز', 400, 280);
+        ctx.textAlign = 'right';
+    }
+
+    // Main Render Loop
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        if (currentExp === 'ruler') drawRulerSim();
+        else if (currentExp === 'rubberBand') drawRubberBandSim();
+        else if (currentExp === 'telephone') drawTelephoneSim();
+
+        animationId = requestAnimationFrame(animate);
+    }
+
+    // Initialize
+    animate();
+</script>
+
+<script>
+/* Science Street Lab postMessage bridge. Does not change game/simulation logic. */
+(function () {
+  if (window.__sslBridge) return;
+  window.__sslBridge = true;
+  var params = new URLSearchParams(location.search);
+  var activityId = params.get('activityId');
+  var attemptId = params.get('attemptId');
+  var targetOrigin = '*';
+  var started = false;
+  var t0 = Date.now();
+  var completedPosted = false;
+
+  function post(type, extra) {
+    try {
+      var payload = Object.assign({ type: type, activityId: activityId, attemptId: attemptId }, extra || {});
+      parent.postMessage(payload, targetOrigin);
+    } catch (err) {}
+  }
+
+  window.addEventListener('message', function (e) {
+    var d = e.data;
+    if (!d || typeof d !== 'object') return;
+    if (d.type === 'INIT') {
+      if (d.activityId != null) activityId = d.activityId;
+      if (d.attemptId != null) attemptId = d.attemptId;
+      if (d.origin) targetOrigin = d.origin;
+    }
+  });
+
+  function markStarted() {
+    if (started) return;
+    started = true;
+    post('STARTED');
+  }
+
+  function reportProgress(completed, total) {
+    var percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+    post('PROGRESS', { progress: { completed: completed, total: total, percentage: percentage } });
+  }
+
+  function completeActivity(score, maxScore, challenges, total) {
+    if (completedPosted) return;
+    completedPosted = true;
+    post('ACTIVITY_COMPLETED', {
+      result: {
+        score: score,
+        max_score: maxScore,
+        percentage: maxScore > 0 ? Math.round((score / maxScore) * 100) : 100,
+        completed: true,
+        time_spent_seconds: Math.round((Date.now() - t0) / 1000),
+        challenges_completed: challenges,
+        total_challenges: total
+      }
+    });
+  }
+
+  if (typeof window.checkAnswer === 'function') {
+    var original = window.checkAnswer;
+    window.checkAnswer = function (btn, msg) {
+      markStarted();
+      var panel = btn && btn.closest ? btn.closest('.q-panel') : null;
+      var panels = document.querySelectorAll('.q-panel');
+      var step = panel ? Array.prototype.indexOf.call(panels, panel) + 1 : 1;
+      var total = (typeof totalQuestions !== 'undefined' && totalQuestions) ? totalQuestions : (panels.length || 5);
+      post('CHALLENGE_STARTED', { step: step });
+      var already = panel && panel.classList.contains('solved');
+      original.apply(this, arguments);
+      var correct = btn && btn.getAttribute && btn.getAttribute('data-correct') === 'true';
+      post('ANSWER_SUBMITTED', { step: step, correct: !!correct });
+      if (correct && !already) {
+        post('CHALLENGE_COMPLETED', { step: step });
+        var done = (typeof correctAnswersCount !== 'undefined') ? correctAnswersCount : step;
+        reportProgress(done, total);
+        if (done >= total) completeActivity(done * 10, total * 10, done, total);
+      }
+    };
+  }
+
+  function watchEndScreens() {
+    ['endScreen', 'end-screen', 'endscr'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      new MutationObserver(function () {
+        if (el.classList.contains('vis') || el.classList.contains('visible')) {
+          markStarted();
+          var total = (typeof totalQuestions !== 'undefined' && totalQuestions) ? totalQuestions : 5;
+          var done = (typeof correctAnswersCount !== 'undefined') ? correctAnswersCount : total;
+          reportProgress(total, total);
+          completeActivity(done * 10, total * 10, done, total);
+        }
+      }).observe(el, { attributes: true, attributeFilter: ['class'] });
+    });
+  }
+
+  document.addEventListener('click', function () { markStarted(); }, { once: true });
+  document.querySelectorAll('.replay-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () { post('RETRY'); completedPosted = false; });
+  });
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watchEndScreens);
+  else watchEndScreens();
+
+  post('READY');
+})();
+</script>
+
+</body>
+</html>
