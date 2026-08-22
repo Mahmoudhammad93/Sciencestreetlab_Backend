@@ -30,6 +30,7 @@ class QuizAttempt extends Model
             'started_at' => 'datetime',
             'submitted_at' => 'datetime',
             'graded_at' => 'datetime',
+            'time_spent_seconds' => 'integer',
         ];
     }
 
