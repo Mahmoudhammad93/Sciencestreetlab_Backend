@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a73e08f0-1975-4c1d-9fb3-5a91721375db",
     "name": "Science Street Lab API",
-    "description": "REST API collection for Science Street Lab (Laravel `/api/v1`). **All endpoints live in this one file.**\n\n**Auth:** Laravel Sanctum Bearer token. Login/Register auto-save `token`.\n**Base URL:** `{{baseUrl}}` (default `http://localhost:8000`).\n**Environment:** import `Science-Street-Lab.local.postman_environment.json`.\n\n**Demo login**\n- Admin: `admin@sciencestreetlab.com` / `password`\n- Student: `demo@sciencestreetlab.com` / `password`\n\n**Suggested order**\n1. Health → App Health / Public website settings\n2. Auth → Login (or Login demo student)\n3. Catalog → Products → Commerce (cart → checkout → mock pay)\n4. Learning → Enroll → Biology/Physics lab curriculum\n5. Assessment → Interactive Activities (Full Light Lab workflow) → Mixed Quiz\n\nAssessment demo (`php artisan db:seed --class=AssessmentDemoCoursesSeeder`):\n- Courses: `intro-biology-lab`, `basic-physics-lab`, `basic-chemistry-lab`\n\n**Interactive Activities** are complete HTML games (Light Lab, Sound Lab, Plant Growth, Rubber Castle, Rubber Race). Hosted in a sandboxed iframe; POST `.../progress` and `.../result` for client-reported state.\n\nStudent question payloads never include `is_correct` or `answer_key`.\n",
+    "description": "REST API collection for Science Street Lab (Laravel `/api/v1`). **All endpoints live in this one file.**\n\n**Auth:** Laravel Sanctum Bearer token. Login/Register auto-save `token`.\n**Base URL:** `{{baseUrl}}` (default `http://localhost:8000`).\n**Environment:** import `Science-Street-Lab.local.postman_environment.json`.\n\n**Demo login**\n- Admin: `admin@sciencestreetlab.com` / `password`\n- Student: `demo@sciencestreetlab.com` / `password`\n\n**Suggested order**\n1. Health → App Health / Public website settings\n2. Auth → Login (or Login demo student)\n3. Catalog → Products → Commerce (cart → checkout → mock pay)\n4. Learning → Enroll → Biology/Physics lab curriculum\n5. Assessment → Interactive Activities (Full Light Lab workflow) → Mixed Quiz\n\nAssessment demo (`php artisan db:seed --class=AssessmentDemoCoursesSeeder`):\n- Courses: `intro-biology-lab`, `basic-physics-lab`, `basic-chemistry-lab`\n\n**Interactive Activities** are complete HTML games (Light Lab, Sound Lab, Plant Growth, Rubber Castle, Rubber Race). Hosted in a sandboxed iframe; POST `.../progress` and `.../result` for client-reported state.\n\nStudent question payloads never include `is_correct` or `answer_key`.\n\n**Quiz result / post-review** (`POST /quiz-attempts/{id}/submit` and `GET /quiz-attempts/{id}/result`):\n- `attempt_number`, `time_taken`, `time_taken_seconds`\n- `question_results[].user_answer`\n- `question_results[].correct_answer` (only after submit)\n",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -150,7 +150,7 @@
     },
     {
       "key": "mixed_quiz_id",
-      "value": "1"
+      "value": "22"
     },
     {
       "key": "light_lab_activity_id",
@@ -2071,7 +2071,7 @@
                 "submit"
               ]
             },
-            "description": "Returns score, correct_answers, wrong_answers, total_questions, passed/failed status.",
+            "description": "Submit graded attempt. Response includes attempt_number, time_taken, question_results with user_answer and correct_answer.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"answers\": [\n    {\n      \"question_id\": 1,\n      \"selected_option_ids\": [\n        1\n      ],\n      \"text_answer\": null\n    }\n  ]\n}",
@@ -2107,7 +2107,7 @@
                 "result"
               ]
             },
-            "description": ""
+            "description": "Legacy result path. Prefer GET /quiz-attempts/{{attempt_id}}/result. Includes attempt_number, time_taken, user_answer, correct_answer."
           },
           "response": []
         },
@@ -2736,7 +2736,8 @@
               "mode": "raw",
               "raw": "{}"
             },
-            "url": "{{baseUrl}}/api/v1/quiz-attempts/{{attempt_id}}/submit"
+            "url": "{{baseUrl}}/api/v1/quiz-attempts/{{attempt_id}}/submit",
+            "description": "Finish + grade. Returns attempt_number, time_taken, question_results[].user_answer, question_results[].correct_answer."
           },
           "event": [
             {
@@ -2752,11 +2753,18 @@
                   "  pm.expect(json).to.have.property('data');",
                   "});",
                   "const d = pm.response.json().data;",
-                  "pm.test('quiz result fields', function () {",
+                  "pm.test('quiz result + post review fields', function () {",
                   "  pm.expect(d).to.have.property('attempt_id');",
+                  "  pm.expect(d).to.have.property('attempt_number');",
+                  "  pm.expect(d).to.have.property('time_taken');",
                   "  pm.expect(d).to.have.property('status');",
                   "  pm.expect(d).to.have.property('score');",
                   "  pm.expect(d).to.have.property('percentage');",
+                  "  pm.expect(d.question_results).to.be.an('array');",
+                  "  if (d.question_results.length) {",
+                  "    pm.expect(d.question_results[0]).to.have.property('user_answer');",
+                  "    pm.expect(d.question_results[0]).to.have.property('correct_answer');",
+                  "  }",
                   "});",
                   ""
                 ]
@@ -3692,7 +3700,7 @@
                   }
                 ],
                 "url": "{{baseUrl}}/api/v1/quiz-attempts/{{attempt_id}}/submit",
-                "description": "Finalizes the quiz. Completed activity attempts linked by quiz_attempt_id are included in the score.",
+                "description": "Finalizes the mixed quiz. Returns attempt_number, time_taken, question_results with user_answer and correct_answer. Linked activity attempts are included in the score.",
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"answers\": []\n}",
@@ -3718,11 +3726,14 @@
                       "  pm.expect(json).to.have.property('data');",
                       "});",
                       "const d = pm.response.json().data;",
-                      "pm.test('quiz result fields', function () {",
+                      "pm.test('quiz result + post review fields', function () {",
                       "  pm.expect(d).to.have.property('attempt_id');",
+                      "  pm.expect(d).to.have.property('attempt_number');",
+                      "  pm.expect(d).to.have.property('time_taken');",
                       "  pm.expect(d).to.have.property('status');",
                       "  pm.expect(d).to.have.property('score');",
                       "  pm.expect(d).to.have.property('percentage');",
+                      "  pm.expect(d.question_results).to.be.an('array');",
                       "});",
                       ""
                     ]
@@ -3741,7 +3752,7 @@
                   }
                 ],
                 "url": "{{baseUrl}}/api/v1/quiz-attempts/{{attempt_id}}/result",
-                "description": "Returns status, score, percentage. question_results may include is_correct after grading (result API only)."
+                "description": "Post-review: attempt_number, time_taken, question_results[].user_answer, question_results[].correct_answer."
               },
               "response": [],
               "event": [
@@ -3758,11 +3769,18 @@
                       "  pm.expect(json).to.have.property('data');",
                       "});",
                       "const d = pm.response.json().data;",
-                      "pm.test('quiz result fields', function () {",
+                      "pm.test('quiz result + post review fields', function () {",
                       "  pm.expect(d).to.have.property('attempt_id');",
+                      "  pm.expect(d).to.have.property('attempt_number');",
+                      "  pm.expect(d).to.have.property('time_taken');",
                       "  pm.expect(d).to.have.property('status');",
                       "  pm.expect(d).to.have.property('score');",
                       "  pm.expect(d).to.have.property('percentage');",
+                      "  pm.expect(d.question_results).to.be.an('array');",
+                      "  if (d.question_results.length) {",
+                      "    pm.expect(d.question_results[0]).to.have.property('user_answer');",
+                      "    pm.expect(d.question_results[0]).to.have.property('correct_answer');",
+                      "  }",
                       "});",
                       ""
                     ]
