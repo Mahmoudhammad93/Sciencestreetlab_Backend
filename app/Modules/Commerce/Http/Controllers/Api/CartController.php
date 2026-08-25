@@ -45,11 +45,19 @@ final class CartController extends Controller
     public function addItem(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'product_id' => ['required', 'integer', 'exists:products,id'],
+            'product_id' => ['required_without:slug', 'nullable', 'integer', 'exists:products,id'],
+            'slug' => ['required_without:product_id', 'nullable', 'string', 'max:255'],
             'quantity' => ['integer', 'min:1', 'max:99'],
         ]);
 
-        $product = Product::query()->findOrFail($validated['product_id']);
+        $product = isset($validated['product_id'])
+            ? Product::query()->findOrFail($validated['product_id'])
+            : Product::query()->where('slug', $validated['slug'])->first();
+
+        if (! $product) {
+            return response()->json(['message' => 'Product not found for slug.'], 404);
+        }
+
         $cart = $this->resolvesCart->fromRequest($request);
 
         $item = $this->cartService->addItem(

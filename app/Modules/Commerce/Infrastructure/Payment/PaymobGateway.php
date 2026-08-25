@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Commerce\Infrastructure\Payment;
 
+use App\Modules\Commerce\Application\Services\PaymentCompletionService;
 use App\Modules\Commerce\Domain\Enums\OrderStatus;
 use App\Modules\Commerce\Domain\Enums\PaymentStatus;
-use App\Modules\Commerce\Domain\Events\OrderPaid;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Order;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Payment;
 use App\Shared\Contracts\PaymentGatewayInterface;
@@ -20,6 +20,7 @@ final class PaymobGateway implements PaymentGatewayInterface
     public function __construct(
         private readonly PaymobClient $client,
         private readonly PaymobHmacValidator $hmacValidator,
+        private readonly PaymentCompletionService $completion,
     ) {}
 
     public function initiate(object $order): PaymentInitiationResult
@@ -101,28 +102,18 @@ final class PaymobGateway implements PaymentGatewayInterface
         $isVoided = filter_var($obj['is_voided'] ?? false, FILTER_VALIDATE_BOOLEAN);
 
         if ($success && ! $isVoided) {
-            $payment->update([
-                'transaction_id' => $transactionId ?: $payment->transaction_id,
-                'status' => PaymentStatus::Completed->value,
-                'payment_method' => data_get($obj, 'source_data.type'),
-                'gateway_response' => $obj,
-                'paid_at' => now(),
-            ]);
-
-            $order = $payment->order;
-            $order->update([
-                'status' => OrderStatus::Paid->value,
-                'paid_at' => now(),
-            ]);
-
-            event(new OrderPaid($order->fresh(['items'])));
-        } else {
-            $payment->update([
-                'status' => PaymentStatus::Failed->value,
-                'gateway_response' => $obj,
-            ]);
-            $payment->order->update(['status' => OrderStatus::Pending->value]);
+            return $this->completion->complete(
+                $payment,
+                $transactionId !== '' ? $transactionId : null,
+                is_array($obj) ? $obj : null,
+            );
         }
+
+        $payment->update([
+            'status' => PaymentStatus::Failed->value,
+            'gateway_response' => $obj,
+        ]);
+        $payment->order->update(['status' => OrderStatus::Pending->value]);
 
         return $payment->fresh();
     }
@@ -137,26 +128,7 @@ final class PaymobGateway implements PaymentGatewayInterface
      */
     public function completeMockPayment(Payment $payment): Payment
     {
-        if ($payment->status === PaymentStatus::Completed->value) {
-            return $payment;
-        }
-
-        $payment->update([
-            'transaction_id' => 'mock_txn_'.$payment->id,
-            'status' => PaymentStatus::Completed->value,
-            'paid_at' => now(),
-            'gateway_response' => ['mode' => 'mock', 'completed_at' => now()->toIso8601String()],
-        ]);
-
-        $order = $payment->order;
-        $order->update([
-            'status' => OrderStatus::Paid->value,
-            'paid_at' => now(),
-        ]);
-
-        event(new OrderPaid($order->fresh(['items'])));
-
-        return $payment->fresh();
+        return $this->completion->complete($payment);
     }
 
     /** @return array<string, mixed> */

@@ -97,15 +97,25 @@ final class FrontendApiContractTest extends TestCase
             ->assertJsonStructure([
                 'data' => [
                     'status', 'score', 'percentage', 'passed',
-                    'total_points', 'earned_points', 'submitted_at', 'question_results',
+                    'attempt_number', 'time_taken', 'time_taken_seconds',
+                    'total_points', 'earned_points', 'submitted_at',
+                    'question_results' => [
+                        ['question_id', 'is_correct', 'user_answer', 'correct_answer'],
+                    ],
                 ],
             ])
-            ->assertJsonPath('data.passed', true);
+            ->assertJsonPath('data.passed', true)
+            ->assertJsonPath('data.attempt_number', 1)
+            ->assertJsonPath('data.question_results.0.user_answer.option_id', $option->id)
+            ->assertJsonPath('data.question_results.0.correct_answer.option_id', $option->id);
 
         $this->getJson("/api/v1/quiz-attempts/{$attemptId}/result")
             ->assertOk()
             ->assertJsonPath('data.attempt_id', $attemptId)
-            ->assertJsonPath('data.passed', true);
+            ->assertJsonPath('data.passed', true)
+            ->assertJsonPath('data.attempt_number', 1)
+            ->assertJsonPath('data.question_results.0.user_answer.option_id', $option->id)
+            ->assertJsonPath('data.question_results.0.correct_answer.option_id', $option->id);
     }
 
     public function test_interactive_signed_url_and_result_endpoint(): void

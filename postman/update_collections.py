@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sync Postman collections with Interactive Activity API updates."""
+"""Sync the single Science Street Lab Postman collection."""
 
 from __future__ import annotations
 
@@ -8,58 +8,33 @@ from copy import deepcopy
 from pathlib import Path
 
 COLLECTIONS = [
-    Path(__file__).parent / "Question-Bank.postman_collection.json",
     Path(__file__).parent / "Science-Street-Lab-API.postman_collection.json",
 ]
 
-DESCRIPTION = """Student-facing Question Bank, Quiz, and Interactive Activity APIs under `/api/v1` (Sanctum).
-
-Never returns correct answers, answer keys, or grading internals on question payloads.
-Interactive Activities are **complete standalone HTML/JS packages** (not a single MCQ). The platform hosts them in a sandboxed iframe (`allow-scripts`) and receives standardized postMessage events only.
-
-**Demo seed:** `php artisan db:seed --class=AssessmentDemoCoursesSeeder`
-**Login:** `demo@sciencestreetlab.com` / `password`
-
-**Demo courses:** `intro-biology-lab`, `basic-physics-lab`, `basic-chemistry-lab`
-
-**Seeded HTML activities (from `interactive examples/`):**
-| ID | Key | Lesson slug | Title |
-|----|-----|-------------|-------|
-| #5 | plant-growth | intro-cells | رحلة نمو البذور |
-| #4 | light-lab | light-reflection | مختبر الضوء |
-| #6 | sound-lab | energy | مختبر الصوت |
-| #7 | rubber-castle | forces | تحدي هدم القلعة |
-| #8 | rubber-race | forces | سباق العربية |
-
-**Recommended flow:** Login → Biology/Physics Lab Curriculum → Interactive Activities folder (or Full Activity Workflow).
-
-**Variables:** `activity_id`, `activity_attempt_id` (interactive activity attempt; distinct from quiz `attempt_id`).
-
-**Interactive Activity endpoints:**
-- GET `/lessons/{lesson}/interactive-activities`
-- GET `/interactive-activities/{activity}`
-- GET `/interactive-activities/{activity}/launch`
-- POST `/interactive-activities/{activity}/attempts`
-- GET `/interactive-activity-attempts/{attempt}`
-- POST `/interactive-activity-attempts/{attempt}/progress`
-- POST `/interactive-activity-attempts/{attempt}/result`
-- GET `/interactive-activity-attempts/{attempt}/result`
-
-**postMessage events:** READY, STARTED, PROGRESS, CHALLENGE_STARTED, CHALLENGE_COMPLETED, ANSWER_SUBMITTED, ACTIVITY_COMPLETED, RETRY, ERROR"""
-
-MAIN_API_DESCRIPTION = """REST API collection for Science Street Lab (Laravel `/api/v1`).
+MAIN_API_DESCRIPTION = """REST API collection for Science Street Lab (Laravel `/api/v1`). **All endpoints live in this one file.**
 
 **Auth:** Laravel Sanctum Bearer token. Login/Register auto-save `token`.
 **Base URL:** `{{baseUrl}}` (default `http://localhost:8000`).
+**Environment:** import `Science-Street-Lab.local.postman_environment.json`.
+
+**Demo login**
+- Admin: `admin@sciencestreetlab.com` / `password`
+- Student: `demo@sciencestreetlab.com` / `password`
+
+**Suggested order**
+1. Health → App Health / Public website settings
+2. Auth → Login (or Login demo student)
+3. Catalog → Products → Commerce (cart → checkout → mock pay)
+4. Learning → Enroll → Biology/Physics lab curriculum
+5. Assessment → Interactive Activities (Full Light Lab workflow) → Mixed Quiz
 
 Assessment demo (`php artisan db:seed --class=AssessmentDemoCoursesSeeder`):
-- Login: `demo@sciencestreetlab.com` / `password`
 - Courses: `intro-biology-lab`, `basic-physics-lab`, `basic-chemistry-lab`
-- Run **Physics Lab Curriculum** or **Biology Lab Curriculum** to populate IDs.
 
-**Interactive Activities** are complete HTML games from `interactive examples/` (Light Lab, Sound Lab, Plant Growth, Rubber Castle, Rubber Race). Hosted in sandboxed iframe; POST `.../progress` and `.../result` for client-reported state.
+**Interactive Activities** are complete HTML games (Light Lab, Sound Lab, Plant Growth, Rubber Castle, Rubber Race). Hosted in a sandboxed iframe; POST `.../progress` and `.../result` for client-reported state.
 
-Student question payloads never include `is_correct` or `answer_key`."""
+Student question payloads never include `is_correct` or `answer_key`.
+"""
 
 NEW_VARS = [
     {"key": "light_lab_activity_id", "value": "4"},
@@ -528,9 +503,9 @@ def update_progress_tests(col: dict) -> None:
     walk_items(col.get("item", []), patch)
 
 
-def process_collection(path: Path, is_main: bool) -> None:
+def process_collection(path: Path) -> None:
     col = json.loads(path.read_text(encoding="utf-8"))
-    col["info"]["description"] = MAIN_API_DESCRIPTION if is_main else DESCRIPTION
+    col["info"]["description"] = MAIN_API_DESCRIPTION
     merge_variables(col)
     update_curriculum_tests(col)
     update_result_bodies(col)
@@ -545,7 +520,7 @@ def process_collection(path: Path, is_main: bool) -> None:
 
 def main() -> None:
     for path in COLLECTIONS:
-        process_collection(path, is_main="Science-Street-Lab" in path.name)
+        process_collection(path)
 
 
 if __name__ == "__main__":

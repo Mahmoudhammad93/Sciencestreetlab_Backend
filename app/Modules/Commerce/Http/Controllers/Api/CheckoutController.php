@@ -69,6 +69,8 @@ final class CheckoutController extends Controller
             'data' => [
                 'payment_id' => $result->paymentId,
                 'iframe_url' => $result->iframeUrl,
+                'payment_url' => $result->iframeUrl,
+                'gateway' => config('commerce.payment_gateway'),
                 'gateway_order_id' => $result->gatewayOrderId,
             ],
         ]);

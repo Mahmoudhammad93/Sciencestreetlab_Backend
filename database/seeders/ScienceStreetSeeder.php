@@ -26,6 +26,7 @@ final class ScienceStreetSeeder extends Seeder
         $admin->assignRole('super_admin');
 
         $this->call(LearningCatalogSeeder::class);
+        $this->call(WordPressProductSyncSeeder::class);
         $this->call(DemoLearningSeeder::class);
         $this->call(AssessmentDemoCoursesSeeder::class);
 

@@ -14,6 +14,8 @@ Route::prefix('v1')->group(function (): void {
         ]);
     });
 
+    Route::get('/settings', [\App\Http\Controllers\Api\PublicSettingsController::class, 'show']);
+
     Route::prefix('auth')->group(function (): void {
         Route::post('/register', [\App\Modules\Identity\Http\Controllers\Api\AuthController::class, 'register']);
         Route::post('/login', [\App\Modules\Identity\Http\Controllers\Api\AuthController::class, 'login']);

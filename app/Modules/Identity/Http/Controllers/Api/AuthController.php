@@ -6,6 +6,7 @@ namespace App\Modules\Identity\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Modules\Commerce\Application\Services\CartService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -13,6 +14,10 @@ use Illuminate\Validation\Rules\Password;
 
 final class AuthController extends Controller
 {
+    public function __construct(
+        private readonly CartService $cartService,
+    ) {}
+
     public function register(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -30,6 +35,10 @@ final class AuthController extends Controller
             'password' => Hash::make($validated['password']),
             'locale' => $validated['locale'] ?? config('sciencestreet.default_locale'),
         ]);
+
+        if ($request->hasSession()) {
+            $this->cartService->mergeSessionCartIntoUserCart($user, $request->session()->getId());
+        }
 
         $token = $user->createToken('api')->plainTextToken;
 
@@ -55,6 +64,10 @@ final class AuthController extends Controller
                 'message' => __('auth.failed'),
                 'code' => 'INVALID_CREDENTIALS',
             ], 401);
+        }
+
+        if ($request->hasSession()) {
+            $this->cartService->mergeSessionCartIntoUserCart($user, $request->session()->getId());
         }
 
         $token = $user->createToken('api')->plainTextToken;

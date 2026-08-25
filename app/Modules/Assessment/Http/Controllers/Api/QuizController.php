@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Assessment\Application\Services\QuizAttemptService;
 use App\Modules\Assessment\Domain\Enums\AttemptStatus;
 use App\Modules\Assessment\Http\Resources\StudentQuestionResource;
+use App\Modules\Assessment\Http\Support\QuizReviewPresenter;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\Quiz;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\QuizAttempt;
 use App\Modules\Learning\Application\Services\CourseAccessService;
@@ -146,11 +147,15 @@ final class QuizController extends Controller
         $pending = $graded->answers->whereNull('is_correct')->count();
 
         $questions = $this->quizAttempts->questionsForAttempt($graded);
+        $byId = $questions->keyBy('id');
+        $review = app(QuizReviewPresenter::class);
 
         return response()->json([
             'data' => [
                 'attempt_id' => $graded->id,
                 'attempt_number' => $graded->attempt_number,
+                'time_taken' => (int) ($graded->time_spent_seconds ?? 0),
+                'time_taken_seconds' => $graded->time_spent_seconds !== null ? (int) $graded->time_spent_seconds : null,
                 'score' => (float) $graded->score,
                 'max_score' => (float) $graded->max_score,
                 'percentage' => (float) $graded->percentage,
@@ -163,6 +168,21 @@ final class QuizController extends Controller
                     ? 'pending_review'
                     : ($graded->passed ? 'passed' : 'failed'),
                 'submitted_at' => $graded->submitted_at?->toIso8601String(),
+                'question_results' => $graded->answers->map(function ($answer) use ($request, $byId, $review, $includeExplanation) {
+                    $question = $byId->get($answer->question_id);
+
+                    return [
+                        'question_id' => $answer->question_id,
+                        'is_correct' => $answer->is_correct,
+                        'points_awarded' => $answer->points_awarded !== null ? (float) $answer->points_awarded : null,
+                        'needs_manual_review' => (bool) $answer->needs_manual_review,
+                        'user_answer' => $review->userAnswer($answer, $question),
+                        'correct_answer' => $review->correctAnswer($question),
+                        'question' => $question && $includeExplanation
+                            ? (new StudentQuestionResource($question, true))->toArray($request)
+                            : null,
+                    ];
+                })->values(),
                 'questions' => $includeExplanation
                     ? $questions->map(fn ($q) => (new StudentQuestionResource($q, true))->toArray($request))->values()
                     : [],
@@ -183,16 +203,20 @@ final class QuizController extends Controller
         $attempt->load(['answers']);
         $questions = $this->quizAttempts->questionsForAttempt($attempt);
         $byId = $questions->keyBy('id');
+        $review = app(QuizReviewPresenter::class);
 
         return response()->json([
             'data' => [
                 'attempt_id' => $attempt->id,
+                'attempt_number' => (int) $attempt->attempt_number,
+                'time_taken' => (int) ($attempt->time_spent_seconds ?? 0),
+                'time_taken_seconds' => $attempt->time_spent_seconds !== null ? (int) $attempt->time_spent_seconds : null,
                 'status' => $attempt->status->value,
                 'score' => (float) $attempt->score,
                 'max_score' => (float) $attempt->max_score,
                 'percentage' => (float) $attempt->percentage,
                 'passed' => $attempt->passed,
-                'answers' => $attempt->answers->map(function ($answer) use ($request, $byId) {
+                'answers' => $attempt->answers->map(function ($answer) use ($request, $byId, $review) {
                     $question = $byId->get($answer->question_id);
 
                     return [
@@ -200,6 +224,8 @@ final class QuizController extends Controller
                         'is_correct' => $answer->is_correct,
                         'points_awarded' => $answer->points_awarded !== null ? (float) $answer->points_awarded : null,
                         'needs_manual_review' => (bool) $answer->needs_manual_review,
+                        'user_answer' => $review->userAnswer($answer, $question),
+                        'correct_answer' => $review->correctAnswer($question),
                         'question' => $question
                             ? (new StudentQuestionResource($question, true))->toArray($request)
                             : null,

@@ -92,7 +92,9 @@ curl -X POST http://localhost:8000/api/v1/auth/register \
 | GET | `/api/v1/products/{slug}` | Product detail |
 | GET | `/api/v1/{module}/health` | Per-module health |
 
-Full API spec: see blueprint §16–17.
+Full API reference: [`docs/API.md`](docs/API.md).
+
+Postman: import `postman/Science-Street-Lab-API.postman_collection.json` (one file).
 
 ## Implemented Scaffold
 

@@ -156,12 +156,13 @@ Assessment group:
 - [x] Activity attempt IDOR checks (owner only)
 - [x] Client scores stored separately from verified scores
 
+Platform-wide API reference: [`API.md`](API.md).
+
 ## Postman
 
-Collections (import both; they share `{{baseUrl}}` and `{{token}}`):
+Import one collection plus the local environment:
 
-- `postman/Science-Street-Lab-API.postman_collection.json` — full platform API
-- `postman/Question-Bank.postman_collection.json` — student assessment contract
+- `postman/Science-Street-Lab-API.postman_collection.json` — full platform API (auth, catalog, commerce, learning, assessment, interactive activities)
 - `postman/Science-Street-Lab.local.postman_environment.json` — local variables
 
 **Suggested run order (assessment):**

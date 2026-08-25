@@ -6,6 +6,7 @@ namespace App\Modules\Assessment\Http\Resources;
 
 use App\Modules\Assessment\Application\Services\QuizAttemptService;
 use App\Modules\Assessment\Domain\Enums\AttemptStatus;
+use App\Modules\Assessment\Http\Support\QuizReviewPresenter;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\QuizAttempt;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -24,9 +25,13 @@ final class QuizResultResource extends JsonResource
         $questions = app(QuizAttemptService::class)->questionsForAttempt($attempt);
         $byId = $questions->keyBy('id');
         $allowExplanations = in_array($attempt->status, [AttemptStatus::Graded, AttemptStatus::PendingReview], true);
+        $review = app(QuizReviewPresenter::class);
 
         return [
             'attempt_id' => $attempt->id,
+            'attempt_number' => (int) $attempt->attempt_number,
+            'time_taken' => (int) ($attempt->time_spent_seconds ?? 0),
+            'time_taken_seconds' => $attempt->time_spent_seconds !== null ? (int) $attempt->time_spent_seconds : null,
             'status' => $attempt->status === AttemptStatus::PendingReview
                 ? 'pending_review'
                 : ($attempt->passed ? 'passed' : 'failed'),
@@ -38,7 +43,7 @@ final class QuizResultResource extends JsonResource
             'earned_points' => (float) $attempt->score,
             'submitted_at' => $attempt->submitted_at?->toIso8601String(),
             'graded_at' => $attempt->graded_at?->toIso8601String(),
-            'question_results' => $attempt->answers->map(function ($answer) use ($request, $byId, $allowExplanations) {
+            'question_results' => $attempt->answers->map(function ($answer) use ($request, $byId, $allowExplanations, $review) {
                 $question = $byId->get($answer->question_id);
 
                 return [
@@ -46,6 +51,8 @@ final class QuizResultResource extends JsonResource
                     'is_correct' => $answer->is_correct,
                     'points_awarded' => $answer->points_awarded !== null ? (float) $answer->points_awarded : null,
                     'needs_manual_review' => (bool) $answer->needs_manual_review,
+                    'user_answer' => $review->userAnswer($answer, $question),
+                    'correct_answer' => $review->correctAnswer($question),
                     'question' => $question
                         ? (new StudentQuestionResource($question, $allowExplanations))->toArray($request)
                         : null,

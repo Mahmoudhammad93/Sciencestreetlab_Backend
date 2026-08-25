@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a73e08f0-1975-4c1d-9fb3-5a91721375db",
     "name": "Science Street Lab API",
-    "description": "REST API collection for Science Street Lab (Laravel `/api/v1`).\n\n**Auth:** Laravel Sanctum Bearer token. Login/Register auto-save `token`.\n**Base URL:** `{{baseUrl}}` (default `http://localhost:8000`).\n\nAssessment demo (`php artisan db:seed --class=AssessmentDemoCoursesSeeder`):\n- Login: `demo@sciencestreetlab.com` / `password`\n- Courses: `intro-biology-lab`, `basic-physics-lab`, `basic-chemistry-lab`\n- Run **Physics Lab Curriculum** or **Biology Lab Curriculum** to populate IDs.\n\n**Interactive Activities** are complete HTML games from `interactive examples/` (Light Lab, Sound Lab, Plant Growth, Rubber Castle, Rubber Race). Hosted in sandboxed iframe; POST `.../progress` and `.../result` for client-reported state.\n\nStudent question payloads never include `is_correct` or `answer_key`.",
+    "description": "REST API collection for Science Street Lab (Laravel `/api/v1`). **All endpoints live in this one file.**\n\n**Auth:** Laravel Sanctum Bearer token. Login/Register auto-save `token`.\n**Base URL:** `{{baseUrl}}` (default `http://localhost:8000`).\n**Environment:** import `Science-Street-Lab.local.postman_environment.json`.\n\n**Demo login**\n- Admin: `admin@sciencestreetlab.com` / `password`\n- Student: `demo@sciencestreetlab.com` / `password`\n\n**Suggested order**\n1. Health → App Health / Public website settings\n2. Auth → Login (or Login demo student)\n3. Catalog → Products → Commerce (cart → checkout → mock pay)\n4. Learning → Enroll → Biology/Physics lab curriculum\n5. Assessment → Interactive Activities (Full Light Lab workflow) → Mixed Quiz\n\nAssessment demo (`php artisan db:seed --class=AssessmentDemoCoursesSeeder`):\n- Courses: `intro-biology-lab`, `basic-physics-lab`, `basic-chemistry-lab`\n\n**Interactive Activities** are complete HTML games (Light Lab, Sound Lab, Plant Growth, Rubber Castle, Rubber Race). Hosted in a sandboxed iframe; POST `.../progress` and `.../result` for client-reported state.\n\nStudent question payloads never include `is_correct` or `answer_key`.\n",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -304,6 +304,47 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "Public website settings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/settings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "settings"
+              ]
+            },
+            "description": "Public storefront settings: brand, colors, navbar, contact, social links. No auth required."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', function () { pm.expect(pm.response.code).to.be.within(200, 299); });",
+                  "pm.test('has website colors', function () {",
+                  "  const d = pm.response.json().data;",
+                  "  pm.expect(d).to.include.keys('primary_color', 'accent_color', 'navbar_color', 'navbar_text_color');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -1866,7 +1907,7 @@
     },
     {
       "name": "Assessment",
-      "description": "Assessment / Quiz / Interactive Activity APIs.\nStudent contract also lives in postman/Question-Bank.postman_collection.json.\nRecommended order: Login as demo user → Physics/Biology Lab Curriculum → Full Activity Workflow (Light Lab) → Mixed Quiz.\n\nDemo HTML activities: Light Lab (#4), Sound Lab (#6), Plant Growth (#5), Rubber Castle (#7), Rubber Race (#8).",
+      "description": "Assessment / Quiz / Interactive Activity APIs (student contract included here).\nRecommended order: Login as demo user → Physics/Biology Lab Curriculum → Full Activity Workflow (Light Lab) → Mixed Quiz.\n\nDemo HTML activities: Light Lab (#4), Sound Lab (#6), Plant Growth (#5), Rubber Castle (#7), Rubber Race (#8).",
       "item": [
         {
           "name": "Get Quiz",
@@ -2299,6 +2340,201 @@
           ]
         },
         {
+          "name": "Submit answer (single choice)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question_id\": {{question_id}},\n  \"answer\": { \"option_id\": {{option_id}} }\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/quiz-attempts/{{attempt_id}}/answers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "pm.test('JSON has data', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit answer (multiple choice)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question_id\": {{question_id}},\n  \"answer\": { \"option_ids\": [25, 26] }\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/quiz-attempts/{{attempt_id}}/answers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "pm.test('JSON has data', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit answer (short text)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question_id\": {{question_id}},\n  \"answer\": { \"text\": \"Cairo\" }\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/quiz-attempts/{{attempt_id}}/answers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "pm.test('JSON has data', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit answer (matching)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question_id\": {{question_id}},\n  \"answer\": { \"matches\": { \"1\": \"5\", \"2\": \"7\" } }\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/quiz-attempts/{{attempt_id}}/answers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "pm.test('JSON has data', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit answer (ordering)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question_id\": {{question_id}},\n  \"answer\": { \"order\": [5, 2, 8, 1] }\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/quiz-attempts/{{attempt_id}}/answers"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "pm.test('JSON has data', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Submit answer (true/false)",
           "request": {
             "method": "POST",
@@ -2538,7 +2774,8 @@
                 "value": "application/json"
               }
             ],
-            "url": "{{baseUrl}}/api/v1/quiz-attempts/{{attempt_id}}/result"
+            "url": "{{baseUrl}}/api/v1/quiz-attempts/{{attempt_id}}/result",
+            "description": "Post-review: attempt_number, time_taken, question_results[].user_answer, question_results[].correct_answer."
           },
           "event": [
             {
@@ -2554,11 +2791,18 @@
                   "  pm.expect(json).to.have.property('data');",
                   "});",
                   "const d = pm.response.json().data;",
-                  "pm.test('quiz result fields', function () {",
+                  "pm.test('quiz result + post review fields', function () {",
                   "  pm.expect(d).to.have.property('attempt_id');",
+                  "  pm.expect(d).to.have.property('attempt_number');",
+                  "  pm.expect(d).to.have.property('time_taken');",
                   "  pm.expect(d).to.have.property('status');",
                   "  pm.expect(d).to.have.property('score');",
                   "  pm.expect(d).to.have.property('percentage');",
+                  "  pm.expect(d.question_results).to.be.an('array');",
+                  "  if (d.question_results.length) {",
+                  "    pm.expect(d.question_results[0]).to.have.property('user_answer');",
+                  "    pm.expect(d.question_results[0]).to.have.property('correct_answer');",
+                  "  }",
                   "});",
                   ""
                 ]

@@ -172,11 +172,8 @@ final class QuizAttemptService
             $percentage = $maxScore > 0 ? round(($score / $maxScore) * 100, 2) : 0;
             $passed = ! $needsReview && $percentage >= (float) $attempt->quiz->passing_score;
 
-            // Calculate time spent in seconds, ensuring it's always non-negative and integer
-            $timeSpentSeconds = max(
-                0,
-                (int) $attempt->started_at->diffInSeconds(now(), true)
-            );
+            // Signed diff: future started_at must not produce a negative or inflated duration.
+            $timeSpentSeconds = max(0, (int) $attempt->started_at->diffInSeconds(now(), false));
 
             $attempt->update([
                 'status' => $needsReview ? AttemptStatus::PendingReview : AttemptStatus::Graded,

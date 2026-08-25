@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\Product;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Cart;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\CartItem;
+use Illuminate\Support\Facades\DB;
 
 final class CartService
 {
@@ -68,5 +69,45 @@ final class CartService
     public function clear(Cart $cart): void
     {
         $cart->items()->delete();
+    }
+
+    public function mergeSessionCartIntoUserCart(User $user, string $sessionId): Cart
+    {
+        $userCart = $this->resolveCart($user, null);
+
+        $sessionCart = Cart::query()
+            ->where('session_id', $sessionId)
+            ->whereNull('user_id')
+            ->first();
+
+        if (! $sessionCart || $sessionCart->id === $userCart->id) {
+            return $userCart;
+        }
+
+        $sessionCart->load('items.product');
+
+        if ($sessionCart->items->isEmpty()) {
+            return $userCart;
+        }
+
+        return DB::transaction(function () use ($userCart, $sessionCart): Cart {
+            foreach ($sessionCart->items as $item) {
+                if ($item->product) {
+                    $this->addItem($userCart, $item->product, $item->quantity);
+                }
+            }
+
+            if ($sessionCart->coupon_id && ! $userCart->coupon_id) {
+                $userCart->update([
+                    'coupon_id' => $sessionCart->coupon_id,
+                    'coupon_code' => $sessionCart->coupon_code,
+                ]);
+            }
+
+            $this->clear($sessionCart);
+            $sessionCart->delete();
+
+            return $userCart->fresh(['items']);
+        });
     }
 }

@@ -9,7 +9,7 @@ use App\Modules\Commerce\Http\Controllers\Api\OrderController;
 use App\Modules\Commerce\Http\Controllers\Api\PaymentController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('cart')->group(function (): void {
+Route::prefix('cart')->middleware('auth.optional')->group(function (): void {
     Route::get('/', [CartController::class, 'show']);
     Route::post('/items', [CartController::class, 'addItem']);
     Route::put('/items/{item}', [CartController::class, 'updateItem']);
@@ -19,6 +19,7 @@ Route::prefix('cart')->group(function (): void {
 });
 
 Route::post('/payments/paymob/callback', [PaymentController::class, 'paymobCallback']);
+Route::get('/payments/myfatoorah/callback', [PaymentController::class, 'myfatoorahCallback']);
 Route::post('/payments/mock/{payment}/complete', [PaymentController::class, 'completeMock']);
 
 Route::middleware('auth:sanctum')->group(function (): void {
