@@ -124,6 +124,31 @@ final class InteractiveActivityPackageService
     }
 
     /**
+     * Store a single standalone HTML file as index.html in a versioned package.
+     */
+    public function storeFromHtmlFile(InteractiveActivity $activity, string $htmlPath): string
+    {
+        if (! is_file($htmlPath)) {
+            throw new DomainException('INTERACTIVE_FILE_INVALID: HTML file missing.', 422);
+        }
+
+        $version = max(1, (int) $activity->version);
+        $dir = $this->basePath($activity, $version);
+        Storage::disk(self::DISK)->makeDirectory($dir);
+
+        $relative = $dir.'/index.html';
+        Storage::disk(self::DISK)->put($relative, (string) File::get($htmlPath));
+
+        $activity->update([
+            'version' => $version,
+            'entry_file' => 'index.html',
+            'activity_package_path' => $relative,
+        ]);
+
+        return $relative;
+    }
+
+    /**
      * Copy a local directory tree (seeders / demos) into a versioned package.
      */
     public function storeFromDirectory(InteractiveActivity $activity, string $sourceDir, string $entryFile = 'index.html'): string

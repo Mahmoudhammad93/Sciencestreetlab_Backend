@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Modules\Assessment\Application\Services\InteractiveActivityPackageService;
+use App\Modules\Assessment\Domain\Enums\InteractiveActivityStatus;
+use App\Modules\Assessment\Domain\Enums\InteractiveActivityType;
 use App\Modules\Assessment\Domain\Enums\QuestionDifficulty;
 use App\Modules\Assessment\Domain\Enums\QuestionStatus;
 use App\Modules\Assessment\Domain\Enums\QuestionType;
@@ -25,9 +28,10 @@ final class CompleteDemoQuizzesSeeder extends Seeder
     public function run(): void
     {
         $this->ensureSixQuizzes();
+        $this->importFolderHtmlExamples();
 
         $activities = InteractiveActivity::query()
-            ->where('status', 'published')
+            ->where('status', InteractiveActivityStatus::Published)
             ->orderBy('id')
             ->get();
 
@@ -38,7 +42,129 @@ final class CompleteDemoQuizzesSeeder extends Seeder
             $this->attachAllActivities($quiz, $activities);
         }
 
-        $this->command?->info('Quizzes 1–6 now include all question types and all interactive HTML activities.');
+        $this->command?->info('Quizzes 1–6 now include all question types and the HTML files from interactive examples.');
+    }
+
+    /**
+     * Import the 5 standalone HTML labs from /interactive examples.
+     */
+    private function importFolderHtmlExamples(): void
+    {
+        $lesson = Lesson::query()->orderBy('id')->first();
+        if (! $lesson) {
+            return;
+        }
+
+        $packages = app(InteractiveActivityPackageService::class);
+        $folder = dirname(base_path()).'/interactive examples';
+
+        foreach ($this->folderExamples() as $key => $meta) {
+            $htmlPath = $this->resolveExampleHtml($folder, $meta);
+            if ($htmlPath === null) {
+                $this->command?->warn('Missing interactive example: '.$meta['file']);
+
+                continue;
+            }
+
+            $activity = InteractiveActivity::query()
+                ->where('activity_config->demo_key', $key)
+                ->first();
+
+            $payload = [
+                'lesson_id' => $activity?->lesson_id ?? $lesson->id,
+                'activity_type' => $meta['type']->value,
+                'status' => InteractiveActivityStatus::Published,
+                'difficulty' => QuestionDifficulty::Medium,
+                'points' => $meta['points'],
+                'estimated_time_seconds' => $meta['minutes'] * 60,
+                'version' => max(1, (int) ($activity?->version ?? 1)),
+                'entry_file' => 'index.html',
+                'activity_config' => ['demo_key' => $key, 'source' => 'interactive-examples-folder'],
+                'title' => $meta['title'],
+                'description' => $meta['description'],
+                'instructions' => [
+                    'ar' => 'شغّل النشاط داخل الصفحة وأكمل التحديات.',
+                    'en' => 'Play the activity in the page and complete the challenges.',
+                ],
+            ];
+
+            if ($activity) {
+                $activity->update($payload);
+            } else {
+                $activity = InteractiveActivity::query()->create($payload);
+            }
+
+            $packages->storeFromHtmlFile($activity, $htmlPath);
+        }
+    }
+
+    /**
+     * @return array<string, array{file:string, folder:string, type:InteractiveActivityType, points:int, minutes:int, title:array{ar:string,en:string}, description:array{ar:string,en:string}}>
+     */
+    private function folderExamples(): array
+    {
+        return [
+            'light-lab' => [
+                'file' => 'الضوء 3.html',
+                'folder' => 'light-lab',
+                'type' => InteractiveActivityType::VirtualLab,
+                'points' => 50,
+                'minutes' => 15,
+                'title' => ['ar' => 'مختبر الضوء', 'en' => 'Light Lab'],
+                'description' => ['ar' => 'مختبر الضوء التفاعلي من مجلد الأمثلة.', 'en' => 'Interactive light lab from the examples folder.'],
+            ],
+            'sound-lab' => [
+                'file' => 'الصوت.html',
+                'folder' => 'sound-lab',
+                'type' => InteractiveActivityType::VirtualLab,
+                'points' => 50,
+                'minutes' => 12,
+                'title' => ['ar' => 'مختبر الصوت', 'en' => 'Sound Lab'],
+                'description' => ['ar' => 'مختبر الصوت التفاعلي من مجلد الأمثلة.', 'en' => 'Interactive sound lab from the examples folder.'],
+            ],
+            'plant-growth' => [
+                'file' => 'كيف تنمو النباتات.html',
+                'folder' => 'plant-growth',
+                'type' => InteractiveActivityType::Simulation,
+                'points' => 40,
+                'minutes' => 10,
+                'title' => ['ar' => 'كيف تنمو النباتات', 'en' => 'How Plants Grow'],
+                'description' => ['ar' => 'رحلة نمو النبات التفاعلية.', 'en' => 'Interactive plant-growth journey.'],
+            ],
+            'rubber-castle' => [
+                'file' => 'قوة المطاط.html',
+                'folder' => 'rubber-castle',
+                'type' => InteractiveActivityType::Simulation,
+                'points' => 40,
+                'minutes' => 10,
+                'title' => ['ar' => 'قوة المطاط', 'en' => 'Rubber Band Force'],
+                'description' => ['ar' => 'تحدي هدم القلعة بالطاقة المرنة.', 'en' => 'Rubber-band castle demolition challenge.'],
+            ],
+            'rubber-race' => [
+                'file' => 'قوة المطاط (سباق عربية).html',
+                'folder' => 'rubber-race',
+                'type' => InteractiveActivityType::Simulation,
+                'points' => 30,
+                'minutes' => 8,
+                'title' => ['ar' => 'سباق عربية المطاط', 'en' => 'Rubber Band Car Race'],
+                'description' => ['ar' => 'سباق العربية بالطاقة المرنة.', 'en' => 'Rubber-band car race.'],
+            ],
+        ];
+    }
+
+    /**
+     * @param  array{file:string, folder:string}  $meta
+     */
+    private function resolveExampleHtml(string $folder, array $meta): ?string
+    {
+        $fromFolder = $folder.'/'.$meta['file'];
+        if (is_file($fromFolder)) {
+            return $fromFolder;
+        }
+
+        $fromResources = base_path('resources/examples/interactive-activities/'.$meta['folder'].'/index.html');
+
+        return is_file($fromResources) ? $fromResources : null;
     }
 
     private function ensureSixQuizzes(): void
