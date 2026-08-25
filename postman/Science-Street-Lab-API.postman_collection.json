@@ -1907,7 +1907,7 @@
     },
     {
       "name": "Assessment",
-      "description": "Assessment / Quiz / Interactive Activity APIs (student contract included here).\nRecommended order: Login as demo user → Physics/Biology Lab Curriculum → Full Activity Workflow (Light Lab) → Mixed Quiz.\n\nDemo HTML activities: Light Lab (#4), Sound Lab (#6), Plant Growth (#5), Rubber Castle (#7), Rubber Race (#8).",
+      "description": "Assessment / Quiz / Interactive Activity APIs (student contract included here).\nRecommended order: Login as demo user → Physics/Biology Lab Curriculum → Full Activity Workflow (Light Lab) → Mixed Quiz.\n\nDemo HTML activities: Light Lab (#4), Sound Lab (#6), Plant Growth (#5), Rubber Castle (#7), Rubber Race (#8).\n\nQuiz with interactive HTML: GET /quizzes/22 (Mixed Assessment — Light).\nAfter submit, GET /quiz-attempts/{{attempt_id}}/result returns attempt_number, time_taken, user_answer, correct_answer.",
       "item": [
         {
           "name": "Get Quiz",
