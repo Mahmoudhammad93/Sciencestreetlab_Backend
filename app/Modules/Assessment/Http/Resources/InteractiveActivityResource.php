@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Assessment\Http\Resources;
 
+use App\Modules\Assessment\Application\Services\InteractiveActivityPackageService;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\InteractiveActivity;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -17,6 +18,8 @@ final class InteractiveActivityResource extends JsonResource
     public function toArray(Request $request): array
     {
         $locale = app()->getLocale();
+
+        $launchUrl = app(InteractiveActivityPackageService::class)->signedLaunchUrl($this->resource);
 
         return [
             'id' => $this->id,
@@ -32,6 +35,13 @@ final class InteractiveActivityResource extends JsonResource
             'description' => $this->getTranslation('description', $locale) ?: null,
             'instructions' => $this->getTranslation('instructions', $locale) ?: null,
             'has_package' => filled($this->activity_package_path),
+            'launch_url' => $launchUrl,
+            'html_url' => $launchUrl,
+            'embed' => [
+                'mode' => 'iframe',
+                'sandbox' => 'allow-scripts',
+                'src' => $launchUrl,
+            ],
             'protocol' => 'postMessage',
             'sandbox' => 'allow-scripts',
         ];

@@ -24,23 +24,40 @@ final class InteractiveActivityService
 
     public function authorizeActivity(User $user, InteractiveActivity $activity): Enrollment
     {
-        $activity->loadMissing('lesson.course');
-        $lesson = $activity->lesson;
-        if (! $lesson instanceof Lesson) {
-            throw new DomainException('QUESTION_NOT_FOUND: Activity lesson missing.', 404);
-        }
-
-        $enrollment = $this->access->requireEnrollment($user, $lesson->course);
+        $activity->loadMissing(['lesson.course', 'quizzes']);
 
         if ($activity->status !== InteractiveActivityStatus::Published) {
             throw new DomainException('QUESTION_LOCKED: Activity is not published.', 403);
         }
 
-        if (! $this->access->canAccessLesson($enrollment, $lesson)) {
-            throw new DomainException('QUESTION_LOCKED: Lesson is locked.', 403);
+        $lesson = $activity->lesson;
+        if ($lesson instanceof Lesson) {
+            try {
+                $enrollment = $this->access->requireEnrollment($user, $lesson->course);
+                if ($this->access->canAccessLesson($enrollment, $lesson)) {
+                    return $enrollment;
+                }
+            } catch (DomainException) {
+                // Fall through to quiz-linked access (activities reused across quizzes).
+            }
         }
 
-        return $enrollment;
+        foreach ($activity->quizzes as $quiz) {
+            $quizLesson = $quiz->quizable;
+            if (! $quizLesson instanceof Lesson) {
+                continue;
+            }
+            try {
+                $enrollment = $this->access->requireEnrollment($user, $quizLesson->course);
+                if ($this->access->canAccessQuiz($enrollment, $quiz)) {
+                    return $enrollment;
+                }
+            } catch (DomainException) {
+                continue;
+            }
+        }
+
+        throw new DomainException('QUESTION_LOCKED: Activity is not available for this student.', 403);
     }
 
     /**

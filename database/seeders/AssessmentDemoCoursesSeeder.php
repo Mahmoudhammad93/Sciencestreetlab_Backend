@@ -334,6 +334,8 @@ final class AssessmentDemoCoursesSeeder extends Seeder
             );
         }
 
+        $this->call(CompleteDemoQuizzesSeeder::class);
+
         $this->command?->info('Assessment demo courses: intro-biology-lab, basic-physics-lab, basic-chemistry-lab');
         $this->command?->info(sprintf(
             'Activities: #%d body, #%d cell, #%d force-sim, #%d light, #%d plant, #%d sound, #%d castle, #%d race',

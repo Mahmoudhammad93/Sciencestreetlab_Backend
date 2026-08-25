@@ -1,0 +1,241 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Database\Seeders;
+
+use App\Modules\Assessment\Domain\Enums\QuestionDifficulty;
+use App\Modules\Assessment\Domain\Enums\QuestionStatus;
+use App\Modules\Assessment\Domain\Enums\QuestionType;
+use App\Modules\Assessment\Domain\Enums\QuizSelectionMode;
+use App\Modules\Assessment\Infrastructure\Persistence\Models\InteractiveActivity;
+use App\Modules\Assessment\Infrastructure\Persistence\Models\Question;
+use App\Modules\Assessment\Infrastructure\Persistence\Models\QuestionBank;
+use App\Modules\Assessment\Infrastructure\Persistence\Models\QuestionOption;
+use App\Modules\Assessment\Infrastructure\Persistence\Models\Quiz;
+use App\Modules\Learning\Infrastructure\Persistence\Models\Lesson;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Storage;
+
+/**
+ * Ensures quizzes 1–6 each contain every question type and every HTML activity.
+ */
+final class CompleteDemoQuizzesSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $this->ensureSixQuizzes();
+
+        $activities = InteractiveActivity::query()
+            ->where('status', 'published')
+            ->orderBy('id')
+            ->get();
+
+        $quizzes = Quiz::query()->orderBy('id')->limit(6)->get();
+
+        foreach ($quizzes as $index => $quiz) {
+            $this->attachAllQuestionTypes($quiz, $index + 1);
+            $this->attachAllActivities($quiz, $activities);
+        }
+
+        $this->command?->info('Quizzes 1–6 now include all question types and all interactive HTML activities.');
+    }
+
+    private function ensureSixQuizzes(): void
+    {
+        $count = Quiz::query()->count();
+        if ($count >= 6) {
+            return;
+        }
+
+        $lesson = Lesson::query()->orderBy('id')->first();
+        $bank = QuestionBank::query()->orderBy('id')->first();
+        if (! $lesson || ! $bank) {
+            return;
+        }
+
+        for ($i = $count + 1; $i <= 6; $i++) {
+            Quiz::query()->create([
+                'quizable_type' => Lesson::class,
+                'quizable_id' => $lesson->id,
+                'passing_score' => 50,
+                'max_attempts' => 10,
+                'is_required' => false,
+                'selection_mode' => QuizSelectionMode::Fixed,
+                'shuffle_questions' => false,
+                'title' => [
+                    'ar' => "اختبار شامل {$i}",
+                    'en' => "Complete quiz {$i}",
+                ],
+                'instructions' => [
+                    'ar' => 'كل أنواع الأسئلة + كل الأنشطة التفاعلية',
+                    'en' => 'All question types plus every interactive activity',
+                ],
+                'selection_config' => ['demo_key' => 'complete-'.$i],
+            ]);
+        }
+    }
+
+    private function attachAllQuestionTypes(Quiz $quiz, int $quizNumber): void
+    {
+        $bank = $quiz->questionBanks()->first()
+            ?? QuestionBank::query()->orderBy('id')->first();
+
+        if (! $bank) {
+            return;
+        }
+
+        $sort = 1;
+        foreach (QuestionType::cases() as $type) {
+            $question = Question::query()
+                ->where('quiz_id', $quiz->id)
+                ->where('question_type', $type)
+                ->first();
+
+            if (! $question) {
+                $question = $this->makeQuestion($quiz, $bank, $type, $quizNumber, $sort);
+            } else {
+                $question->update(['sort_order' => $sort]);
+            }
+
+            $sort++;
+        }
+    }
+
+    private function makeQuestion(
+        Quiz $quiz,
+        QuestionBank $bank,
+        QuestionType $type,
+        int $quizNumber,
+        int $sort,
+    ): Question {
+        $label = strtoupper(str_replace('_', ' ', $type->value));
+        $question = Question::query()->create([
+            'question_bank_id' => $bank->id,
+            'quiz_id' => $quiz->id,
+            'question_type' => $type,
+            'difficulty' => QuestionDifficulty::Easy,
+            'status' => QuestionStatus::Published,
+            'points' => $type === QuestionType::InteractiveHtml || $type === QuestionType::InteractiveActivity ? 10 : 1,
+            'sort_order' => $sort,
+            'body' => [
+                'ar' => "[Quiz {$quizNumber}] {$label}",
+                'en' => "[Quiz {$quizNumber}] {$label}",
+            ],
+            'explanation' => [
+                'ar' => 'سؤال تجريبي لكل نوع',
+                'en' => 'Demo question for this type',
+            ],
+            'answer_key' => $this->answerKeyFor($type),
+            'interactive_type' => $type === QuestionType::InteractiveHtml ? 'html' : null,
+        ]);
+
+        match ($type) {
+            QuestionType::SingleChoice, QuestionType::TrueFalse => $this->options($question, [
+                ['Yes / True / Nucleus', true],
+                ['No / False / Cytoplasm', false],
+            ]),
+            QuestionType::MultipleChoice => $this->options($question, [
+                ['Water', true],
+                ['Sunlight', true],
+                ['Plastic', false],
+            ]),
+            QuestionType::Matching => $this->options($question, [
+                ['Nucleus', false, ['side' => 'left', 'match_key' => 'dna']],
+                ['Mitochondria', false, ['side' => 'left', 'match_key' => 'energy']],
+                ['Contains DNA', false, ['side' => 'right', 'match_key' => 'dna']],
+                ['Makes energy', false, ['side' => 'right', 'match_key' => 'energy']],
+            ]),
+            QuestionType::Ordering => $this->options($question, [
+                ['Observe', false],
+                ['Hypothesize', false],
+                ['Experiment', false],
+                ['Conclude', false],
+            ]),
+            QuestionType::InteractiveHtml => $this->storeMiniHtml($question, $quizNumber),
+            QuestionType::InteractiveActivity => $this->linkFirstActivity($question),
+            default => null,
+        };
+
+        return $question;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function answerKeyFor(QuestionType $type): array
+    {
+        return match ($type) {
+            QuestionType::ShortAnswer, QuestionType::FillBlank => ['accepted' => ['Cairo', 'cairo', 'life']],
+            QuestionType::LongAnswer => ['manual' => true],
+            QuestionType::Numeric => ['value' => 12, 'tolerance' => 0],
+            QuestionType::InteractiveHtml => ['expected' => ['done' => true]],
+            default => [],
+        };
+    }
+
+    /**
+     * @param  list<array{0:string,1:bool,2?:array<string,mixed>}>  $rows
+     */
+    private function options(Question $question, array $rows): void
+    {
+        foreach ($rows as $i => $row) {
+            QuestionOption::query()->updateOrCreate(
+                ['question_id' => $question->id, 'sort_order' => $i + 1],
+                [
+                    'is_correct' => $row[1],
+                    'label' => ['ar' => $row[0], 'en' => $row[0]],
+                    'meta' => $row[2] ?? null,
+                ]
+            );
+        }
+    }
+
+    private function storeMiniHtml(Question $question, int $quizNumber): void
+    {
+        $html = <<<HTML
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head><meta charset="utf-8"><title>Interactive {$quizNumber}</title>
+<style>body{font-family:sans-serif;padding:24px;background:#2828a0;color:#fcd500;text-align:center}</style>
+</head>
+<body>
+  <h1>نشاط تفاعلي — اختبار {$quizNumber}</h1>
+  <p>اضغط إنهاء لإرسال النتيجة إلى المنصة.</p>
+  <button id="done">إنهاء</button>
+  <script>
+    window.parent.postMessage({ type: 'READY' }, '*');
+    document.getElementById('done').onclick = function () {
+      window.parent.postMessage({ type: 'ACTIVITY_COMPLETED', completed: true, score: 10, max_score: 10, percentage: 100 }, '*');
+    };
+  </script>
+</body>
+</html>
+HTML;
+
+        $dir = 'interactive-questions/'.$question->uuid;
+        Storage::disk('public')->makeDirectory($dir);
+        Storage::disk('public')->put($dir.'/activity.html', $html);
+        $question->update(['interactive_path' => $dir.'/activity.html']);
+    }
+
+    private function linkFirstActivity(Question $question): void
+    {
+        $activity = InteractiveActivity::query()->orderBy('id')->first();
+        if ($activity) {
+            $question->update(['interactive_activity_id' => $activity->id]);
+        }
+    }
+
+    private function attachAllActivities(Quiz $quiz, $activities): void
+    {
+        $sync = [];
+        foreach ($activities as $i => $activity) {
+            $sync[$activity->id] = [
+                'sort_order' => $i + 1,
+                'points' => (float) ($activity->points ?: 10),
+            ];
+        }
+        $quiz->interactiveActivities()->sync($sync);
+    }
+}

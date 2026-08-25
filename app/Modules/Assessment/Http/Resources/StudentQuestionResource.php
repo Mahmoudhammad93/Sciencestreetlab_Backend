@@ -60,8 +60,16 @@ final class StudentQuestionResource extends JsonResource
             $activityUrl = $question->question_type === QuestionType::InteractiveHtml
                 ? $storage->publicActivityUrl($question)
                 : null;
+            if ($question->question_type === QuestionType::InteractiveActivity && $question->interactive_activity_id) {
+                $question->loadMissing('interactiveActivity');
+                if ($question->interactiveActivity) {
+                    $activityUrl = app(\App\Modules\Assessment\Application\Services\InteractiveActivityPackageService::class)
+                        ->signedLaunchUrl($question->interactiveActivity);
+                }
+            }
             $data['interactive_type'] = $question->interactive_type;
             $data['interactive_url'] = $activityUrl;
+            $data['html_url'] = $activityUrl;
             $data['interactive_config'] = $question->interactive_config;
             $data['interactive_activity_id'] = $question->interactive_activity_id;
             $data['interactive'] = [

@@ -327,6 +327,36 @@ Use these IDs with `GET /quizzes/{{quiz_id}}` (after demo seed):
 
 ---
 
+### Quizzes 1–6 (demo)
+
+After `php artisan db:seed --class=AssessmentDemoCoursesSeeder` (or `CompleteDemoQuizzesSeeder`):
+
+Each of **quiz IDs 1–6** includes:
+
+- every question type (`single_choice`, `multiple_choice`, `true_false`, `short_answer`, `long_answer`, `fill_blank`, `matching`, `ordering`, `numeric`, `interactive_html`, `interactive_activity`)
+- every interactive HTML example (Light Lab, Sound Lab, Plant Growth, Rubber Castle, Rubber Race, Human Body, Cell Structure, Force Sim)
+
+`GET /quizzes/1` … `GET /quizzes/6` returns `interactive_activities[]` with `launch_url` / `embed.src`.
+
+### How to show interactive HTML in React
+
+**Do not** put the HTML document inside the JSON. Games include JS/CSS/images. The safe way is a **sandboxed iframe** pointed at the signed `launch_url`:
+
+```tsx
+<iframe
+  src={activity.launch_url}
+  sandbox="allow-scripts"
+  title={activity.title}
+  style={{ width: '100%', height: 640, border: 0 }}
+/>
+```
+
+Then listen for `window.addEventListener('message', ...)` and POST progress/result to the API.
+
+`sandbox="allow-scripts"` without `allow-same-origin` keeps the game from reading the user session.
+
+---
+
 ## 7. Interactive HTML activities
 
 These are **full HTML/JS games**, not quiz options. The API hosts a signed iframe URL and stores progress/results from `postMessage`.
