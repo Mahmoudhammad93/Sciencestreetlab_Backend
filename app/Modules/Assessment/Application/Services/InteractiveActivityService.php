@@ -10,6 +10,7 @@ use App\Modules\Assessment\Domain\Enums\InteractiveActivityStatus;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\InteractiveActivity;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\InteractiveActivityAttempt;
 use App\Modules\Learning\Application\Services\CourseAccessService;
+use App\Modules\Learning\Application\Services\CourseProgressService;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Enrollment;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Lesson;
 use DomainException;
@@ -20,14 +21,19 @@ final class InteractiveActivityService
     public function __construct(
         private readonly CourseAccessService $access,
         private readonly InteractiveActivityPackageService $packages,
+        private readonly CourseProgressService $progress,
     ) {}
 
     public function authorizeActivity(User $user, InteractiveActivity $activity): Enrollment
     {
-        $activity->loadMissing(['lesson.course', 'quizzes']);
+        $activity->loadMissing(['lesson.course', 'topic']);
 
         if ($activity->status !== InteractiveActivityStatus::Published) {
             throw new DomainException('QUESTION_LOCKED: Activity is not published.', 403);
+        }
+
+        if ($activity->topic && ! $activity->topic->is_published) {
+            throw new DomainException('QUESTION_LOCKED: Interactive topic is not published.', 403);
         }
 
         $lesson = $activity->lesson;
@@ -42,22 +48,52 @@ final class InteractiveActivityService
             }
         }
 
-        foreach ($activity->quizzes as $quiz) {
-            $quizLesson = $quiz->quizable;
-            if (! $quizLesson instanceof Lesson) {
-                continue;
-            }
-            try {
-                $enrollment = $this->access->requireEnrollment($user, $quizLesson->course);
-                if ($this->access->canAccessQuiz($enrollment, $quiz)) {
-                    return $enrollment;
-                }
-            } catch (DomainException) {
-                continue;
-            }
-        }
-
         throw new DomainException('QUESTION_LOCKED: Activity is not available for this student.', 403);
+    }
+
+    /**
+     * Frontend contract: UI renders these flags; it must not recompute them.
+     *
+     * @return array<string, mixed>
+     */
+    public function learnerState(User $user, InteractiveActivity $activity): array
+    {
+        $attempts = InteractiveActivityAttempt::query()
+            ->where('activity_id', $activity->id)
+            ->where('user_id', $user->id)
+            ->orderByDesc('id')
+            ->get();
+
+        $active = $attempts->firstWhere('status', InteractiveActivityAttemptStatus::InProgress);
+        $completed = $attempts->firstWhere('status', InteractiveActivityAttemptStatus::Completed);
+        $used = $attempts->count();
+        $max = $activity->max_attempts;
+        $remaining = $max === null ? null : max(0, $max - $used);
+        $canResume = $active !== null;
+        $canStart = $activity->isPublished()
+            && ! $canResume
+            && ($max === null || $used < $max);
+
+        $progress = is_array($active?->metadata['progress'] ?? null)
+            ? $active->metadata['progress']
+            : (is_array($completed?->metadata['progress'] ?? null) ? $completed->metadata['progress'] : null);
+
+        return [
+            'can_start' => $canStart,
+            'can_resume' => $canResume,
+            'can_complete' => $active !== null,
+            'is_completed' => $completed !== null,
+            'is_locked' => false,
+            'is_required' => (bool) $activity->is_required,
+            'attempts_used' => $used,
+            'attempts_remaining' => $remaining,
+            'max_attempts' => $max,
+            'status' => $active?->status->value
+                ?? ($completed ? 'completed' : 'not_started'),
+            'progress_percent' => (float) ($progress['percentage'] ?? ($completed ? 100 : 0)),
+            'active_attempt_id' => $active?->id,
+            'latest_completed_attempt_id' => $completed?->id,
+        ];
     }
 
     /**
@@ -95,6 +131,7 @@ final class InteractiveActivityService
         ?int $quizAttemptId = null,
     ): InteractiveActivityAttempt {
         $enrollment = $this->authorizeActivity($user, $activity);
+        unset($quizAttemptId);
 
         $inProgress = InteractiveActivityAttempt::query()
             ->where('activity_id', $activity->id)
@@ -107,18 +144,22 @@ final class InteractiveActivityService
             return $inProgress->load('activity');
         }
 
-        $number = InteractiveActivityAttempt::query()
+        $used = InteractiveActivityAttempt::query()
             ->where('activity_id', $activity->id)
             ->where('user_id', $user->id)
-            ->count() + 1;
+            ->count();
+
+        if ($activity->max_attempts !== null && $used >= (int) $activity->max_attempts) {
+            throw new DomainException('MAX_ATTEMPTS_REACHED: No interactive attempts remaining.', 422);
+        }
 
         return InteractiveActivityAttempt::query()->create([
             'user_id' => $user->id,
             'activity_id' => $activity->id,
             'lesson_id' => $activity->lesson_id,
             'enrollment_id' => $enrollment->id,
-            'quiz_attempt_id' => $quizAttemptId,
-            'attempt_number' => $number,
+            'quiz_attempt_id' => null,
+            'attempt_number' => $used + 1,
             'status' => InteractiveActivityAttemptStatus::InProgress,
             'max_score' => (float) $activity->points,
             'started_at' => now(),
@@ -137,9 +178,12 @@ final class InteractiveActivityService
         }
 
         $completed = (int) ($payload['completed_challenges'] ?? 0);
-        $total = max(1, (int) ($payload['total_challenges'] ?? 1));
+        $total = (int) ($payload['total_challenges'] ?? 0);
+        if ($completed < 0 || $total < 1 || $completed > $total) {
+            throw new DomainException('VALIDATION_ERROR: Invalid challenge progress.', 422);
+        }
         $percentage = isset($payload['percentage'])
-            ? (float) $payload['percentage']
+            ? min(100.0, max(0.0, (float) $payload['percentage']))
             : round(($completed / $total) * 100, 2);
 
         $metadata = is_array($attempt->metadata) ? $attempt->metadata : [];
@@ -194,13 +238,16 @@ final class InteractiveActivityService
         $challengesCompleted = $result['challenges_completed'] ?? null;
         $totalChallenges = $result['total_challenges'] ?? null;
 
+        $serverSeconds = max(0, (int) $attempt->started_at?->diffInSeconds(now(), false));
+
         return DB::transaction(function () use (
             $attempt, $result, $clientScore, $verifiedScore, $scoreVerified,
-            $maxScore, $percentage, $finalScore, $completed, $payload,
-            $challengesCompleted, $totalChallenges
+            $maxScore, $percentage, $completed, $payload,
+            $challengesCompleted, $totalChallenges, $activity, $serverSeconds
         ) {
             $metadata = is_array($attempt->metadata) ? $attempt->metadata : [];
-            $metadata['clientScore'] = $clientScore;
+            $metadata['client_score'] = $clientScore;
+            $metadata['client_time_spent_seconds'] = $result['time_spent_seconds'] ?? $payload['time_spent_seconds'] ?? null;
             if ($challengesCompleted !== null || $totalChallenges !== null) {
                 $metadata['progress'] = [
                     'completed_challenges' => $challengesCompleted,
@@ -219,9 +266,7 @@ final class InteractiveActivityService
                 'max_score' => $maxScore,
                 'percentage' => $percentage,
                 'score_verified' => $scoreVerified,
-                'time_spent_seconds' => isset($result['time_spent_seconds'])
-                    ? (int) $result['time_spent_seconds']
-                    : ($payload['time_spent_seconds'] ?? null),
+                'time_spent_seconds' => $serverSeconds,
                 'result' => [
                     'client_reported' => $result,
                     'authoritative_score' => $scoreVerified ? $verifiedScore : null,
@@ -232,6 +277,18 @@ final class InteractiveActivityService
                 'metadata' => $metadata,
                 'completed_at' => $completed ? now() : null,
             ]);
+
+            if ($completed && $attempt->enrollment_id && $activity->topic_id) {
+                $enrollment = $attempt->enrollment ?: \App\Modules\Learning\Infrastructure\Persistence\Models\Enrollment::query()->find($attempt->enrollment_id);
+                $topic = $activity->topic;
+                if ($enrollment && $topic) {
+                    $this->progress->recordTopicProgress($enrollment, $topic, [
+                        'watch_progress_percent' => 100,
+                        'completed' => true,
+                        'watched_seconds' => $serverSeconds,
+                    ]);
+                }
+            }
 
             return $attempt->fresh(['activity']);
         });

@@ -19,8 +19,6 @@ final class QuizResource extends JsonResource
         /** @var Quiz $quiz */
         $quiz = $this->resource;
         $locale = app()->getLocale();
-        $quiz->loadMissing('interactiveActivities');
-
         return [
             'id' => $quiz->id,
             'uuid' => $quiz->uuid,
@@ -36,9 +34,7 @@ final class QuizResource extends JsonResource
                 ? (int) ($quiz->selection_config['total_questions']
                     ?? array_sum($quiz->selection_config['difficulty'] ?? []))
                 : $quiz->questions()->count(),
-            'interactive_activities' => $quiz->interactiveActivities->map(
-                fn ($a) => (new InteractiveActivityResource($a))->toArray($request)
-            )->values(),
+            'interactive_activities' => [],
         ];
     }
 }

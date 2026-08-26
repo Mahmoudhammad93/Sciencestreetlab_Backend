@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace Tests\Feature\Assessment;
 
 use App\Models\User;
+use App\Modules\Assessment\Domain\Enums\InteractiveActivityStatus;
+use App\Modules\Assessment\Domain\Enums\InteractiveActivityType;
 use App\Modules\Assessment\Domain\Enums\QuestionBankStatus;
 use App\Modules\Assessment\Domain\Enums\QuestionDifficulty;
 use App\Modules\Assessment\Domain\Enums\QuestionStatus;
 use App\Modules\Assessment\Domain\Enums\QuestionType;
 use App\Modules\Assessment\Domain\Enums\QuizSelectionMode;
+use App\Modules\Assessment\Infrastructure\Persistence\Models\InteractiveActivity;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\Question;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\QuestionBank;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\QuestionOption;
@@ -19,6 +22,7 @@ use App\Modules\Learning\Domain\Enums\EnrollmentStatus;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Enrollment;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Lesson;
+use App\Modules\Learning\Infrastructure\Persistence\Models\Topic;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
@@ -120,52 +124,60 @@ final class FrontendApiContractTest extends TestCase
 
     public function test_interactive_signed_url_and_result_endpoint(): void
     {
-        [$user, $lesson, $bank, $quiz] = $this->seedContractFixture(false);
+        [$user, $lesson, $bank, $quiz] = $this->seedContractFixture();
 
-        $question = Question::query()->create([
-            'question_bank_id' => $bank->id,
-            'question_type' => QuestionType::InteractiveHtml,
-            'difficulty' => QuestionDifficulty::Medium,
-            'status' => QuestionStatus::Published,
-            'points' => 2,
-            'interactive_type' => 'html',
-            'interactive_config' => ['mode' => 'demo'],
-            'body' => ['en' => 'Interactive', 'ar' => 'تفاعلي'],
-            'answer_key' => ['expected' => ['done' => true]],
-        ]);
-
+        Storage::fake('public');
         Storage::disk('public')->put(
-            "interactive-questions/{$question->uuid}/activity.html",
+            'interactive-activities/demo/v1/index.html',
             '<html><body>ok</body></html>'
         );
-        $question->update(['interactive_path' => "interactive-questions/{$question->uuid}/activity.html"]);
 
-        $quiz->update([
-            'selection_mode' => QuizSelectionMode::Generated,
-            'selection_config' => ['total_questions' => 1],
+        Topic::query()->create([
+            'lesson_id' => $lesson->id,
+            'slug' => 'intro-video',
+            'sort_order' => 1,
+            'content_type' => 'video',
+            'is_published' => true,
+            'title' => ['en' => 'Intro', 'ar' => 'مقدمة'],
         ]);
-        $quiz->questionBanks()->sync([$bank->id]);
+        $topic = Topic::query()->create([
+            'lesson_id' => $lesson->id,
+            'slug' => 'interactive-topic',
+            'sort_order' => 2,
+            'content_type' => 'interactive',
+            'is_published' => true,
+            'title' => ['en' => 'Lab', 'ar' => 'مختبر'],
+        ]);
+        $activity = InteractiveActivity::query()->create([
+            'lesson_id' => $lesson->id,
+            'topic_id' => $topic->id,
+            'status' => InteractiveActivityStatus::Published,
+            'activity_type' => InteractiveActivityType::VirtualLab,
+            'title' => ['en' => 'Lab', 'ar' => 'مختبر'],
+            'activity_package_path' => 'interactive-activities/demo/v1/index.html',
+            'entry_file' => 'index.html',
+            'version' => 1,
+        ]);
 
         Sanctum::actingAs($user);
 
-        $interactive = $this->getJson("/api/v1/questions/{$question->id}/interactive")
+        $this->getJson("/api/v1/interactive-activities/{$activity->id}/launch")
             ->assertOk()
             ->assertJsonStructure(['data' => ['url', 'expires_at', 'sandbox']]);
 
-        $url = $interactive->json('data.url');
-        $this->assertStringContainsString('/interactive/', $url);
-        $this->assertStringContainsString('signature=', $url);
+        $start = $this->postJson("/api/v1/interactive-activities/{$activity->id}/attempts")
+            ->assertCreated();
+        $attemptId = $start->json('data.attempt_id') ?? $start->json('data.id');
+        $this->assertNull($start->json('data.quiz_attempt_id'));
 
-        $attemptId = $this->postJson("/api/v1/quizzes/{$quiz->id}/attempts")->json('data.attempt_id');
-
-        $this->postJson("/api/v1/quiz-attempts/{$attemptId}/questions/{$question->id}/interactive-result", [
-            'result' => ['done' => true],
-            'interaction_data' => ['clicks' => 3],
+        $this->postJson("/api/v1/interactive-activity-attempts/{$attemptId}/result", [
             'completed' => true,
-            'clientScore' => 999,
-        ])->assertOk()->assertJsonPath('data.saved', true);
+            'score' => 999,
+            'max_score' => 10,
+        ])->assertOk()->assertJsonPath('data.score_verified', false);
 
-        $this->postJson("/api/v1/quiz-attempts/{$attemptId}/submit")->assertOk();
+        $quizStart = $this->postJson("/api/v1/quizzes/{$quiz->id}/attempts")->assertCreated();
+        $this->assertSame([], $quizStart->json('data.interactive_activities') ?? []);
     }
 
     public function test_access_denied_without_enrollment(): void

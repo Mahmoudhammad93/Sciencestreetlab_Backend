@@ -25,7 +25,10 @@ class InteractiveActivity extends Model
     protected $fillable = [
         'uuid',
         'lesson_id',
+        'topic_id',
         'status',
+        'is_required',
+        'max_attempts',
         'activity_type',
         'difficulty',
         'points',
@@ -58,12 +61,19 @@ class InteractiveActivity extends Model
             'points' => 'float',
             'version' => 'integer',
             'estimated_time_seconds' => 'integer',
+            'is_required' => 'boolean',
+            'max_attempts' => 'integer',
         ];
     }
 
     public function lesson(): BelongsTo
     {
         return $this->belongsTo(Lesson::class);
+    }
+
+    public function topic(): BelongsTo
+    {
+        return $this->belongsTo(\App\Modules\Learning\Infrastructure\Persistence\Models\Topic::class);
     }
 
     public function creator(): BelongsTo

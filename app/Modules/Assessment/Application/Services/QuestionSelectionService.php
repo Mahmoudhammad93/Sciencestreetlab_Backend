@@ -131,7 +131,11 @@ final class QuestionSelectionService
     {
         $query = Question::query()
             ->whereIn('question_bank_id', $bankIds)
-            ->where('status', QuestionStatus::Published->value);
+            ->where('status', QuestionStatus::Published->value)
+            ->whereNotIn('question_type', [
+                QuestionType::InteractiveHtml->value,
+                QuestionType::InteractiveActivity->value,
+            ]);
 
         if ($exclude !== []) {
             $query->whereNotIn('id', $exclude);

@@ -21,7 +21,7 @@ final class StartInteractiveActivityRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'quiz_attempt_id' => ['sometimes', 'nullable', 'integer', 'exists:quiz_attempts,id'],
+            'quiz_attempt_id' => ['sometimes', 'nullable', 'integer'], // ignored: interactive attempts are not quiz attempts
         ];
     }
 }

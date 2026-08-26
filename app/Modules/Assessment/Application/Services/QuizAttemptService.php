@@ -111,6 +111,11 @@ final class QuizAttemptService
             $needsReview = false;
 
             foreach ($questions as $question) {
+                if ($question->question_type instanceof QuestionType
+                    && ! $question->question_type->isAssessmentQuestion()) {
+                    continue;
+                }
+
                 $maxScore += (float) $question->points;
                 $payload = collect($answers)->firstWhere('question_id', $question->id);
                 if (is_array($payload)) {
@@ -142,31 +147,6 @@ final class QuizAttemptService
                 ]);
 
                 $score += $points;
-            }
-
-            foreach ($attempt->quiz->interactiveActivities as $activity) {
-                $pivotPoints = (float) ($activity->pivot->points ?? $activity->points ?? 0);
-                $maxScore += $pivotPoints;
-
-                $activityAttempt = InteractiveActivityAttempt::query()
-                    ->where('quiz_attempt_id', $attempt->id)
-                    ->where('activity_id', $activity->id)
-                    ->where('status', InteractiveActivityAttemptStatus::Completed)
-                    ->latest('id')
-                    ->first();
-
-                if (! $activityAttempt) {
-                    continue;
-                }
-
-                $earned = $activityAttempt->score_verified
-                    ? ($activityAttempt->verified_score ?? 0.0)
-                    : ($activityAttempt->client_score ?? 0.0);
-                $activityMax = (float) ($activityAttempt->max_score ?: $activity->points ?: 100);
-
-                if ($activityMax > 0 && $pivotPoints > 0) {
-                    $score += min($pivotPoints, ($earned / $activityMax) * $pivotPoints);
-                }
             }
 
             $percentage = $maxScore > 0 ? round(($score / $maxScore) * 100, 2) : 0;
@@ -338,6 +318,10 @@ final class QuizAttemptService
             ->where(function ($q): void {
                 $q->where('status', 'published')->orWhereNull('status');
             })
+            ->whereNotIn('question_type', [
+                QuestionType::InteractiveHtml->value,
+                QuestionType::InteractiveActivity->value,
+            ])
             ->orderBy('sort_order')
             ->get()
             ->when($quiz->shuffle_questions, fn ($c) => $c->shuffle()->values());

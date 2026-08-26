@@ -111,9 +111,19 @@ final class CoursePresenter
                         'sort_order' => (int) $topic->sort_order,
                         'content_type' => $topic->content_type,
                         'title' => $topic->getTranslation('title', $locale),
-                        // Keep video URLs only for unlocked lessons
-                        'video_url' => $canAccessLesson ? $topic->video_url : null,
-                        'video_provider' => $canAccessLesson ? $topic->video_provider : null,
+                        'content' => $canAccessLesson
+                            ? ($topic->getTranslation('content', $locale) ?: null)
+                            : null,
+                        'file_url' => $canAccessLesson && $topic->content_type === 'pdf'
+                            ? $topic->video_url
+                            : null,
+                        // Keep video URLs only for unlocked video topics
+                        'video_url' => $canAccessLesson && $topic->content_type === 'video'
+                            ? $topic->video_url
+                            : null,
+                        'video_provider' => $canAccessLesson && $topic->content_type === 'video'
+                            ? $topic->video_provider
+                            : null,
                         'is_published' => (bool) $topic->is_published,
                     ];
                 })->values()->all(),

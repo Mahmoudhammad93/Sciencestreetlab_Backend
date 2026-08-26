@@ -72,10 +72,13 @@ final class CompleteDemoQuizzesSeederTest extends TestCase
 
         $this->assertGreaterThanOrEqual(6, Quiz::query()->count());
 
-        $types = collect(QuestionType::cases())->map(fn (QuestionType $t) => $t->value)->sort()->values();
-        $activityCount = InteractiveActivity::query()->count();
+        $types = collect(QuestionType::assessmentCases())->map(fn (QuestionType $t) => $t->value)->sort()->values();
 
-        Quiz::query()->orderBy('id')->limit(6)->each(function (Quiz $quiz) use ($types, $activityCount): void {
+        Quiz::query()
+            ->where('selection_config->demo_key', 'like', 'complete-%')
+            ->orderBy('id')
+            ->limit(6)
+            ->each(function (Quiz $quiz) use ($types): void {
             $quizTypes = Question::query()
                 ->where('quiz_id', $quiz->id)
                 ->pluck('question_type')
@@ -85,7 +88,8 @@ final class CompleteDemoQuizzesSeederTest extends TestCase
                 ->values();
 
             $this->assertEquals($types, $quizTypes, 'Quiz #'.$quiz->id.' is missing question types');
-            $this->assertSame($activityCount, $quiz->interactiveActivities()->count());
         });
+
+        $this->assertGreaterThan(0, InteractiveActivity::query()->whereNotNull('topic_id')->count());
     }
 }

@@ -31,7 +31,7 @@ final class QuizAttemptResource extends JsonResource
         $attempt->loadMissing(['quiz', 'answers', 'quiz.interactiveActivities']);
 
         $questions = app(QuizAttemptService::class)->questionsForAttempt($attempt);
-        $activityCount = $attempt->quiz?->interactiveActivities?->count() ?? 0;
+        $activityCount = 0; // Interactive activities are topics, not quiz items.
         $totalItems = $questions->count() + $activityCount;
         $expiresAt = $this->expiresAt($attempt);
         $remaining = null;
@@ -73,15 +73,7 @@ final class QuizAttemptResource extends JsonResource
                 fn ($q) => (new QuizAttemptQuestionResource($q, $attempt))->toArray($request)
             )->values();
 
-            $payload['interactive_activities'] = ($attempt->quiz?->interactiveActivities ?? collect())
-                ->map(function ($activity) use ($request) {
-                    $row = (new InteractiveActivityResource($activity))->toArray($request);
-                    $row['sort_order'] = (int) ($activity->pivot->sort_order ?? 0);
-                    $row['quiz_points'] = (float) ($activity->pivot->points ?? $activity->points);
-
-                    return $row;
-                })
-                ->values();
+            $payload['interactive_activities'] = [];
         }
 
         if ($this->includeSavedAnswers && $attempt->status === AttemptStatus::InProgress) {

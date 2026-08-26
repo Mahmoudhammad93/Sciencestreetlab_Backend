@@ -46,7 +46,7 @@ class QuestionResource extends Resource
                 ->nullable()
                 ->helperText('Leave empty for bank-only reusable questions.'),
             Forms\Components\Select::make('question_type')
-                ->options(collect(QuestionType::cases())->mapWithKeys(fn ($c) => [$c->value => $c->name]))
+                ->options(collect(QuestionType::assessmentCases())->mapWithKeys(fn ($c) => [$c->value => $c->name]))
                 ->required()
                 ->live(),
             Forms\Components\Select::make('difficulty')

@@ -3226,7 +3226,7 @@
                   "raw": "{\n  \"quiz_attempt_id\": null\n}"
                 },
                 "url": "{{baseUrl}}/api/v1/interactive-activities/{{activity_id}}/attempts",
-                "description": "POST /api/v1/interactive-activities/{activity}/attempts\nStarts or resumes an in-progress activity attempt.\nResponse: attempt_id, activity_id, status, started_at, launch / launch_url.\nOptional quiz_attempt_id links mixed quiz assessments."
+                "description": "POST /api/v1/interactive-activities/{activity}/attempts\nStarts or resumes an in-progress activity attempt (independent of QuizAttempt).\nResponse: attempt_id, activity_id, status, started_at, launch / launch_url, can_start/can_resume flags on GET activity.\nquiz_attempt_id is accepted but ignored."
               }
             },
             {
@@ -3451,7 +3451,7 @@
         },
         {
           "name": "Mixed Quiz (questions + activities)",
-          "description": "A quiz can contain standard questions AND attached Interactive Activities.\nRun after Physics/Biology Lab Curriculum so mixed_quiz_id / activity_id are set.\n1) Start mixed quiz  2) Start activity with quiz_attempt_id  3) Submit activity progress  4) Submit activity result  5) Submit quiz  6) Get result",
+          "description": "Interactive HTML is NOT a quiz question. Labs are curriculum topics with their own attempts.\nQuiz score does not include lab results. quiz_attempt_id on start-attempt is ignored.\nFlow: curriculum → launch activity → start activity attempt → progress → result. Run a quiz separately if the lesson has one.",
           "item": [
             {
               "name": "Start mixed quiz attempt",

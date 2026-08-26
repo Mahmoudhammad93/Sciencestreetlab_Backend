@@ -13,6 +13,7 @@ final class CurriculumService
     public function __construct(
         private readonly CourseAccessService $access,
         private readonly QuizAttemptService $quizAttempts,
+        private readonly \App\Modules\Assessment\Application\Services\InteractiveActivityService $interactive,
     ) {}
 
     public function build(Enrollment $enrollment): array
@@ -39,15 +40,35 @@ final class CurriculumService
                 }
 
                 $completion = $enrollment->topicCompletions->firstWhere('topic_id', $topic->id);
-                $topics[] = [
+                $topicPayload = [
                     'id' => $topic->id,
                     'slug' => $topic->slug,
                     'title' => $topic->getTranslation('title', app()->getLocale()),
                     'content_type' => $topic->content_type,
+                    'content' => $topic->getTranslation('content', app()->getLocale()) ?: null,
+                    'file_url' => $topic->content_type === 'pdf' ? $topic->video_url : null,
                     'is_locked' => ! $this->access->canAccessTopic($enrollment, $topic),
                     'is_completed' => $completion && (float) $completion->watch_progress_percent >= 90,
                     'watch_progress_percent' => $completion ? (float) $completion->watch_progress_percent : 0,
                 ];
+
+                if ($topic->content_type === 'interactive') {
+                    $topic->loadMissing('interactiveActivity');
+                    $activity = $topic->interactiveActivity;
+                    $topicPayload['interactive'] = $activity
+                        ? array_merge(
+                            [
+                                'activity_id' => $activity->id,
+                                'uuid' => $activity->uuid,
+                                'title' => $activity->getTranslation('title', app()->getLocale()),
+                                'activity_type' => $activity->activity_type,
+                            ],
+                            $this->interactive->learnerState($enrollment->user, $activity)
+                        )
+                        : null;
+                }
+
+                $topics[] = $topicPayload;
             }
 
             $quizzes = [];

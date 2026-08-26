@@ -21,7 +21,7 @@ final class SubmitInteractiveActivityProgressRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'completed_challenges' => ['required', 'integer', 'min:0'],
+            'completed_challenges' => ['required', 'integer', 'min:0', 'lte:total_challenges'],
             'total_challenges' => ['required', 'integer', 'min:1'],
             'percentage' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:100'],
         ];

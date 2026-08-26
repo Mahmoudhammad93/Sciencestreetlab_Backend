@@ -15,7 +15,24 @@ enum QuestionType: string
     case Matching = 'matching';
     case Ordering = 'ordering';
     case Numeric = 'numeric';
+    /** @deprecated Interactive HTML is learning content, not a quiz question. Kept for legacy rows. */
     case InteractiveHtml = 'interactive_html';
-    /** Links a quiz item to a first-class InteractiveActivity package. */
+    /** @deprecated Interactive activities are topics, not question-bank items. Kept for legacy rows. */
     case InteractiveActivity = 'interactive_activity';
+
+    public function isAssessmentQuestion(): bool
+    {
+        return ! in_array($this, [self::InteractiveHtml, self::InteractiveActivity], true);
+    }
+
+    /**
+     * @return list<self>
+     */
+    public static function assessmentCases(): array
+    {
+        return array_values(array_filter(
+            self::cases(),
+            fn (self $type) => $type->isAssessmentQuestion()
+        ));
+    }
 }

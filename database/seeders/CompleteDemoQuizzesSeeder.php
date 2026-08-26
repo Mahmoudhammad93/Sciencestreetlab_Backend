@@ -17,6 +17,7 @@ use App\Modules\Assessment\Infrastructure\Persistence\Models\QuestionBank;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\QuestionOption;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\Quiz;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Lesson;
+use App\Modules\Learning\Infrastructure\Persistence\Models\Topic;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Storage;
 
@@ -35,14 +36,18 @@ final class CompleteDemoQuizzesSeeder extends Seeder
             ->orderBy('id')
             ->get();
 
-        $quizzes = Quiz::query()->orderBy('id')->limit(6)->get();
+        $quizzes = Quiz::query()
+            ->where('selection_config->demo_key', 'like', 'complete-%')
+            ->orderBy('id')
+            ->limit(6)
+            ->get();
 
         foreach ($quizzes as $index => $quiz) {
             $this->attachAllQuestionTypes($quiz, $index + 1);
             $this->attachAllActivities($quiz, $activities);
         }
 
-        $this->command?->info('Quizzes 1–6 now include all question types and the HTML files from interactive examples.');
+        $this->command?->info('Complete-demo quizzes now include all assessment question types. HTML labs are lesson topics, not quiz questions.');
     }
 
     /**
@@ -50,7 +55,7 @@ final class CompleteDemoQuizzesSeeder extends Seeder
      */
     private function importFolderHtmlExamples(): void
     {
-        $lesson = Lesson::query()->orderBy('id')->first();
+        $lesson = $this->demoLesson();
         if (! $lesson) {
             return;
         }
@@ -167,15 +172,31 @@ final class CompleteDemoQuizzesSeeder extends Seeder
         return is_file($fromResources) ? $fromResources : null;
     }
 
+    private function demoLesson(): ?Lesson
+    {
+        return Lesson::query()
+            ->whereHas('course', fn ($q) => $q->whereIn('slug', [
+                'basic-physics-lab',
+                'intro-biology-lab',
+                'basic-chemistry-lab',
+            ]))
+            ->orderBy('id')
+            ->first()
+            ?? Lesson::query()->orderBy('id')->first();
+    }
+
     private function ensureSixQuizzes(): void
     {
-        $count = Quiz::query()->count();
+        $count = Quiz::query()
+            ->where('selection_config->demo_key', 'like', 'complete-%')
+            ->count();
         if ($count >= 6) {
             return;
         }
 
-        $lesson = Lesson::query()->orderBy('id')->first();
-        $bank = QuestionBank::query()->orderBy('id')->first();
+        $lesson = $this->demoLesson();
+        $bank = QuestionBank::query()->where('lesson_id', $lesson?->id)->orderBy('id')->first()
+            ?? QuestionBank::query()->orderBy('id')->first();
         if (! $lesson || ! $bank) {
             return;
         }
@@ -212,7 +233,7 @@ final class CompleteDemoQuizzesSeeder extends Seeder
         }
 
         $sort = 1;
-        foreach (QuestionType::cases() as $type) {
+        foreach (QuestionType::assessmentCases() as $type) {
             $question = Question::query()
                 ->where('quiz_id', $quiz->id)
                 ->where('question_type', $type)
@@ -242,7 +263,7 @@ final class CompleteDemoQuizzesSeeder extends Seeder
             'question_type' => $type,
             'difficulty' => QuestionDifficulty::Easy,
             'status' => QuestionStatus::Published,
-            'points' => $type === QuestionType::InteractiveHtml || $type === QuestionType::InteractiveActivity ? 10 : 1,
+            'points' => 1,
             'sort_order' => $sort,
             'body' => [
                 'ar' => "[Quiz {$quizNumber}] {$label}",
@@ -355,13 +376,33 @@ HTML;
 
     private function attachAllActivities(Quiz $quiz, $activities): void
     {
-        $sync = [];
-        foreach ($activities as $i => $activity) {
-            $sync[$activity->id] = [
-                'sort_order' => $i + 1,
-                'points' => (float) ($activity->points ?: 10),
-            ];
+        $lesson = $quiz->quizable instanceof Lesson ? $quiz->quizable : Lesson::query()->orderBy('id')->first();
+        if (! $lesson) {
+            return;
         }
-        $quiz->interactiveActivities()->sync($sync);
+
+        foreach ($activities as $i => $activity) {
+            $this->ensureInteractiveTopic($activity, $lesson, $i + 1);
+        }
+    }
+
+    private function ensureInteractiveTopic(InteractiveActivity $activity, Lesson $lesson, int $sort): void
+    {
+        if ($activity->topic_id) {
+            return;
+        }
+
+        $slug = 'interactive-'.$activity->id;
+        $topic = Topic::query()->firstOrCreate(
+            ['lesson_id' => $lesson->id, 'slug' => $slug],
+            [
+                'sort_order' => 800 + $sort,
+                'content_type' => 'interactive',
+                'is_published' => true,
+                'title' => $activity->getTranslations('title') ?: ['en' => 'Interactive', 'ar' => 'تفاعلي'],
+            ]
+        );
+
+        $activity->update(['topic_id' => $topic->id, 'lesson_id' => $activity->lesson_id ?: $lesson->id]);
     }
 }

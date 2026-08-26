@@ -20,6 +20,11 @@ final class InteractiveActivityResource extends JsonResource
         $locale = app()->getLocale();
 
         $launchUrl = app(InteractiveActivityPackageService::class)->signedLaunchUrl($this->resource);
+        $user = $request->user();
+        $learner = $user
+            ? app(\App\Modules\Assessment\Application\Services\InteractiveActivityService::class)
+                ->learnerState($user, $this->resource)
+            : null;
 
         return [
             'id' => $this->id,
@@ -44,6 +49,10 @@ final class InteractiveActivityResource extends JsonResource
             ],
             'protocol' => 'postMessage',
             'sandbox' => 'allow-scripts',
+            'topic_id' => $this->topic_id,
+            'is_required' => (bool) $this->is_required,
+            'max_attempts' => $this->max_attempts,
+            'learner' => $learner,
         ];
     }
 }

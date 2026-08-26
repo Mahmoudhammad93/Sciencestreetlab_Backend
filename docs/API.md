@@ -256,18 +256,18 @@ Legacy aliases (same auth):
 - `POST /attempts/{attempt}/submit`
 - `GET /attempts/{attempt}/result`
 
-### Quizzes that include interactive HTML
+### Interactive HTML is not a quiz question type
 
-Use these IDs with `GET /quizzes/{{quiz_id}}` (after demo seed):
+`interactive_html` is **not** an assessment `question_type`. HTML labs are **lesson topics** (`content_type: interactive`) with their own attempts. Quiz JSON returns `interactive_activities: []`. Quiz score, pass mark, and duration ignore labs.
 
-| `quiz_id` | Title | HTML activity |
-|----------|-------|----------------|
-| **22** | Mixed Assessment — Light | Light Lab `#4` |
-| 20 | Mixed Assessment — Plant Growth | Seed Growth `#5` |
-| 21 | Mixed Assessment — Elastic Forces | Rubber Castle `#7`, Rubber Race `#8` |
-| 23 | Mixed Assessment — Sound & Energy | Sound Lab `#6` |
+After demo seed, open a lab from **curriculum topics**, not from the quiz:
 
-`GET /quizzes/22` should return `interactive_activities` with Light Lab.
+| Course slug | Lab topic | Typical `activity_id` |
+|-------------|-----------|------------------------|
+| `basic-physics-lab` | Light Lab, Sound Lab, Rubber Castle, Rubber Race | 4, 6, 7, 8 |
+| `intro-biology-lab` | Plant Growth | 5 |
+
+`GET /quizzes/{id}` does **not** include HTML activities. Use `GET /courses/{slug}/curriculum` → `lessons[].topics[]` where `content_type` is `interactive`.
 
 ### Submit answer shapes
 
@@ -331,12 +331,12 @@ Use these IDs with `GET /quizzes/{{quiz_id}}` (after demo seed):
 
 After `php artisan db:seed --class=AssessmentDemoCoursesSeeder` (or `CompleteDemoQuizzesSeeder`):
 
-Each of **quiz IDs 1–6** includes:
+Each of **quiz IDs 1–6** includes assessment question types only
+(`single_choice`, `multiple_choice`, `true_false`, `short_answer`, `long_answer`, `fill_blank`, `matching`, `ordering`, `numeric`).
 
-- every question type (`single_choice`, `multiple_choice`, `true_false`, `short_answer`, `long_answer`, `fill_blank`, `matching`, `ordering`, `numeric`, `interactive_html`, `interactive_activity`)
-- every interactive HTML example (Light Lab, Sound Lab, Plant Growth, Rubber Castle, Rubber Race, Human Body, Cell Structure, Force Sim)
+**Interactive HTML is not a question type.** It is lesson **topic** content (`content_type: interactive`) with its own attempts. Curriculum topics include `interactive.can_start`, `can_resume`, `is_completed`, and `launch` is fetched from `/interactive-activities/{id}/launch`.
 
-`GET /quizzes/1` … `GET /quizzes/6` returns `interactive_activities[]` with `launch_url` / `embed.src`.
+HTML labs from `interactive examples/` (Light, Sound, Plant Growth, Rubber Castle, Rubber Race) are attached as interactive topics, not quiz questions. They do **not** affect quiz score.
 
 ### How to show interactive HTML in React
 
