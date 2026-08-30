@@ -20,6 +20,7 @@ Route::prefix('cart')->middleware('auth.optional')->group(function (): void {
 
 Route::post('/payments/paymob/callback', [PaymentController::class, 'paymobCallback']);
 Route::get('/payments/myfatoorah/callback', [PaymentController::class, 'myfatoorahCallback']);
+Route::get('/payments/myfatoorah/confirm', [PaymentController::class, 'myfatoorahConfirm']);
 Route::post('/payments/mock/{payment}/complete', [PaymentController::class, 'completeMock']);
 
 Route::middleware('auth:sanctum')->group(function (): void {

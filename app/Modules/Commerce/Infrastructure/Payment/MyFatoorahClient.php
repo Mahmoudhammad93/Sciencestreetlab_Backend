@@ -26,11 +26,11 @@ final class MyFatoorahClient
     /**
      * @return array<string, mixed>
      */
-    public function getPaymentStatus(string $paymentId): array
+    public function getPaymentStatus(string $key, string $keyType = 'PaymentId'): array
     {
         return $this->post('/v2/GetPaymentStatus', [
-            'Key' => $paymentId,
-            'KeyType' => 'PaymentId',
+            'Key' => $key,
+            'KeyType' => $keyType,
         ]);
     }
 

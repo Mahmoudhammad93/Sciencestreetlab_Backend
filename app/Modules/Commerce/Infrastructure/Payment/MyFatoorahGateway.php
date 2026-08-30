@@ -49,7 +49,7 @@ final class MyFatoorahGateway implements PaymentGatewayInterface
             );
         }
 
-        $callbackUrl = url('/api/v1/payments/myfatoorah/callback?local_payment_id='.$payment->id);
+        $callbackUrl = $this->returnUrl($payment->id);
         $billing = $order->billing_address ?? [];
         $user = $order->user;
 
@@ -61,7 +61,7 @@ final class MyFatoorahGateway implements PaymentGatewayInterface
             'CallBackUrl' => $callbackUrl,
             'ErrorUrl' => $callbackUrl,
             'Language' => strtolower((string) config('myfatoorah.language')) === 'en' ? 'en' : 'ar',
-            'CustomerMobile' => (string) ($billing['phone'] ?? $user->phone ?? '01000000000'),
+            'CustomerMobile' => MyFatoorahPhoneNormalizer::normalize($billing['phone'] ?? $user->phone ?? null),
             'DisplayCurrencyIso' => (string) config('myfatoorah.currency', $order->currency),
             'CustomerReference' => $order->order_number,
         ]);
@@ -103,19 +103,48 @@ final class MyFatoorahGateway implements PaymentGatewayInterface
             throw new RuntimeException('MyFatoorah is not configured.');
         }
 
-        if ($gatewayPaymentId === null || $gatewayPaymentId === '') {
-            return $this->completion->fail($payment, ['reason' => 'missing_payment_id']);
+        $status = $this->resolvePaymentStatus($payment, $gatewayPaymentId);
+
+        if ($status === null) {
+            return $this->completion->fail($payment, ['reason' => 'status_unavailable']);
         }
 
-        $status = $this->client->getPaymentStatus($gatewayPaymentId);
-        $invoiceStatus = (string) ($status['InvoiceStatus'] ?? '');
-        $transactionId = (string) ($status['InvoiceTransactions'][0]['TransactionId'] ?? $gatewayPaymentId);
+        if (MyFatoorahReturnHandler::isInvoicePaid($status)) {
+            $transactionId = MyFatoorahReturnHandler::successfulTransactionId($status, $gatewayPaymentId);
 
-        if (strcasecmp($invoiceStatus, 'Paid') === 0) {
-            return $this->completion->complete($payment, $transactionId, $status);
+            return $this->completion->complete(
+                $payment,
+                $transactionId !== '' ? $transactionId : null,
+                $status,
+            );
         }
 
         return $this->completion->fail($payment, $status);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function resolvePaymentStatus(Payment $payment, ?string $gatewayPaymentId): ?array
+    {
+        if ($gatewayPaymentId !== null && $gatewayPaymentId !== '') {
+            try {
+                return $this->client->getPaymentStatus($gatewayPaymentId, 'PaymentId');
+            } catch (RuntimeException) {
+                // Fall back to invoice lookup below.
+            }
+        }
+
+        $invoiceId = (string) ($payment->gateway_order_id ?? '');
+        if ($invoiceId === '' || str_starts_with($invoiceId, 'mock_')) {
+            return null;
+        }
+
+        try {
+            return $this->client->getPaymentStatus($invoiceId, 'InvoiceId');
+        } catch (RuntimeException) {
+            return null;
+        }
     }
 
     public function completeMockPayment(Payment $payment): Payment
@@ -126,5 +155,12 @@ final class MyFatoorahGateway implements PaymentGatewayInterface
     public function refund(object $payment, float $amount): RefundResult
     {
         return new RefundResult(false, null, 'MyFatoorah refunds not yet implemented.');
+    }
+
+    private function returnUrl(int $localPaymentId): string
+    {
+        $frontend = rtrim((string) config('sciencestreet.frontend_url', 'http://localhost:5173'), '/');
+
+        return $frontend.'/checkout/payment-return?local_payment_id='.$localPaymentId;
     }
 }
