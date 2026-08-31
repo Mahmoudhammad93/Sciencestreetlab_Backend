@@ -7,6 +7,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\QuizResource\Pages;
 use App\Modules\Assessment\Domain\Enums\QuizSelectionMode;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\Quiz;
+use App\Modules\Learning\Infrastructure\Persistence\Models\Lesson;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -54,12 +55,22 @@ class QuizResource extends Resource
             Forms\Components\KeyValue::make('selection_config')
                 ->visible(fn (Get $get) => $get('selection_mode') === QuizSelectionMode::Generated->value)
                 ->helperText('Example keys: total_questions=10 or difficulty[easy]=5'),
-            Forms\Components\MorphToSelect::make('quizable')
-                ->types([
-                    Forms\Components\MorphToSelect\Type::make(\App\Modules\Learning\Infrastructure\Persistence\Models\Lesson::class)
-                        ->titleAttribute('slug'),
-                ])
-                ->required(),
+            Forms\Components\Section::make('Lesson assignment')
+                ->description('Each lesson can have one quiz. Pick the lesson this quiz belongs to.')
+                ->schema([
+                    Forms\Components\MorphToSelect::make('quizable')
+                        ->label('Attach to lesson')
+                        ->types([
+                            Forms\Components\MorphToSelect\Type::make(Lesson::class)
+                                ->titleAttribute('slug')
+                                ->getOptionLabelFromRecordUsing(
+                                    fn (Lesson $record): string => self::lessonOptionLabel($record),
+                                ),
+                        ])
+                        ->searchable()
+                        ->preload()
+                        ->required(),
+                ]),
         ]);
     }
 
@@ -68,6 +79,11 @@ class QuizResource extends Resource
         return $table->columns([
             Tables\Columns\TextColumn::make('id'),
             Tables\Columns\TextColumn::make('title')->limit(40),
+            Tables\Columns\TextColumn::make('quizable.slug')
+                ->label('Lesson')
+                ->description(fn (Quiz $record): ?string => $record->quizable instanceof Lesson
+                    ? ($record->quizable->course?->getTranslation('title', 'en') ?: $record->quizable->course?->slug)
+                    : null),
             Tables\Columns\TextColumn::make('selection_mode')->badge(),
             Tables\Columns\TextColumn::make('passing_score'),
             Tables\Columns\IconColumn::make('is_required')->boolean(),
@@ -84,5 +100,13 @@ class QuizResource extends Resource
             'create' => Pages\CreateQuiz::route('/create'),
             'edit' => Pages\EditQuiz::route('/{record}/edit'),
         ];
+    }
+
+    public static function lessonOptionLabel(Lesson $lesson): string
+    {
+        $course = $lesson->course?->slug ?? 'course';
+        $title = $lesson->getTranslation('title', 'en') ?: $lesson->getTranslation('title', 'ar') ?: $lesson->slug;
+
+        return $course.' / '.$lesson->slug.' — '.$title;
     }
 }

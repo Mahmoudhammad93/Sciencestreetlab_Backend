@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Learning\Infrastructure\Persistence\Models;
 
+use App\Modules\Assessment\Infrastructure\Persistence\Models\InteractiveActivity;
+use App\Modules\Assessment\Infrastructure\Persistence\Models\QuestionBank;
+use App\Modules\Assessment\Infrastructure\Persistence\Models\Quiz;
 use App\Modules\Learning\Domain\Enums\LessonType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,6 +23,7 @@ class Lesson extends Model
 
     protected $fillable = [
         'course_id', 'slug', 'lesson_type', 'sort_order', 'is_published', 'video_duration_seconds',
+        'title', 'content',
     ];
 
     protected function casts(): array
@@ -42,16 +46,16 @@ class Lesson extends Model
 
     public function quizzes(): MorphMany
     {
-        return $this->morphMany(\App\Modules\Assessment\Infrastructure\Persistence\Models\Quiz::class, 'quizable');
+        return $this->morphMany(Quiz::class, 'quizable');
     }
 
-    public function questionBanks(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function questionBanks(): HasMany
     {
-        return $this->hasMany(\App\Modules\Assessment\Infrastructure\Persistence\Models\QuestionBank::class);
+        return $this->hasMany(QuestionBank::class);
     }
 
-    public function interactiveActivities(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function interactiveActivities(): HasMany
     {
-        return $this->hasMany(\App\Modules\Assessment\Infrastructure\Persistence\Models\InteractiveActivity::class);
+        return $this->hasMany(InteractiveActivity::class);
     }
 }

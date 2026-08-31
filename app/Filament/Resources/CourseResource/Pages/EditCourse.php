@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources\CourseResource\Pages;
 
 use App\Filament\Resources\CourseResource;
+use App\Filament\Resources\CourseResource\RelationManagers\LessonsRelationManager;
 use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 
@@ -15,6 +16,11 @@ class EditCourse extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('previewCourse')
+                ->label('Preview course')
+                ->icon('heroicon-o-arrow-top-right-on-square')
+                ->url(fn (): string => LessonsRelationManager::coursePreviewUrl($this->getRecord()))
+                ->openUrlInNewTab(),
             Actions\DeleteAction::make(),
         ];
     }

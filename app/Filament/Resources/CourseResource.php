@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\CourseResource\Pages;
+use App\Filament\Resources\CourseResource\RelationManagers\LessonsRelationManager;
 use App\Modules\Learning\Domain\Enums\AccessType;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
 use Filament\Forms;
@@ -55,12 +56,23 @@ class CourseResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('previewLessons')
+                    ->label('Lessons')
+                    ->icon('heroicon-o-queue-list')
+                    ->url(fn (Course $record): string => CourseResource::getUrl('edit', ['record' => $record]).'?activeRelationManager=0'),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            LessonsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array
