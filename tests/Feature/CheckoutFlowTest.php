@@ -6,6 +6,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\Product;
+use App\Modules\Commerce\Infrastructure\Persistence\Models\Coupon;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Enrollment;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Sanctum\Sanctum;
@@ -84,5 +85,58 @@ final class CheckoutFlowTest extends TestCase
 
         $cart = $this->getJson('/api/v1/cart')->assertOk();
         $this->assertGreaterThan(0, $cart->json('data.discount'));
+    }
+
+    public function test_checkout_increments_coupon_used_count(): void
+    {
+        $this->seed();
+
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $coupon = Coupon::query()
+            ->where('code', 'SCIENCE10')
+            ->firstOrFail();
+
+        $coupon->update(['max_uses' => 2, 'used_count' => 0]);
+
+        $product = Product::query()->where('sku', 'SS-MICRO-001')->firstOrFail();
+
+        $this->postJson('/api/v1/cart/items', ['product_id' => $product->id])->assertCreated();
+        $this->postJson('/api/v1/cart/coupon', ['code' => 'SCIENCE10'])->assertOk();
+
+        $this->postJson('/api/v1/checkout', [
+            'billing_address' => [
+                'first_name' => 'Ahmed',
+                'email' => $user->email,
+                'phone' => '01012345678',
+                'city' => 'Cairo',
+                'country' => 'EG',
+            ],
+            'shipping_address' => ['city' => 'Cairo', 'country' => 'EG'],
+        ])->assertCreated();
+
+        $this->assertSame(1, $coupon->fresh()->used_count);
+    }
+
+    public function test_coupon_cannot_be_applied_after_max_uses_reached(): void
+    {
+        $this->seed();
+
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $coupon = Coupon::query()
+            ->where('code', 'SCIENCE10')
+            ->firstOrFail();
+
+        $coupon->update(['max_uses' => 1, 'used_count' => 1]);
+
+        $product = Product::query()->where('sku', 'SS-MICRO-001')->firstOrFail();
+
+        $this->postJson('/api/v1/cart/items', ['product_id' => $product->id])->assertCreated();
+
+        $this->postJson('/api/v1/cart/coupon', ['code' => 'SCIENCE10'])
+            ->assertStatus(422);
     }
 }
