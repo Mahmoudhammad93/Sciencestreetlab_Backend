@@ -309,6 +309,19 @@ GET /api/v1/courses/{slug}/plans
 
 Enroll via a plan: `POST /api/v1/courses/{slug}/plans/{planId}/enroll` (auth required).
 
+**Demo school course** (`DemoSchoolCourseSeeder`):
+
+| Item | Value |
+|------|-------|
+| Course slug | `demo-school-physics` |
+| Access type | `school` |
+| Demo student | `school-demo@sciencestreetlab.com` / `password` |
+| Enrolled plan | Complete Plan (lifetime, full access) |
+| Plans API | 3 active plans: Starter (199 EGP), Complete (499 EGP), Exam Prep (299 EGP) |
+| Official score demo | Intro quiz — first submit 60%, retry 90% (official stays 60%) |
+
+Run: `php artisan db:seed --class=DemoSchoolCourseSeeder` (or full `db:seed`).
+
 ### Course leaderboard
 
 Ranks enrolled learners by **official quiz scores only** (average of official attempt percentages per course quiz). Retries never improve leaderboard rank.

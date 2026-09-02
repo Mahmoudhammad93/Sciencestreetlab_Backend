@@ -21,11 +21,12 @@ MAIN_API_DESCRIPTION = """REST API collection for Science Street Lab (Laravel `/
 - Admin: `admin@sciencestreetlab.com` / `password`
 - Student: `demo@sciencestreetlab.com` / `password`
 - Plan demo: `plan-demo@sciencestreetlab.com` / `password` (Physics plan — run `CoursePlanDemoSeeder`)
+- School demo: `school-demo@sciencestreetlab.com` / `password` (`demo-school-physics` — run `DemoSchoolCourseSeeder` or full seed)
 
 **Suggested order**
 1. Health → App Health / Public website settings
 2. Auth → Login (or Login demo student)
-3. Learning → Enroll → Course Access → Curriculum → Leaderboard
+3. Learning → Enroll → Get Course Plans → Course Access → Curriculum → Leaderboard
 4. Catalog → Commerce (cart → checkout → mock pay) for paid course plans
 5. Assessment → Start quiz → Save answers → Submit (with `time_spent_seconds`) → Get result
 
@@ -75,6 +76,7 @@ NEW_VARS = [
     {"key": "course_plan_id", "value": "1"},
     {"key": "official_attempt_id", "value": "1"},
     {"key": "plan_demo_course_slug", "value": "basic-physics-lab"},
+    {"key": "school_demo_course_slug", "value": "demo-school-physics"},
 ]
 
 QUIZ_SUBMIT_BODY = '{\n  "time_spent_seconds": 45\n}'
@@ -433,6 +435,127 @@ LEARNING_PLAN_ITEMS = [
                         "  const d = pm.response.json().data;",
                         "  if (d && d.id) pm.collectionVariables.set('enrollment_id', String(d.id));",
                         "}",
+                        "",
+                    ],
+                },
+            }
+        ],
+    },
+]
+
+SCHOOL_DEMO_ITEMS = [
+    {
+        "name": "Login (school demo student)",
+        "request": {
+            "method": "POST",
+            "header": [
+                {"key": "Accept", "value": "application/json"},
+                {"key": "Content-Type", "value": "application/json"},
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "description": "Demo student enrolled on Complete Plan for `demo-school-physics`. Requires DemoSchoolCourseSeeder.",
+            "auth": {"type": "noauth"},
+            "body": {
+                "mode": "raw",
+                "raw": '{\n  "email": "school-demo@sciencestreetlab.com",\n  "password": "password"\n}',
+                "options": {"raw": {"language": "json"}},
+            },
+        },
+        "response": [],
+        "event": [
+            {
+                "listen": "test",
+                "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                        "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                        "const json = pm.response.json();",
+                        "if (json.data && json.data.token) pm.collectionVariables.set('token', json.data.token);",
+                        "",
+                    ],
+                },
+            }
+        ],
+    },
+    {
+        "name": "Get School Demo Course",
+        "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/v1/courses/{{school_demo_course_slug}}",
+            "description": "Demo School Physics Course (`access_type: school`). Run DemoSchoolCourseSeeder first.",
+            "auth": {"type": "noauth"},
+        },
+        "response": [],
+    },
+    {
+        "name": "Get School Demo Course Plans",
+        "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/v1/courses/{{school_demo_course_slug}}/plans",
+            "description": "Starter (199 EGP / 30d), Complete (499 EGP / lifetime), Exam Prep (299 EGP / 60d). Inactive Legacy plan excluded.",
+            "auth": {"type": "noauth"},
+        },
+        "response": [],
+        "event": [
+            {
+                "listen": "test",
+                "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                        "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                        "const body = pm.response.json();",
+                        "pm.test('three active plans', () => pm.expect(body.data.length).to.eql(3));",
+                        "if (body.data[1]) pm.collectionVariables.set('school_complete_plan_id', String(body.data[1].id));",
+                        "",
+                    ],
+                },
+            }
+        ],
+    },
+    {
+        "name": "Get School Demo Course Access",
+        "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/v1/courses/{{school_demo_course_slug}}/access",
+            "description": "Plan entitlements for school-demo student (Complete Plan — full access + certificate).",
+        },
+        "response": [],
+    },
+    {
+        "name": "Get School Demo Enrollment",
+        "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/v1/courses/{{school_demo_course_slug}}/enrollment",
+            "description": "Enrollment on Complete Plan for school-demo student.",
+        },
+        "response": [],
+    },
+    {
+        "name": "Get School Demo Quiz (official score)",
+        "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/v1/quizzes/{{school_demo_quiz_id}}",
+            "description": "Introduction to Physics quiz — should show official_score ~60 from first submitted attempt (retry ~90 does not replace).",
+        },
+        "response": [],
+        "event": [
+            {
+                "listen": "test",
+                "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                        "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                        "const d = pm.response.json().data;",
+                        "pm.test('official score fields', () => {",
+                        "  pm.expect(d).to.have.property('official_score');",
+                        "  pm.expect(d).to.have.property('has_previous_attempt');",
+                        "  pm.expect(d.has_previous_attempt).to.eql(true);",
+                        "});",
                         "",
                     ],
                 },
@@ -939,6 +1062,7 @@ def insert_learning_access_items(col: dict) -> None:
         return
     insert_items_after(learning, "Get Course Progress", LEARNING_ACCESS_ITEMS)
     insert_items_after(learning, "Get Course Plans", [deepcopy(LEARNING_PLAN_ITEMS[3])])
+    insert_items_after(learning, "Enroll via Course Plan", [deepcopy(i) for i in SCHOOL_DEMO_ITEMS])
 
 
 def insert_official_result_item(col: dict) -> None:

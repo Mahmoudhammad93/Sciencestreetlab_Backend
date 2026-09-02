@@ -30,6 +30,7 @@ final class ScienceStreetSeeder extends Seeder
         $this->call(DemoLearningSeeder::class);
         $this->call(AssessmentDemoCoursesSeeder::class);
         $this->call(EnsureAllTopicTypesSeeder::class);
+        $this->call(DemoSchoolCourseSeeder::class);
 
         $microscopeCourse = Course::query()->where('slug', 'microscope-course')->firstOrFail();
 
