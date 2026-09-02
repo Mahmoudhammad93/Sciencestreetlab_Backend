@@ -31,6 +31,7 @@ final class SubmitQuizRequest extends FormRequest
             'answers.*.ordering_answer' => ['sometimes', 'array'],
             'answers.*.interactive_answer' => ['sometimes', 'array'],
             'answers.*.client_result' => ['sometimes', 'array'],
+            'time_spent_seconds' => ['sometimes', 'nullable', 'integer', 'min:0'],
         ];
     }
 }

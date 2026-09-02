@@ -7,6 +7,7 @@ namespace App\Modules\Identity\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\Commerce\Application\Services\CartService;
+use App\Modules\Identity\Http\Resources\UserAuthResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -36,6 +37,8 @@ final class AuthController extends Controller
             'locale' => $validated['locale'] ?? config('sciencestreet.default_locale'),
         ]);
 
+        $user->sendEmailVerificationNotification();
+
         if ($request->hasSession()) {
             $this->cartService->mergeSessionCartIntoUserCart($user, $request->session()->getId());
         }
@@ -45,7 +48,7 @@ final class AuthController extends Controller
         return response()->json([
             'data' => [
                 'token' => $token,
-                'user' => $user,
+                'user' => new UserAuthResource($user),
             ],
         ], 201);
     }
@@ -75,7 +78,7 @@ final class AuthController extends Controller
         return response()->json([
             'data' => [
                 'token' => $token,
-                'user' => $user,
+                'user' => new UserAuthResource($user),
             ],
         ]);
     }
@@ -89,7 +92,7 @@ final class AuthController extends Controller
 
     public function me(Request $request): JsonResponse
     {
-        return response()->json(['data' => $request->user()]);
+        return response()->json(['data' => new UserAuthResource($request->user())]);
     }
 
     public function refresh(Request $request): JsonResponse
@@ -101,7 +104,7 @@ final class AuthController extends Controller
         return response()->json([
             'data' => [
                 'token' => $token,
-                'user' => $user,
+                'user' => new UserAuthResource($user),
             ],
         ]);
     }

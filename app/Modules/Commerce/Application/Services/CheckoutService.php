@@ -71,6 +71,7 @@ final class CheckoutService
                     'metadata' => [
                         'product_type' => $item->product->type->value,
                         'course_id' => $item->product->course_id,
+                        'course_plan_id' => $item->product->course_plan_id,
                     ],
                 ]);
             }

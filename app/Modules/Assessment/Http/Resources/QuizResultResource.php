@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Assessment\Http\Resources;
 
+use App\Modules\Assessment\Application\Services\OfficialQuizScoreService;
 use App\Modules\Assessment\Application\Services\QuizAttemptService;
 use App\Modules\Assessment\Domain\Enums\AttemptStatus;
 use App\Modules\Assessment\Http\Support\QuizReviewPresenter;
@@ -26,10 +27,21 @@ final class QuizResultResource extends JsonResource
         $byId = $questions->keyBy('id');
         $allowExplanations = in_array($attempt->status, [AttemptStatus::Graded, AttemptStatus::PendingReview], true);
         $review = app(QuizReviewPresenter::class);
+        $official = app(OfficialQuizScoreService::class)->officialPayload(
+            $attempt->user,
+            $attempt->quiz,
+            $attempt->enrollment,
+        );
 
         return [
             'attempt_id' => $attempt->id,
+            'quiz_id' => $attempt->quiz_id,
             'attempt_number' => (int) $attempt->attempt_number,
+            'current_attempt_score' => (float) $attempt->percentage,
+            'is_official' => (bool) $attempt->is_official,
+            'official_score' => $official['official_score'],
+            'official_attempt_number' => $official['official_attempt_number'],
+            'official_passed' => $official['official_passed'],
             'time_taken' => (int) ($attempt->time_spent_seconds ?? 0),
             'time_taken_seconds' => $attempt->time_spent_seconds !== null ? (int) $attempt->time_spent_seconds : null,
             'status' => $attempt->status === AttemptStatus::PendingReview

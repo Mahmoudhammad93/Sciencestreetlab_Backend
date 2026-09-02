@@ -38,14 +38,14 @@ final class CompetitionEligibilityService
 
         $competition->loadMissing('prerequisiteCourse');
 
-        if (! $this->allRequiredQuizzesPassed($user, $competition->prerequisiteCourse)) {
+        if (! $this->allRequiredQuizzesPassed($user, $competition->prerequisiteCourse, $enrollment)) {
             return ['eligible' => false, 'reason' => 'quizzes_not_passed'];
         }
 
         return ['eligible' => true, 'reason' => null];
     }
 
-    private function allRequiredQuizzesPassed(User $user, Course $course): bool
+    private function allRequiredQuizzesPassed(User $user, Course $course, Enrollment $enrollment): bool
     {
         $lessonIds = $course->lessons()->where('is_published', true)->pluck('id');
 
@@ -60,7 +60,7 @@ final class CompetitionEligibilityService
         }
 
         foreach ($requiredQuizzes as $quiz) {
-            if (! $this->quizAttempts->hasPassed($user, $quiz)) {
+            if (! $this->quizAttempts->hasPassed($user, $quiz, $enrollment)) {
                 return false;
             }
         }

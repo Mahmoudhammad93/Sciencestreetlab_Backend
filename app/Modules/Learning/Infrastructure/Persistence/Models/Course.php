@@ -50,6 +50,11 @@ class Course extends Model
         return $this->hasMany(Lesson::class)->orderBy('sort_order');
     }
 
+    public function plans(): HasMany
+    {
+        return $this->hasMany(CoursePlan::class)->orderBy('sort_order');
+    }
+
     public function enrollments(): HasMany
     {
         return $this->hasMany(Enrollment::class);

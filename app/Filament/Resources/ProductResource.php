@@ -9,6 +9,7 @@ use App\Modules\Catalog\Domain\Enums\ProductStatus;
 use App\Modules\Catalog\Domain\Enums\ProductType;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\Product;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
+use App\Modules\Learning\Infrastructure\Persistence\Models\CoursePlan;
 use Filament\Forms;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Form;
@@ -62,8 +63,24 @@ class ProductResource extends Resource
                         ->all())
                     ->searchable()
                     ->nullable()
-                    ->visible(fn (Get $get): bool => in_array($get('type'), [ProductType::Kit->value, ProductType::Bundle->value], true))
-                    ->helperText('Optional. Links this product to a course for enrollment after purchase.'),
+                    ->live()
+                    ->visible(fn (Get $get): bool => in_array($get('type'), [ProductType::Kit->value, ProductType::Bundle->value, ProductType::Course->value], true))
+                    ->helperText('Links this product to a course for enrollment after purchase.'),
+                Forms\Components\Select::make('course_plan_id')
+                    ->label('Course plan')
+                    ->options(fn (Get $get): array => CoursePlan::query()
+                        ->where('course_id', $get('course_id'))
+                        ->where('is_active', true)
+                        ->orderBy('sort_order')
+                        ->get()
+                        ->mapWithKeys(fn (CoursePlan $plan): array => [
+                            $plan->id => ($plan->getTranslation('name', 'en') ?: $plan->id).' — '.$plan->price.' '.$plan->currency,
+                        ])
+                        ->all())
+                    ->searchable()
+                    ->nullable()
+                    ->visible(fn (Get $get): bool => filled($get('course_id')))
+                    ->helperText('Optional. Purchases grant access through this specific plan.'),
                 Forms\Components\TextInput::make('sort_order')
                     ->numeric()
                     ->default(0)

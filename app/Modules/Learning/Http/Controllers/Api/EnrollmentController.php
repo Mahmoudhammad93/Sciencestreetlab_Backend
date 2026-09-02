@@ -6,11 +6,13 @@ namespace App\Modules\Learning\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Learning\Application\Services\CourseAccessService;
+use App\Modules\Learning\Application\Services\CoursePlanAccessService;
 use App\Modules\Learning\Application\Services\CoursePresenter;
 use App\Modules\Learning\Application\Services\CourseProgressService;
 use App\Modules\Learning\Application\Services\CurriculumService;
 use App\Modules\Learning\Application\Services\EnrollUserService;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
+use App\Modules\Learning\Infrastructure\Persistence\Models\CoursePlan;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,6 +21,7 @@ final class EnrollmentController extends Controller
 {
     public function __construct(
         private readonly CourseAccessService $access,
+        private readonly CoursePlanAccessService $planAccess,
         private readonly CurriculumService $curriculum,
         private readonly EnrollUserService $enrollUser,
         private readonly CourseProgressService $progress,
@@ -124,5 +127,43 @@ final class EnrollmentController extends Controller
         return response()->json([
             'data' => $this->progress->courseProgressPayload($enrollment),
         ]);
+    }
+
+    public function access(Request $request, string $slug): JsonResponse
+    {
+        $course = Course::query()->where('slug', $slug)->where('is_published', true)->firstOrFail();
+        $enrollment = $this->access->enrollmentFor($request->user(), $course);
+
+        if (! $enrollment) {
+            return response()->json([
+                'enrolled' => false,
+                'accessible' => false,
+                'reason' => 'Not enrolled in this course.',
+            ]);
+        }
+
+        return response()->json($this->planAccess->accessSummary($enrollment));
+    }
+
+    public function enrollPlan(Request $request, string $slug, int $planId): JsonResponse
+    {
+        $course = Course::query()->where('slug', $slug)->where('is_published', true)->firstOrFail();
+        $plan = CoursePlan::query()
+            ->whereKey($planId)
+            ->where('course_id', $course->id)
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        try {
+            $enrollment = $this->enrollUser->enrollWithPlan($request->user(), $plan);
+        } catch (DomainException $e) {
+            $status = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 422;
+
+            return response()->json(['message' => $e->getMessage()], $status);
+        }
+
+        return response()->json([
+            'data' => $this->planAccess->accessSummary($enrollment->fresh(['coursePlan', 'entitlements'])),
+        ], 201);
     }
 }

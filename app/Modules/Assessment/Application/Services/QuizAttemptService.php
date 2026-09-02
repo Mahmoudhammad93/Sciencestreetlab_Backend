@@ -6,18 +6,19 @@ namespace App\Modules\Assessment\Application\Services;
 
 use App\Models\User;
 use App\Modules\Assessment\Domain\Enums\AttemptStatus;
-use App\Modules\Assessment\Domain\Enums\InteractiveActivityAttemptStatus;
 use App\Modules\Assessment\Domain\Enums\QuestionType;
 use App\Modules\Assessment\Domain\Enums\QuizSelectionMode;
 use App\Modules\Assessment\Domain\Events\QuizPassed;
 use App\Modules\Assessment\Infrastructure\Grading\QuestionGraderRegistry;
-use App\Modules\Assessment\Infrastructure\Persistence\Models\InteractiveActivityAttempt;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\Question;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\Quiz;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\QuizAttempt;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\QuizAttemptAnswer;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\QuizAttemptQuestion;
+use App\Modules\Assessment\Infrastructure\Persistence\Models\QuizOfficialScore;
+use App\Modules\Learning\Application\Services\CoursePlanAccessService;
 use App\Modules\Learning\Application\Services\CourseProgressService;
+use App\Modules\Learning\Domain\Enums\EnrollmentStatus;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Enrollment;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Lesson;
 use DomainException;
@@ -30,6 +31,8 @@ final class QuizAttemptService
         private readonly QuestionGraderRegistry $graderRegistry,
         private readonly CourseProgressService $progressService,
         private readonly QuestionSelectionService $selectionService,
+        private readonly CoursePlanAccessService $planAccess,
+        private readonly OfficialQuizScoreService $officialScores,
     ) {}
 
     public function start(User $user, Quiz $quiz, Enrollment $enrollment): QuizAttempt
@@ -43,7 +46,9 @@ final class QuizAttemptService
             ->where('user_id', $user->id)
             ->count();
 
-        if ($quiz->max_attempts && $attemptCount >= $quiz->max_attempts) {
+        $maxAttempts = $this->planAccess->maxQuizAttempts($enrollment, $quiz);
+
+        if ($maxAttempts !== null && $attemptCount >= $maxAttempts) {
             throw new DomainException('MAX_ATTEMPTS_REACHED: Maximum quiz attempts reached.', 422);
         }
 
@@ -54,9 +59,11 @@ final class QuizAttemptService
             ->latest('id')
             ->first();
 
-        // Resume instead of blocking — refresh / re-click should continue the same attempt
+        // Resume instead of blocking — reset session clock so idle time is not counted.
         if ($inProgress) {
-            return $inProgress->load(['frozenQuestions.question.options', 'quiz', 'answers']);
+            $inProgress->update(['started_at' => now()]);
+
+            return $inProgress->fresh(['frozenQuestions.question.options', 'quiz', 'answers']);
         }
 
         return DB::transaction(function () use ($user, $quiz, $enrollment, $attemptCount) {
@@ -97,13 +104,13 @@ final class QuizAttemptService
     /**
      * @param  array<int, array<string, mixed>>  $answers
      */
-    public function submit(QuizAttempt $attempt, array $answers): QuizAttempt
+    public function submit(QuizAttempt $attempt, array $answers, ?int $clientTimeSpentSeconds = null): QuizAttempt
     {
         if ($attempt->status !== AttemptStatus::InProgress) {
             throw new DomainException('Attempt is not in progress.');
         }
 
-        return DB::transaction(function () use ($attempt, $answers): QuizAttempt {
+        return DB::transaction(function () use ($attempt, $answers, $clientTimeSpentSeconds): QuizAttempt {
             $attempt->loadMissing(['quiz.interactiveActivities']);
             $questions = $this->questionsForAttempt($attempt);
             $score = 0.0;
@@ -152,8 +159,9 @@ final class QuizAttemptService
             $percentage = $maxScore > 0 ? round(($score / $maxScore) * 100, 2) : 0;
             $passed = ! $needsReview && $percentage >= (float) $attempt->quiz->passing_score;
 
-            // Signed diff: future started_at must not produce a negative or inflated duration.
-            $timeSpentSeconds = max(0, (int) $attempt->started_at->diffInSeconds(now(), false));
+            // Wall-clock session duration (started_at is reset when a learner resumes).
+            $wallClockSeconds = max(0, (int) $attempt->started_at->diffInSeconds(now(), false));
+            $timeSpentSeconds = $this->resolveTimeSpentSeconds($attempt, $wallClockSeconds, $clientTimeSpentSeconds);
 
             $attempt->update([
                 'status' => $needsReview ? AttemptStatus::PendingReview : AttemptStatus::Graded,
@@ -166,7 +174,10 @@ final class QuizAttemptService
                 'time_spent_seconds' => $timeSpentSeconds,
             ]);
 
-            if ($passed) {
+            $this->officialScores->markOfficialOnSubmit($attempt->fresh());
+            $attempt->refresh();
+
+            if ($attempt->is_official && $passed) {
                 event(new QuizPassed($attempt));
 
                 $quiz = $attempt->quiz->load('quizable');
@@ -183,13 +194,62 @@ final class QuizAttemptService
         });
     }
 
-    public function hasPassed(User $user, Quiz $quiz): bool
+    public function hasPassed(User $user, Quiz $quiz, ?Enrollment $enrollment = null): bool
     {
-        return QuizAttempt::query()
+        $enrollment ??= $this->resolveEnrollment($user, $quiz);
+
+        if ($enrollment !== null) {
+            return $this->officialScores->hasPassedOfficially($user, $quiz, $enrollment);
+        }
+
+        $official = QuizOfficialScore::query()
             ->where('quiz_id', $quiz->id)
+            ->whereHas('attempt', fn ($q) => $q->where('user_id', $user->id))
+            ->first();
+
+        if ($official !== null) {
+            return QuizAttempt::query()
+                ->whereKey($official->quiz_attempt_id)
+                ->where('passed', true)
+                ->exists();
+        }
+
+        return false;
+    }
+
+    private function resolveEnrollment(User $user, Quiz $quiz): ?Enrollment
+    {
+        $quiz->loadMissing('quizable');
+
+        if (! $quiz->quizable instanceof Lesson) {
+            return null;
+        }
+
+        return Enrollment::query()
             ->where('user_id', $user->id)
-            ->where('passed', true)
-            ->exists();
+            ->where('course_id', $quiz->quizable->course_id)
+            ->whereIn('status', [EnrollmentStatus::Active, EnrollmentStatus::Completed])
+            ->first();
+    }
+
+    private function resolveTimeSpentSeconds(
+        QuizAttempt $attempt,
+        int $wallClockSeconds,
+        ?int $clientTimeSpentSeconds,
+    ): int {
+        if ($clientTimeSpentSeconds === null) {
+            return $wallClockSeconds;
+        }
+
+        $clientTimeSpentSeconds = max(0, $clientTimeSpentSeconds);
+        $maxAllowed = $wallClockSeconds + 5;
+
+        $timeLimit = $attempt->quiz?->time_limit_seconds;
+        if ($timeLimit !== null && (int) $timeLimit > 0) {
+            $maxAllowed = min($maxAllowed, (int) $timeLimit);
+        }
+
+        return min($clientTimeSpentSeconds, $maxAllowed);
     }
 
     /**

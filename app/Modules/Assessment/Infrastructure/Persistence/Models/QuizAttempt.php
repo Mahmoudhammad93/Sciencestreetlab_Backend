@@ -16,7 +16,7 @@ class QuizAttempt extends Model
     protected $fillable = [
         'quiz_id', 'user_id', 'enrollment_id', 'attempt_number', 'status',
         'score', 'max_score', 'percentage', 'passed',
-        'started_at', 'submitted_at', 'graded_at', 'time_spent_seconds',
+        'started_at', 'submitted_at', 'graded_at', 'time_spent_seconds', 'is_official',
     ];
 
     protected function casts(): array
@@ -27,6 +27,7 @@ class QuizAttempt extends Model
             'max_score' => 'decimal:2',
             'percentage' => 'decimal:2',
             'passed' => 'boolean',
+            'is_official' => 'boolean',
             'started_at' => 'datetime',
             'submitted_at' => 'datetime',
             'graded_at' => 'datetime',

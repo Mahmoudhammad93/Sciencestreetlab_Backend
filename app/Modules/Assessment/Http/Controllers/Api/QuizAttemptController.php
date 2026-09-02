@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Assessment\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Assessment\Application\Services\OfficialQuizScoreService;
 use App\Modules\Assessment\Application\Services\QuestionAccessService;
 use App\Modules\Assessment\Application\Services\QuizAttemptService;
 use App\Modules\Assessment\Domain\Enums\AttemptStatus;
@@ -60,6 +61,26 @@ final class QuizAttemptController extends Controller
 
             $attempt = $this->quizAttempts->start($request->user(), $quiz, $enrollment);
         } catch (DomainException $e) {
+            if (str_starts_with($e->getMessage(), 'MAX_ATTEMPTS_REACHED')) {
+                $official = app(OfficialQuizScoreService::class)->officialAttempt(
+                    $request->user(),
+                    $quiz,
+                    $enrollment,
+                );
+                $lastAttempt = QuizAttempt::query()
+                    ->where('quiz_id', $quiz->id)
+                    ->where('user_id', $request->user()->id)
+                    ->latest('id')
+                    ->first();
+
+                return response()->json([
+                    'message' => 'Maximum quiz attempts reached.',
+                    'code' => 'MAX_ATTEMPTS_REACHED',
+                    'official_attempt_id' => $official?->id,
+                    'last_attempt_id' => $lastAttempt?->id,
+                ], 422);
+            }
+
             return ApiError::fromDomain($e);
         }
 
@@ -125,7 +146,11 @@ final class QuizAttemptController extends Controller
                 ])->all();
             }
 
-            $graded = $this->quizAttempts->submit($attempt, $answers);
+            $clientTimeSpentSeconds = $request->filled('time_spent_seconds')
+                ? (int) $request->integer('time_spent_seconds')
+                : null;
+
+            $graded = $this->quizAttempts->submit($attempt, $answers, $clientTimeSpentSeconds);
         } catch (DomainException $e) {
             return ApiError::fromDomain($e);
         }

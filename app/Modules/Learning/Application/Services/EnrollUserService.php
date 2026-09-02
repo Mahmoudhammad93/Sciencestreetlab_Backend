@@ -8,23 +8,70 @@ use App\Models\User;
 use App\Modules\Learning\Domain\Enums\AccessType;
 use App\Modules\Learning\Domain\Enums\EnrollmentStatus;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
+use App\Modules\Learning\Infrastructure\Persistence\Models\CoursePlan;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Enrollment;
 use DomainException;
+use Illuminate\Support\Facades\DB;
 
 final class EnrollUserService
 {
-    public function enroll(User $user, Course $course, ?int $orderItemId = null): Enrollment
+    public function __construct(
+        private readonly CoursePlanEntitlementSyncService $entitlementSync,
+    ) {}
+
+    public function enroll(User $user, Course $course, ?int $orderItemId = null, ?CoursePlan $plan = null): Enrollment
     {
-        return Enrollment::query()->firstOrCreate(
-            ['user_id' => $user->id, 'course_id' => $course->id],
-            [
+        if ($plan !== null && $plan->course_id !== $course->id) {
+            throw new DomainException('Course plan does not belong to this course.');
+        }
+
+        if ($plan !== null && ! $plan->is_active) {
+            throw new DomainException('Course plan is not active.');
+        }
+
+        $existing = Enrollment::query()
+            ->where('user_id', $user->id)
+            ->where('course_id', $course->id)
+            ->first();
+
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        return DB::transaction(function () use ($user, $course, $orderItemId, $plan): Enrollment {
+            $startedAt = now();
+            $expiresAt = $plan?->calculateExpiresAt($startedAt);
+
+            $enrollment = Enrollment::query()->create([
+                'user_id' => $user->id,
+                'course_id' => $course->id,
+                'course_plan_id' => $plan?->id,
                 'order_item_id' => $orderItemId,
                 'status' => EnrollmentStatus::Active,
                 'progress_percent' => 0,
-                'enrolled_at' => now(),
-                'started_at' => now(),
-            ]
-        );
+                'enrolled_at' => $startedAt,
+                'started_at' => $startedAt,
+                'expires_at' => $expiresAt,
+                'grant_certificate' => $plan?->grant_certificate ?? false,
+            ]);
+
+            if ($plan !== null) {
+                $this->entitlementSync->snapshotEntitlementsForEnrollment($enrollment, $plan);
+            }
+
+            return $enrollment->fresh(['coursePlan', 'entitlements']);
+        });
+    }
+
+    public function enrollWithPlan(User $user, CoursePlan $plan): Enrollment
+    {
+        $plan->loadMissing('course');
+
+        if ($plan->isFree()) {
+            return $this->enroll($user, $plan->course, null, $plan);
+        }
+
+        throw new DomainException('Paid plans require checkout and payment.', 402);
     }
 
     /**

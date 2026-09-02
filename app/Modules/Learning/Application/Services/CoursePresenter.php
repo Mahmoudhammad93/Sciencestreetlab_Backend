@@ -88,7 +88,7 @@ final class CoursePresenter
             $canAccessLesson = $enrollment ? $this->access->canAccessLesson($enrollment, $lesson) : false;
             $quiz = $lesson->quizzes->first();
 
-            return [
+            $item = [
                 'id' => $lesson->id,
                 'slug' => $lesson->slug,
                 'title' => $lesson->getTranslation('title', $locale),
@@ -103,7 +103,10 @@ final class CoursePresenter
                     'title' => $quiz->getTranslation('title', $locale),
                     'is_required' => (bool) $quiz->is_required,
                 ] : null,
-                'topics' => $lesson->topics->map(function (Topic $topic) use ($locale, $canAccessLesson) {
+            ];
+
+            if ($enrollment !== null) {
+                $item['topics'] = $lesson->topics->map(function (Topic $topic) use ($locale, $canAccessLesson) {
                     return [
                         'id' => $topic->id,
                         'lesson_id' => $topic->lesson_id,
@@ -117,7 +120,6 @@ final class CoursePresenter
                         'file_url' => $canAccessLesson && $topic->content_type === 'pdf'
                             ? $topic->video_url
                             : null,
-                        // Keep video URLs only for unlocked video topics
                         'video_url' => $canAccessLesson && $topic->content_type === 'video'
                             ? $topic->video_url
                             : null,
@@ -126,8 +128,10 @@ final class CoursePresenter
                             : null,
                         'is_published' => (bool) $topic->is_published,
                     ];
-                })->values()->all(),
-            ];
+                })->values()->all();
+            }
+
+            return $item;
         })->values()->all();
     }
 

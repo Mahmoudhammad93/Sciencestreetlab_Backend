@@ -315,6 +315,42 @@ final class QuizAttemptDurationTest extends TestCase
     }
 
     /**
+     * Resuming an in-progress attempt must reset the session clock.
+     */
+    public function test_resuming_in_progress_attempt_resets_duration_clock(): void
+    {
+        Sanctum::actingAs($this->user);
+
+        $startTime = Carbon::parse('2026-01-15 10:00:00');
+        Carbon::setTestNow($startTime);
+
+        $startResponse = $this->postJson("/api/v1/quizzes/{$this->quiz->id}/attempts")
+            ->assertCreated();
+        $attemptId = $startResponse->json('data.attempt_id');
+
+        // Learner leaves for 16 minutes, then resumes the same attempt.
+        Carbon::setTestNow($startTime->clone()->addMinutes(16));
+
+        $resumeResponse = $this->postJson("/api/v1/quizzes/{$this->quiz->id}/attempts")
+            ->assertCreated();
+        $this->assertSame($attemptId, $resumeResponse->json('data.attempt_id'));
+
+        Carbon::setTestNow($startTime->clone()->addMinutes(16)->addSeconds(15));
+
+        $this->postJson("/api/v1/quiz-attempts/{$attemptId}/answers", [
+            'question_id' => $this->question->id,
+            'answer' => ['option_id' => $this->correctOption->id],
+        ])->assertOk();
+
+        $this->postJson("/api/v1/quiz-attempts/{$attemptId}/submit", [
+            'time_spent_seconds' => 15,
+        ])->assertOk();
+
+        $attempt = QuizAttempt::query()->find($attemptId);
+        $this->assertSame(15, $attempt->time_spent_seconds);
+    }
+
+    /**
      * Seed the test fixture
      */
     private function seedFixture(): void

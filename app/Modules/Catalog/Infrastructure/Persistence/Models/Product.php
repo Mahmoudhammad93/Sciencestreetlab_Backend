@@ -7,6 +7,7 @@ namespace App\Modules\Catalog\Infrastructure\Persistence\Models;
 use App\Modules\Catalog\Domain\Enums\ProductStatus;
 use App\Modules\Catalog\Domain\Enums\ProductType;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
+use App\Modules\Learning\Infrastructure\Persistence\Models\CoursePlan;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -28,7 +29,7 @@ class Product extends Model implements HasMedia
     protected $fillable = [
         'uuid', 'sku', 'slug', 'type', 'status', 'price', 'compare_price',
         'currency', 'stock_quantity', 'manage_stock', 'is_featured',
-        'average_rating', 'review_count', 'course_id', 'sort_order', 'published_at',
+        'average_rating', 'review_count', 'course_id', 'course_plan_id', 'sort_order', 'published_at',
         'name', 'short_description', 'description', 'meta_title', 'meta_description',
     ];
 
@@ -57,6 +58,11 @@ class Product extends Model implements HasMedia
     public function course(): BelongsTo
     {
         return $this->belongsTo(Course::class);
+    }
+
+    public function coursePlan(): BelongsTo
+    {
+        return $this->belongsTo(CoursePlan::class);
     }
 
     public function registerMediaCollections(): void

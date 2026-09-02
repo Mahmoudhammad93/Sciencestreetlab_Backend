@@ -78,7 +78,7 @@ final class CurriculumService
                     'title' => $quiz->getTranslation('title', app()->getLocale()),
                     'passing_score' => (float) $quiz->passing_score,
                     'is_locked' => ! $this->access->canAccessQuiz($enrollment, $quiz),
-                    'is_passed' => $this->quizAttempts->hasPassed($enrollment->user, $quiz),
+                    'is_passed' => $this->quizAttempts->hasPassed($enrollment->user, $quiz, $enrollment),
                     'is_required' => $quiz->is_required,
                 ];
             }

@@ -68,8 +68,12 @@ Content-Type: application/json
 
 | Method | Path | Auth | What it does |
 |-------|------|------|----------------|
-| POST | `/auth/register` | Public | Create account + token |
+| POST | `/auth/register` | Public | Create account + token; sends verification email |
 | POST | `/auth/login` | Public | Login + token |
+| POST | `/auth/forgot-password` | Public | Request password reset email |
+| POST | `/auth/reset-password` | Public | Reset password with token |
+| GET | `/auth/email/verify/{id}/{hash}` | Signed URL | Verify email address |
+| POST | `/auth/email/verification-notification` | Required | Resend verification email |
 | GET | `/auth/me` | Required | Current user |
 | POST | `/auth/refresh` | Required | Rotate token |
 | POST | `/auth/logout` | Required | Delete current token |
@@ -89,14 +93,25 @@ POST /api/v1/auth/login
 {
   "data": {
     "token": "1|xxxx",
-    "user": { "id": 2, "name": "...", "email": "demo@sciencestreetlab.com" }
+    "user": {
+      "id": 2,
+      "name": "...",
+      "email": "demo@sciencestreetlab.com",
+      "email_verified": true
+    }
   }
 }
 ```
 
 Save `data.token` as `{{token}}`.
 
-Register also needs `name`, `password`, `password_confirmation`. Optional: `phone`, `locale` (`ar` \| `en`).
+Register also needs `name`, `password`, `password_confirmation`. Optional: `phone`, `locale` (`ar` \| `en`). New users receive `email_verified: false` until they click the signed verification link.
+
+**Forgot password:** `POST /auth/forgot-password` with `{ "email": "..." }` — always returns a generic success message (no email enumeration).
+
+**Reset password:** `POST /auth/reset-password` with `{ "token", "email", "password", "password_confirmation" }`.
+
+Auth routes are rate-limited (register, login, password reset, resend verification).
 
 Guest cart items are merged into the user cart on login/register when a session cookie is present.
 
@@ -197,7 +212,12 @@ Paid course products auto-enroll the user.
 | POST | `/courses/{slug}/enroll` | Required | Enroll (free / already paid) |
 | GET | `/courses/{slug}/curriculum` | Required | Lessons, quizzes, lock state, activities |
 | GET | `/courses/{slug}/enrollment` | Required | This course enrollment |
+| GET | `/courses/{slug}/access` | Required | Plan-based access summary |
+| GET | `/courses/{slug}/leaderboard` | Optional | Course leaderboard (official scores) |
 | GET | `/courses/{slug}/progress` | Required | Progress % |
+| POST | `/courses/{slug}/plans/{planId}/enroll` | Required | Enroll via free plan |
+| GET | `/me/enrollments` | Required | All my enrollments (alias) |
+| GET | `/me/enrollments/{id}` | Required | Enrollment detail (alias) |
 | GET | `/enrollments` | Required | All my enrollments |
 | GET | `/enrollments/{id}` | Required | Enrollment detail |
 | GET | `/lessons/{lesson}` | Required | Lesson detail |
@@ -228,6 +248,65 @@ Demo course slugs:
 | `basic-physics-lab` | Light Lab, Sound Lab, Rubber Castle/Race |
 | `basic-chemistry-lab` | Chemistry banks + quiz |
 | `microscope-course` | Linked to microscope product |
+
+### Course plans & access
+
+Admins configure **Course Plans** per course in Filament (`Courses → Edit → Course Plans`). Each plan defines price, duration, max quiz attempts, certificate access, and specific entitlements (lessons, topics, quizzes, interactive activities).
+
+**Flow:** `Course → Course Plan → Product → Order → Payment → Enrollment (with entitlement snapshot)`
+
+When a student enrolls, entitlements are **snapshotted** into `enrollment_entitlements` so later plan edits do not change existing enrollments.
+
+```http
+GET /api/v1/courses/microscope-course/access
+Authorization: Bearer {token}
+```
+
+```json
+{
+  "enrolled": true,
+  "active": true,
+  "uses_plan": true,
+  "enrollment": { "id": 123, "status": "active", "started_at": "...", "expires_at": null },
+  "plan": { "id": 5, "name": "Exam Preparation" },
+  "access": {
+    "course": true,
+    "certificate": false,
+    "lesson_ids": [1, 2],
+    "quiz_ids": [3]
+  }
+}
+```
+
+**Quiz official score:** The first **successfully submitted** attempt is the official score. Retries may score higher but never replace the official result. Quiz result APIs return `is_official`, `official_score`, and `official_attempt_number`.
+
+### Course leaderboard
+
+Ranks enrolled learners by **official quiz scores only** (average of official attempt percentages per course quiz). Retries never improve leaderboard rank.
+
+```http
+GET /api/v1/courses/microscope-course/leaderboard?page=1&per_page=20
+Authorization: Bearer {token}   # optional — includes current_user rank
+```
+
+```json
+{
+  "course_id": 1,
+  "leaderboard": [
+    {
+      "rank": 1,
+      "user": { "id": 25, "name": "Ahmed", "avatar_url": null },
+      "score": 95,
+      "completion_percentage": 100,
+      "is_current_user": false
+    }
+  ],
+  "current_user": { "rank": 7, "score": 82.5, "completion_percentage": 60, "is_current_user": true },
+  "meta": { "current_page": 1, "per_page": 20, "total": 15, "last_page": 1 }
+}
+```
+
+Tie-breakers: score → completion % → earliest official submit → user id. Excludes expired, suspended, and cancelled enrollments.
 
 ---
 

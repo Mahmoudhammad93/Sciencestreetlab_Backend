@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Modules\Learning\Application\Services;
 
 use App\Models\User;
-use App\Modules\Assessment\Application\Services\QuizAttemptService;
+use App\Modules\Assessment\Application\Services\OfficialQuizScoreService;
+use App\Modules\Assessment\Infrastructure\Persistence\Models\InteractiveActivity;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\Quiz;
+use App\Modules\Learning\Domain\Enums\AccessType;
 use App\Modules\Learning\Domain\Enums\EnrollmentStatus;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Enrollment;
@@ -17,16 +19,28 @@ use DomainException;
 final class CourseAccessService
 {
     public function __construct(
-        private readonly QuizAttemptService $quizAttempts,
+        private readonly CoursePlanAccessService $planAccess,
+        private readonly OfficialQuizScoreService $officialScores,
     ) {}
 
     public function enrollmentFor(User $user, Course $course): ?Enrollment
     {
-        return Enrollment::query()
+        $enrollment = Enrollment::query()
+            ->with(['coursePlan', 'entitlements'])
             ->where('user_id', $user->id)
             ->where('course_id', $course->id)
             ->whereIn('status', [EnrollmentStatus::Active, EnrollmentStatus::Completed])
             ->first();
+
+        if ($enrollment === null) {
+            return null;
+        }
+
+        if (! $this->planAccess->isEnrollmentActive($enrollment)) {
+            return null;
+        }
+
+        return $enrollment;
     }
 
     public function requireEnrollment(User $user, Course $course): Enrollment
@@ -46,11 +60,15 @@ final class CourseAccessService
             return false;
         }
 
+        if ($this->planAccess->usesPlanEntitlements($enrollment)) {
+            if (! $this->planAccess->canAccessLesson($enrollment, $lesson)) {
+                return false;
+            }
+        }
+
         $enrollment->loadMissing('course');
 
-        // Free courses are open for enrolled students (demo / self-paced study).
-        if ($enrollment->course?->access_type?->value === 'free'
-            || $enrollment->course?->access_type === \App\Modules\Learning\Domain\Enums\AccessType::Free) {
+        if ($enrollment->course?->access_type === AccessType::Free) {
             return true;
         }
 
@@ -65,9 +83,7 @@ final class CourseAccessService
             return true;
         }
 
-        $previous = $lessons[$index - 1];
-
-        return $this->isLessonComplete($enrollment, $previous);
+        return $this->isLessonComplete($enrollment, $lessons[$index - 1]);
     }
 
     public function canAccessTopic(Enrollment $enrollment, Topic $topic): bool
@@ -78,8 +94,13 @@ final class CourseAccessService
             return false;
         }
 
+        if ($this->planAccess->usesPlanEntitlements($enrollment)
+            && ! $this->planAccess->canAccessTopic($enrollment, $topic)) {
+            return false;
+        }
+
         $enrollment->loadMissing('course');
-        if ($enrollment->course?->access_type === \App\Modules\Learning\Domain\Enums\AccessType::Free) {
+        if ($enrollment->course?->access_type === AccessType::Free) {
             return true;
         }
 
@@ -90,13 +111,16 @@ final class CourseAccessService
             return $index !== false;
         }
 
-        $previous = $topics[$index - 1];
-
-        return $this->isTopicComplete($enrollment, $previous);
+        return $this->isTopicComplete($enrollment, $topics[$index - 1]);
     }
 
     public function canAccessQuiz(Enrollment $enrollment, Quiz $quiz): bool
     {
+        if ($this->planAccess->usesPlanEntitlements($enrollment)
+            && ! $this->planAccess->canAccessQuiz($enrollment, $quiz)) {
+            return false;
+        }
+
         $lesson = $quiz->quizable;
 
         if ($lesson instanceof Lesson) {
@@ -104,6 +128,22 @@ final class CourseAccessService
         }
 
         return false;
+    }
+
+    public function canAccessInteractiveActivity(Enrollment $enrollment, InteractiveActivity $activity): bool
+    {
+        if ($this->planAccess->usesPlanEntitlements($enrollment)
+            && ! $this->planAccess->canAccessInteractiveActivity($enrollment, $activity)) {
+            return false;
+        }
+
+        if ($activity->lesson_id === null) {
+            return false;
+        }
+
+        $lesson = $activity->lesson;
+
+        return $lesson instanceof Lesson && $this->canAccessLesson($enrollment, $lesson);
     }
 
     public function isLessonComplete(Enrollment $enrollment, Lesson $lesson): bool
@@ -125,7 +165,13 @@ final class CourseAccessService
             ->get();
 
         foreach ($quizzes as $quiz) {
-            if (! $this->quizAttempts->hasPassed($enrollment->user, $quiz)) {
+            if ($this->planAccess->usesPlanEntitlements($enrollment)) {
+                if (! $this->planAccess->canAccessQuiz($enrollment, $quiz)) {
+                    continue;
+                }
+            }
+
+            if (! $this->quizPassedForEnrollment($enrollment, $quiz)) {
                 return false;
             }
         }
@@ -138,6 +184,23 @@ final class CourseAccessService
         return $enrollment->topicCompletions()
             ->where('topic_id', $topic->id)
             ->where('watch_progress_percent', '>=', 90)
+            ->exists();
+    }
+
+    private function quizPassedForEnrollment(Enrollment $enrollment, Quiz $quiz): bool
+    {
+        if ($this->officialScores->hasPassedOfficially($enrollment->user, $quiz, $enrollment)) {
+            return true;
+        }
+
+        if ($this->officialScores->officialAttempt($enrollment->user, $quiz, $enrollment) !== null) {
+            return false;
+        }
+
+        return QuizAttempt::query()
+            ->where('quiz_id', $quiz->id)
+            ->where('user_id', $enrollment->user_id)
+            ->where('passed', true)
             ->exists();
     }
 }

@@ -40,7 +40,7 @@ final class InteractiveActivityService
         if ($lesson instanceof Lesson) {
             try {
                 $enrollment = $this->access->requireEnrollment($user, $lesson->course);
-                if ($this->access->canAccessLesson($enrollment, $lesson)) {
+                if ($this->access->canAccessInteractiveActivity($enrollment, $activity)) {
                     return $enrollment;
                 }
             } catch (DomainException) {
@@ -279,7 +279,7 @@ final class InteractiveActivityService
             ]);
 
             if ($completed && $attempt->enrollment_id && $activity->topic_id) {
-                $enrollment = $attempt->enrollment ?: \App\Modules\Learning\Infrastructure\Persistence\Models\Enrollment::query()->find($attempt->enrollment_id);
+                $enrollment = $attempt->enrollment ?: Enrollment::query()->find($attempt->enrollment_id);
                 $topic = $activity->topic;
                 if ($enrollment && $topic) {
                     $this->progress->recordTopicProgress($enrollment, $topic, [

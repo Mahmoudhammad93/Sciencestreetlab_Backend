@@ -110,7 +110,7 @@ final class LessonController extends Controller
                     'title' => $quiz->getTranslation('title', $locale),
                     'is_required' => $quiz->is_required,
                     'is_locked' => ! $this->access->canAccessQuiz($enrollment, $quiz),
-                    'is_passed' => $this->quizAttempts->hasPassed($request->user(), $quiz),
+                    'is_passed' => $this->quizAttempts->hasPassed($request->user(), $quiz, $enrollment),
                 ])->values(),
                 'previous_lesson_id' => $previous?->id,
                 'next_lesson_id' => $next?->id,

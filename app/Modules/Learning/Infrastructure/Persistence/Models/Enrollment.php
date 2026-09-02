@@ -13,8 +13,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Enrollment extends Model
 {
     protected $fillable = [
-        'user_id', 'course_id', 'order_item_id', 'status', 'progress_percent',
-        'enrolled_at', 'started_at', 'completed_at', 'expires_at',
+        'user_id', 'course_id', 'course_plan_id', 'order_item_id', 'status', 'progress_percent',
+        'enrolled_at', 'started_at', 'completed_at', 'expires_at', 'grant_certificate',
         'last_accessed_lesson_id', 'last_accessed_topic_id', 'last_accessed_at',
     ];
 
@@ -28,7 +28,18 @@ class Enrollment extends Model
             'completed_at' => 'datetime',
             'expires_at' => 'datetime',
             'last_accessed_at' => 'datetime',
+            'grant_certificate' => 'boolean',
         ];
+    }
+
+    public function coursePlan(): BelongsTo
+    {
+        return $this->belongsTo(CoursePlan::class);
+    }
+
+    public function entitlements(): HasMany
+    {
+        return $this->hasMany(EnrollmentEntitlement::class);
     }
 
     public function course(): BelongsTo

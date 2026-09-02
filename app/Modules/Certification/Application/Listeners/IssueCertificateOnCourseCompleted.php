@@ -21,6 +21,10 @@ final class IssueCertificateOnCourseCompleted
             return;
         }
 
+        if ($enrollment->course_plan_id !== null && ! $enrollment->grant_certificate) {
+            return;
+        }
+
         $this->issuance->issue($enrollment);
     }
 }

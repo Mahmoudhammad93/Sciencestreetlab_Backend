@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a73e08f0-1975-4c1d-9fb3-5a91721375db",
     "name": "Science Street Lab API",
-    "description": "REST API collection for Science Street Lab (Laravel `/api/v1`). **All endpoints live in this one file.**\n\n**Auth:** Laravel Sanctum Bearer token. Login/Register auto-save `token`.\n**Base URL:** `{{baseUrl}}` (default `http://localhost:8000`).\n**Environment:** import `Science-Street-Lab.local.postman_environment.json`.\n\n**Demo login**\n- Admin: `admin@sciencestreetlab.com` / `password`\n- Student: `demo@sciencestreetlab.com` / `password`\n\n**Suggested order**\n1. Health → App Health / Public website settings\n2. Auth → Login (or Login demo student)\n3. Catalog → Products → Commerce (cart → checkout → mock pay)\n4. Learning → Enroll → Biology/Physics lab curriculum\n5. Assessment → Interactive Activities (Full Light Lab workflow) → Mixed Quiz\n\nAssessment demo (`php artisan db:seed --class=AssessmentDemoCoursesSeeder`):\n- Courses: `intro-biology-lab`, `basic-physics-lab`, `basic-chemistry-lab`\n\n**Interactive Activities** are complete HTML games (Light Lab, Sound Lab, Plant Growth, Rubber Castle, Rubber Race). Hosted in a sandboxed iframe; POST `.../progress` and `.../result` for client-reported state.\n\nStudent question payloads never include `is_correct` or `answer_key`.\n\n**Quiz result / post-review** (`POST /quiz-attempts/{id}/submit` and `GET /quiz-attempts/{id}/result`):\n- `attempt_number`, `time_taken`, `time_taken_seconds`\n- `question_results[].user_answer`\n- `question_results[].correct_answer` (only after submit)\n",
+    "description": "REST API collection for Science Street Lab (Laravel `/api/v1`). **All endpoints live in this one file.**\n\n**Auth:** Laravel Sanctum Bearer token. Login/Register auto-save `token`.\n**Base URL:** `{{baseUrl}}` (default `http://localhost:8000`).\n**Environment:** import `Science-Street-Lab.local.postman_environment.json`.\n\n**Demo accounts**\n- Admin: `admin@sciencestreetlab.com` / `password`\n- Student: `demo@sciencestreetlab.com` / `password`\n- Plan demo: `plan-demo@sciencestreetlab.com` / `password` (Physics plan — run `CoursePlanDemoSeeder`)\n\n**Suggested order**\n1. Health → App Health / Public website settings\n2. Auth → Login (or Login demo student)\n3. Learning → Enroll → Course Access → Curriculum → Leaderboard\n4. Catalog → Commerce (cart → checkout → mock pay) for paid course plans\n5. Assessment → Start quiz → Save answers → Submit (with `time_spent_seconds`) → Get result\n\nAssessment demo (`php artisan db:seed --class=AssessmentDemoCoursesSeeder`):\n- Courses: `intro-biology-lab`, `basic-physics-lab`, `basic-chemistry-lab`, `microscope-course`\n\n**Course plans & access**\n- `GET /courses/{slug}/access` — plan entitlements snapshot for enrolled user\n- `POST /courses/{slug}/plans/{planId}/enroll` — enroll via free plan\n- Quiz pass/progress uses **official score only** (first submitted attempt)\n\n**Course leaderboard**\n- `GET /courses/{slug}/leaderboard` — ranks by average official quiz % (optional auth for `current_user`)\n\n**Auth email**\n- Register sends verification email (`email_verified: false` until link clicked)\n- `POST /auth/forgot-password`, `POST /auth/reset-password`, `POST /auth/email/verification-notification`\n\n**Quiz official score**\n- First **submitted** attempt = official (`is_official`, `official_score`, `official_attempt_number`, `official_passed`)\n- Retries never replace official score; `current_attempt_score` shows this attempt only\n- Submit body may include `time_spent_seconds` (client-measured active time)\n\n**Quiz result / post-review** (`POST /quiz-attempts/{id}/submit` and `GET /quiz-attempts/{id}/result`):\n- `attempt_number`, `time_taken`, `time_taken_seconds`, `quiz_id`\n- `is_official`, `official_score`, `official_attempt_number`, `official_passed`, `current_attempt_score`\n- `question_results[].user_answer`, `question_results[].correct_answer`\n\n**Start quiz when max attempts reached (422):**\n- `code`: `MAX_ATTEMPTS_REACHED`\n- `official_attempt_id`, `last_attempt_id` — use for GET result\n\nStudent question payloads never include `is_correct` or `answer_key`.\n",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -183,6 +183,18 @@
     {
       "key": "physics_lesson_id",
       "value": "1"
+    },
+    {
+      "key": "course_plan_id",
+      "value": "1"
+    },
+    {
+      "key": "official_attempt_id",
+      "value": "1"
+    },
+    {
+      "key": "plan_demo_course_slug",
+      "value": "basic-physics-lab"
     }
   ],
   "item": [
@@ -407,7 +419,12 @@
                   "  if (json.data && json.data.user && json.data.user.id) {",
                   "    pm.collectionVariables.set('user_id', String(json.data.user.id));",
                   "  }",
-                  "}"
+                  "}",
+                  "try {",
+                  "  const _j = pm.response.json();",
+                  "  if (_j.data && _j.data.user) pm.test('email_verified present', () => pm.expect(_j.data.user).to.have.property('email_verified'));",
+                  "} catch (e) {}",
+                  ""
                 ]
               }
             }
@@ -468,7 +485,12 @@
                   "  if (json.data && json.data.user && json.data.user.id) {",
                   "    pm.collectionVariables.set('user_id', String(json.data.user.id));",
                   "  }",
-                  "}"
+                  "}",
+                  "try {",
+                  "  const _j = pm.response.json();",
+                  "  if (_j.data && _j.data.user) pm.test('email_verified present', () => pm.expect(_j.data.user).to.have.property('email_verified'));",
+                  "} catch (e) {}",
+                  ""
                 ]
               }
             }
@@ -531,6 +553,165 @@
                   "if (json.data && json.data.user && json.data.user.id) {",
                   "  pm.collectionVariables.set('user_id', String(json.data.user.id));",
                   "}",
+                  "",
+                  "try {",
+                  "  const _j = pm.response.json();",
+                  "  if (_j.data && _j.data.user) pm.test('email_verified present', () => pm.expect(_j.data.user).to.have.property('email_verified'));",
+                  "} catch (e) {}",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/forgot-password",
+            "description": "Sends reset link if account exists. Always returns generic success (no email enumeration).",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"demo@sciencestreetlab.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/reset-password",
+            "description": "Reset with token from email. Replace `token` with value from mail/log.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"paste-token-from-email\",\n  \"email\": \"demo@sciencestreetlab.com\",\n  \"password\": \"password\",\n  \"password_confirmation\": \"password\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Resend Email Verification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/email/verification-notification",
+            "description": "Resend verification email for authenticated user with unverified email. Rate limited."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx or 429', () => pm.expect(pm.response.code).to.be.oneOf([200, 202, 204, 429]));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login (plan demo student)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/auth/login",
+            "description": "Student with Physics Demo Plan (`CoursePlanDemoSeeder`). Saves `token`.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"plan-demo@sciencestreetlab.com\",\n  \"password\": \"password\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.token) pm.collectionVariables.set('token', json.data.token);",
+                  "if (json.data && json.data.user && json.data.user.id) pm.collectionVariables.set('user_id', String(json.data.user.id));",
+                  "pm.test('email_verified flag present', () => {",
+                  "  pm.expect(json.data.user).to.have.property('email_verified');",
+                  "});",
                   ""
                 ]
               }
@@ -1372,6 +1553,141 @@
           "response": []
         },
         {
+          "name": "Get Course Access",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/courses/{{course_slug}}/access",
+            "description": "Plan-based access summary: enrolled, active, uses_plan, plan name, entitled lesson/topic/quiz IDs."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "const d = pm.response.json().data;",
+                  "pm.test('access payload', () => {",
+                  "  pm.expect(d).to.have.property('enrolled');",
+                  "  pm.expect(d).to.have.property('uses_plan');",
+                  "  if (d.plan && d.plan.id) pm.collectionVariables.set('course_plan_id', String(d.plan.id));",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Course Leaderboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/courses/{{course_slug}}/leaderboard?page=1&per_page=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "courses",
+                "{{course_slug}}",
+                "leaderboard"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Ranks learners by average **official** quiz score. Auth optional — include Bearer for `current_user` rank.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "const body = pm.response.json();",
+                  "pm.test('leaderboard shape', () => {",
+                  "  pm.expect(body).to.have.property('leaderboard');",
+                  "  pm.expect(body.leaderboard).to.be.an('array');",
+                  "  pm.expect(body).to.have.property('meta');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Enroll via Course Plan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/courses/{{plan_demo_course_slug}}/plans/{{course_plan_id}}/enroll",
+            "description": "Enroll via a free course plan (snapshots entitlements). Use after Filament creates a plan or `CoursePlanDemoSeeder`.",
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx or already enrolled', () => pm.expect(pm.response.code).to.be.oneOf([200, 201, 409, 422]));",
+                  "if (pm.response.code < 300) {",
+                  "  const d = pm.response.json().data;",
+                  "  if (d && d.id) pm.collectionVariables.set('enrollment_id', String(d.id));",
+                  "}",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Course Curriculum",
           "request": {
             "method": "GET",
@@ -1986,7 +2302,7 @@
                 "attempts"
               ]
             },
-            "description": "POST /quizzes/{quiz}/attempts — starts or resumes.\nFreezes questions. Mixed quizzes also return interactive_activities.",
+            "description": "POST /quizzes/{quiz}/attempts — starts or resumes (resuming resets session clock).\n422 MAX_ATTEMPTS_REACHED returns official_attempt_id + last_attempt_id.\nFreezes questions.",
             "body": {
               "mode": "raw",
               "raw": "{}",
@@ -2004,6 +2320,17 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
+                  "if (pm.response.code === 422) {",
+                  "  const json = pm.response.json();",
+                  "  pm.test('max attempts returns attempt ids', function () {",
+                  "    pm.expect(json.code).to.eql('MAX_ATTEMPTS_REACHED');",
+                  "    pm.expect(json).to.have.property('official_attempt_id');",
+                  "    pm.expect(json).to.have.property('last_attempt_id');",
+                  "  });",
+                  "  if (json.official_attempt_id) pm.collectionVariables.set('official_attempt_id', String(json.official_attempt_id));",
+                  "  if (json.last_attempt_id) pm.collectionVariables.set('attempt_id', String(json.last_attempt_id));",
+                  "  return;",
+                  "}",
                   "pm.test('HTTP 2xx', function () {",
                   "  pm.expect(pm.response.code).to.be.within(200, 299);",
                   "});",
@@ -2734,10 +3061,15 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}"
+              "raw": "{\n  \"time_spent_seconds\": 45\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": "{{baseUrl}}/api/v1/quiz-attempts/{{attempt_id}}/submit",
-            "description": "Finish + grade. Returns attempt_number, time_taken, question_results[].user_answer, question_results[].correct_answer."
+            "description": "Finish + grade. Optional `time_spent_seconds` (client active time).\nReturns official score fields + question_results."
           },
           "event": [
             {
@@ -2757,15 +3089,23 @@
                   "  pm.expect(d).to.have.property('attempt_id');",
                   "  pm.expect(d).to.have.property('attempt_number');",
                   "  pm.expect(d).to.have.property('time_taken');",
+                  "  pm.expect(d).to.have.property('time_taken_seconds');",
                   "  pm.expect(d).to.have.property('status');",
                   "  pm.expect(d).to.have.property('score');",
                   "  pm.expect(d).to.have.property('percentage');",
+                  "  pm.expect(d).to.have.property('quiz_id');",
+                  "  pm.expect(d).to.have.property('is_official');",
+                  "  pm.expect(d).to.have.property('official_score');",
+                  "  pm.expect(d).to.have.property('official_attempt_number');",
+                  "  pm.expect(d).to.have.property('official_passed');",
+                  "  pm.expect(d).to.have.property('current_attempt_score');",
                   "  pm.expect(d.question_results).to.be.an('array');",
                   "  if (d.question_results.length) {",
                   "    pm.expect(d.question_results[0]).to.have.property('user_answer');",
                   "    pm.expect(d.question_results[0]).to.have.property('correct_answer');",
                   "  }",
                   "});",
+                  "if (d.is_official) pm.collectionVariables.set('official_attempt_id', String(d.attempt_id));",
                   ""
                 ]
               }
@@ -2783,7 +3123,7 @@
               }
             ],
             "url": "{{baseUrl}}/api/v1/quiz-attempts/{{attempt_id}}/result",
-            "description": "Post-review: attempt_number, time_taken, question_results[].user_answer, question_results[].correct_answer."
+            "description": "Post-review result. Includes is_official, official_score, official_attempt_number, official_passed, current_attempt_score, question_results."
           },
           "event": [
             {
@@ -2803,15 +3143,78 @@
                   "  pm.expect(d).to.have.property('attempt_id');",
                   "  pm.expect(d).to.have.property('attempt_number');",
                   "  pm.expect(d).to.have.property('time_taken');",
+                  "  pm.expect(d).to.have.property('time_taken_seconds');",
                   "  pm.expect(d).to.have.property('status');",
                   "  pm.expect(d).to.have.property('score');",
                   "  pm.expect(d).to.have.property('percentage');",
+                  "  pm.expect(d).to.have.property('quiz_id');",
+                  "  pm.expect(d).to.have.property('is_official');",
+                  "  pm.expect(d).to.have.property('official_score');",
+                  "  pm.expect(d).to.have.property('official_attempt_number');",
+                  "  pm.expect(d).to.have.property('official_passed');",
+                  "  pm.expect(d).to.have.property('current_attempt_score');",
                   "  pm.expect(d.question_results).to.be.an('array');",
                   "  if (d.question_results.length) {",
                   "    pm.expect(d.question_results[0]).to.have.property('user_answer');",
                   "    pm.expect(d.question_results[0]).to.have.property('correct_answer');",
                   "  }",
                   "});",
+                  "if (d.is_official) pm.collectionVariables.set('official_attempt_id', String(d.attempt_id));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Official Quiz Result",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/quiz-attempts/{{official_attempt_id}}/result",
+            "description": "Fetch the **official** (first submitted) attempt result. Uses `official_attempt_id` from submit/start max-attempts response."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', function () {",
+                  "  pm.expect(pm.response.code).to.be.within(200, 299);",
+                  "});",
+                  "pm.test('JSON has data', function () {",
+                  "  const json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('data');",
+                  "});",
+                  "const d = pm.response.json().data;",
+                  "pm.test('quiz result + post review fields', function () {",
+                  "  pm.expect(d).to.have.property('attempt_id');",
+                  "  pm.expect(d).to.have.property('attempt_number');",
+                  "  pm.expect(d).to.have.property('time_taken');",
+                  "  pm.expect(d).to.have.property('time_taken_seconds');",
+                  "  pm.expect(d).to.have.property('status');",
+                  "  pm.expect(d).to.have.property('score');",
+                  "  pm.expect(d).to.have.property('percentage');",
+                  "  pm.expect(d).to.have.property('quiz_id');",
+                  "  pm.expect(d).to.have.property('is_official');",
+                  "  pm.expect(d).to.have.property('official_score');",
+                  "  pm.expect(d).to.have.property('official_attempt_number');",
+                  "  pm.expect(d).to.have.property('official_passed');",
+                  "  pm.expect(d).to.have.property('current_attempt_score');",
+                  "  pm.expect(d.question_results).to.be.an('array');",
+                  "  if (d.question_results.length) {",
+                  "    pm.expect(d.question_results[0]).to.have.property('user_answer');",
+                  "    pm.expect(d.question_results[0]).to.have.property('correct_answer');",
+                  "  }",
+                  "});",
+                  "if (d.is_official) pm.collectionVariables.set('official_attempt_id', String(d.attempt_id));",
                   ""
                 ]
               }
@@ -2856,7 +3259,8 @@
                         "value": "application/json"
                       }
                     ],
-                    "url": "{{baseUrl}}/api/v1/interactive-activities/{{light_lab_activity_id}}/launch"
+                    "url": "{{baseUrl}}/api/v1/interactive-activities/{{light_lab_activity_id}}/launch",
+                    "description": "Returns signed sandboxed iframe URL + postMessage protocol.\nSandbox: `allow-scripts` only (no cookies/session/parent DOM).\npostMessage events: READY, STARTED, PROGRESS, CHALLENGE_*, ACTIVITY_COMPLETED, RETRY, ERROR."
                   },
                   "event": [
                     {
@@ -2970,7 +3374,12 @@
                     ],
                     "body": {
                       "mode": "raw",
-                      "raw": "{\n  \"completed\": true,\n  \"score\": 40,\n  \"max_score\": 50,\n  \"percentage\": 80,\n  \"time_spent_seconds\": 320,\n  \"challenges_completed\": 5,\n  \"total_challenges\": 5,\n  \"result\": {}\n}"
+                      "raw": "{\n  \"completed\": true,\n  \"score\": 40,\n  \"max_score\": 50,\n  \"percentage\": 80,\n  \"time_spent_seconds\": 320,\n  \"challenges_completed\": 5,\n  \"total_challenges\": 5,\n  \"result\": {}\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
                     },
                     "url": "{{baseUrl}}/api/v1/interactive-activity-attempts/{{activity_attempt_id}}/result",
                     "description": "Flat payload matching postMessage ACTIVITY_COMPLETED from HTML activity."

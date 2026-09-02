@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\CourseResource\Pages;
+use App\Filament\Resources\CourseResource\RelationManagers\CoursePlansRelationManager;
 use App\Filament\Resources\CourseResource\RelationManagers\LessonsRelationManager;
 use App\Modules\Learning\Domain\Enums\AccessType;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
@@ -72,6 +73,7 @@ class CourseResource extends Resource
     {
         return [
             LessonsRelationManager::class,
+            CoursePlansRelationManager::class,
         ];
     }
 
