@@ -4,13 +4,28 @@ declare(strict_types=1);
 
 namespace App\Modules\Assessment\Http\Resources;
 
+use App\Models\User;
+use App\Modules\Assessment\Application\Services\OfficialQuizScoreService;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\Quiz;
+use App\Modules\Learning\Infrastructure\Persistence\Models\Enrollment;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /** @mixin Quiz */
 final class QuizResource extends JsonResource
 {
+    private ?User $viewer = null;
+
+    private ?Enrollment $enrollment = null;
+
+    public function forEnrollment(User $user, Enrollment $enrollment): self
+    {
+        $this->viewer = $user;
+        $this->enrollment = $enrollment;
+
+        return $this;
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -19,7 +34,8 @@ final class QuizResource extends JsonResource
         /** @var Quiz $quiz */
         $quiz = $this->resource;
         $locale = app()->getLocale();
-        return [
+
+        $payload = [
             'id' => $quiz->id,
             'uuid' => $quiz->uuid,
             'title' => $quiz->getTranslation('title', $locale),
@@ -36,5 +52,19 @@ final class QuizResource extends JsonResource
                 : $quiz->questions()->count(),
             'interactive_activities' => [],
         ];
+
+        if ($this->viewer !== null && $this->enrollment !== null) {
+            $official = app(OfficialQuizScoreService::class)->officialPayload(
+                $this->viewer,
+                $quiz,
+                $this->enrollment,
+            );
+
+            $payload = array_merge($payload, $official, [
+                'has_previous_attempt' => $official['official_attempt_id'] !== null,
+            ]);
+        }
+
+        return $payload;
     }
 }

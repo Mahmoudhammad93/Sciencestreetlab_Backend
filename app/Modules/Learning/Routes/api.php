@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('courses')->group(function (): void {
     Route::get('/', [CourseController::class, 'index']);
     Route::get('/{slug}', [CourseController::class, 'show']);
+    Route::get('/{slug}/plans', [CourseController::class, 'plans']);
     Route::get('/{slug}/lessons', [LessonController::class, 'index']);
     Route::get('/{slug}/leaderboard', [CourseLeaderboardController::class, 'show'])
         ->middleware('auth.optional');

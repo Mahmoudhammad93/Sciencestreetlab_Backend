@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Learning\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Learning\Application\Services\CoursePlanPresenter;
 use App\Modules\Learning\Application\Services\CoursePresenter;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
 use Illuminate\Http\JsonResponse;
@@ -14,6 +15,7 @@ final class CourseController extends Controller
 {
     public function __construct(
         private readonly CoursePresenter $presenter,
+        private readonly CoursePlanPresenter $planPresenter,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -53,6 +55,30 @@ final class CourseController extends Controller
                 $request->user('sanctum'),
                 includeLessonOutline: true,
             ),
+        ]);
+    }
+
+    public function plans(string $slug): JsonResponse
+    {
+        $course = Course::query()
+            ->where('slug', $slug)
+            ->where('is_published', true)
+            ->first();
+
+        if (! $course) {
+            return response()->json(['message' => 'Course not found'], 404);
+        }
+
+        $plans = $course->plans()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+
+        return response()->json([
+            'data' => $plans
+                ->map(fn ($plan) => $this->planPresenter->present($plan))
+                ->values(),
         ]);
     }
 }

@@ -41,6 +41,7 @@ final class QuizResultResource extends JsonResource
             'is_official' => (bool) $attempt->is_official,
             'official_score' => $official['official_score'],
             'official_attempt_number' => $official['official_attempt_number'],
+            'official_attempt_id' => $official['official_attempt_id'],
             'official_passed' => $official['official_passed'],
             'time_taken' => (int) ($attempt->time_spent_seconds ?? 0),
             'time_taken_seconds' => $attempt->time_spent_seconds !== null ? (int) $attempt->time_spent_seconds : null,

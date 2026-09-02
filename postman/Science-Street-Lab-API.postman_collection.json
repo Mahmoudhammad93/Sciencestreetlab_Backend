@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a73e08f0-1975-4c1d-9fb3-5a91721375db",
     "name": "Science Street Lab API",
-    "description": "REST API collection for Science Street Lab (Laravel `/api/v1`). **All endpoints live in this one file.**\n\n**Auth:** Laravel Sanctum Bearer token. Login/Register auto-save `token`.\n**Base URL:** `{{baseUrl}}` (default `http://localhost:8000`).\n**Environment:** import `Science-Street-Lab.local.postman_environment.json`.\n\n**Demo accounts**\n- Admin: `admin@sciencestreetlab.com` / `password`\n- Student: `demo@sciencestreetlab.com` / `password`\n- Plan demo: `plan-demo@sciencestreetlab.com` / `password` (Physics plan — run `CoursePlanDemoSeeder`)\n\n**Suggested order**\n1. Health → App Health / Public website settings\n2. Auth → Login (or Login demo student)\n3. Learning → Enroll → Course Access → Curriculum → Leaderboard\n4. Catalog → Commerce (cart → checkout → mock pay) for paid course plans\n5. Assessment → Start quiz → Save answers → Submit (with `time_spent_seconds`) → Get result\n\nAssessment demo (`php artisan db:seed --class=AssessmentDemoCoursesSeeder`):\n- Courses: `intro-biology-lab`, `basic-physics-lab`, `basic-chemistry-lab`, `microscope-course`\n\n**Course plans & access**\n- `GET /courses/{slug}/access` — plan entitlements snapshot for enrolled user\n- `POST /courses/{slug}/plans/{planId}/enroll` — enroll via free plan\n- Quiz pass/progress uses **official score only** (first submitted attempt)\n\n**Course leaderboard**\n- `GET /courses/{slug}/leaderboard` — ranks by average official quiz % (optional auth for `current_user`)\n\n**Auth email**\n- Register sends verification email (`email_verified: false` until link clicked)\n- `POST /auth/forgot-password`, `POST /auth/reset-password`, `POST /auth/email/verification-notification`\n\n**Quiz official score**\n- First **submitted** attempt = official (`is_official`, `official_score`, `official_attempt_number`, `official_passed`)\n- Retries never replace official score; `current_attempt_score` shows this attempt only\n- Submit body may include `time_spent_seconds` (client-measured active time)\n\n**Quiz result / post-review** (`POST /quiz-attempts/{id}/submit` and `GET /quiz-attempts/{id}/result`):\n- `attempt_number`, `time_taken`, `time_taken_seconds`, `quiz_id`\n- `is_official`, `official_score`, `official_attempt_number`, `official_passed`, `current_attempt_score`\n- `question_results[].user_answer`, `question_results[].correct_answer`\n\n**Start quiz when max attempts reached (422):**\n- `code`: `MAX_ATTEMPTS_REACHED`\n- `official_attempt_id`, `last_attempt_id` — use for GET result\n\nStudent question payloads never include `is_correct` or `answer_key`.\n",
+    "description": "REST API collection for Science Street Lab (Laravel `/api/v1`). **All endpoints live in this one file.**\n\n**Auth:** Laravel Sanctum Bearer token. Login/Register auto-save `token`.\n**Base URL:** `{{baseUrl}}` (default `http://localhost:8000`).\n**Environment:** import `Science-Street-Lab.local.postman_environment.json`.\n\n**Demo accounts**\n- Admin: `admin@sciencestreetlab.com` / `password`\n- Student: `demo@sciencestreetlab.com` / `password`\n- Plan demo: `plan-demo@sciencestreetlab.com` / `password` (Physics plan — run `CoursePlanDemoSeeder`)\n\n**Suggested order**\n1. Health → App Health / Public website settings\n2. Auth → Login (or Login demo student)\n3. Learning → Enroll → Course Access → Curriculum → Leaderboard\n4. Catalog → Commerce (cart → checkout → mock pay) for paid course plans\n5. Assessment → Start quiz → Save answers → Submit (with `time_spent_seconds`) → Get result\n\nAssessment demo (`php artisan db:seed --class=AssessmentDemoCoursesSeeder`):\n- Courses: `intro-biology-lab`, `basic-physics-lab`, `basic-chemistry-lab`, `microscope-course`\n\n**Course plans & access**\n- `GET /courses/{slug}/plans` — list active plans for a published course (public, no auth)\n- `GET /courses/{slug}/access` — plan entitlements snapshot for enrolled user\n- `POST /courses/{slug}/plans/{planId}/enroll` — enroll via free plan\n- Quiz pass/progress uses **official score only** (first submitted attempt)\n\n**Course leaderboard**\n- `GET /courses/{slug}/leaderboard` — ranks by average official quiz % (optional auth for `current_user`)\n\n**Auth email**\n- Register sends verification email (`email_verified: false` until link clicked)\n- `POST /auth/forgot-password`, `POST /auth/reset-password`, `POST /auth/email/verification-notification`\n\n**Quiz official score**\n- `GET /quizzes/{quiz}` (enrolled user) returns `official_score`, `official_attempt_number`, `official_attempt_id`, `official_passed`, `has_previous_attempt`\n- First **submitted** attempt = official (`is_official`, `official_score`, `official_attempt_number`, `official_passed`)\n- Retries never replace official score; `current_attempt_score` shows this attempt only\n- Submit body may include `time_spent_seconds` (client-measured active time)\n\n**Quiz result / post-review** (`POST /quiz-attempts/{id}/submit` and `GET /quiz-attempts/{id}/result`):\n- `attempt_number`, `time_taken`, `time_taken_seconds`, `quiz_id`\n- `is_official`, `official_score`, `official_attempt_number`, `official_attempt_id`, `official_passed`, `current_attempt_score`\n- `question_results[].user_answer`, `question_results[].correct_answer`\n\n**Start quiz when max attempts reached (422):**\n- `code`: `MAX_ATTEMPTS_REACHED`\n- `official_attempt_id`, `last_attempt_id` — use for GET result\n\nStudent question payloads never include `is_correct` or `answer_key`.\n",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -1644,6 +1644,55 @@
           ]
         },
         {
+          "name": "Get Course Plans",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/courses/{{course_slug}}/plans",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "courses",
+                "{{course_slug}}",
+                "plans"
+              ]
+            },
+            "description": "Public listing of active course plans for a published course. No auth required.\nReturns id, name, description, price, currency, is_lifetime, duration_days, max_quiz_attempts, grant_certificate.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "const body = pm.response.json();",
+                  "pm.test('plans array', () => {",
+                  "  pm.expect(body).to.have.property('data');",
+                  "  pm.expect(body.data).to.be.an('array');",
+                  "});",
+                  "if (body.data.length) {",
+                  "  pm.collectionVariables.set('course_plan_id', String(body.data[0].id));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Enroll via Course Plan",
           "request": {
             "method": "POST",
@@ -2247,7 +2296,7 @@
                 "{{quiz_id}}"
               ]
             },
-            "description": "Quiz metadata including interactive_activities (mixed quizzes)."
+            "description": "Quiz metadata including interactive_activities.\nWhen authenticated with enrollment, also returns official_score, official_attempt_number, official_attempt_id, official_passed, has_previous_attempt (first successfully submitted attempt only)."
           },
           "response": [],
           "event": [
@@ -2269,6 +2318,14 @@
                   "  pm.expect(d).to.have.property('title');",
                   "  pm.expect(d.interactive_activities).to.be.an('array');",
                   "});",
+                  "pm.test('official score fields present', function () {",
+                  "  pm.expect(d).to.have.property('official_score');",
+                  "  pm.expect(d).to.have.property('official_attempt_number');",
+                  "  pm.expect(d).to.have.property('official_attempt_id');",
+                  "  pm.expect(d).to.have.property('official_passed');",
+                  "  pm.expect(d).to.have.property('has_previous_attempt');",
+                  "});",
+                  "if (d.official_attempt_id) pm.collectionVariables.set('official_attempt_id', String(d.official_attempt_id));",
                   ""
                 ]
               }
@@ -3097,6 +3154,7 @@
                   "  pm.expect(d).to.have.property('is_official');",
                   "  pm.expect(d).to.have.property('official_score');",
                   "  pm.expect(d).to.have.property('official_attempt_number');",
+                  "  pm.expect(d).to.have.property('official_attempt_id');",
                   "  pm.expect(d).to.have.property('official_passed');",
                   "  pm.expect(d).to.have.property('current_attempt_score');",
                   "  pm.expect(d.question_results).to.be.an('array');",
@@ -3151,6 +3209,7 @@
                   "  pm.expect(d).to.have.property('is_official');",
                   "  pm.expect(d).to.have.property('official_score');",
                   "  pm.expect(d).to.have.property('official_attempt_number');",
+                  "  pm.expect(d).to.have.property('official_attempt_id');",
                   "  pm.expect(d).to.have.property('official_passed');",
                   "  pm.expect(d).to.have.property('current_attempt_score');",
                   "  pm.expect(d.question_results).to.be.an('array');",

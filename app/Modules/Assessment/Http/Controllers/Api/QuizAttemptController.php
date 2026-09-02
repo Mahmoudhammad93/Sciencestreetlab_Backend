@@ -47,7 +47,9 @@ final class QuizAttemptController extends Controller
             return ApiError::fromDomain($e);
         }
 
-        return (new QuizResource($quiz))->response();
+        return (new QuizResource($quiz))
+            ->forEnrollment($request->user(), $enrollment)
+            ->response();
     }
 
     public function start(StartQuizRequest $request, Quiz $quiz): JsonResponse

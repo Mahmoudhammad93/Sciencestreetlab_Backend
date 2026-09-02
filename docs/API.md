@@ -209,6 +209,7 @@ Paid course products auto-enroll the user.
 | GET | `/courses` | Public | Course catalog |
 | GET | `/courses/{slug}` | Public | Course + lessons |
 | GET | `/courses/{slug}/lessons` | Public | Lessons list |
+| GET | `/courses/{slug}/plans` | Public | Active course plans |
 | POST | `/courses/{slug}/enroll` | Required | Enroll (free / already paid) |
 | GET | `/courses/{slug}/curriculum` | Required | Lessons, quizzes, lock state, activities |
 | GET | `/courses/{slug}/enrollment` | Required | This course enrollment |
@@ -278,7 +279,35 @@ Authorization: Bearer {token}
 }
 ```
 
-**Quiz official score:** The first **successfully submitted** attempt is the official score. Retries may score higher but never replace the official result. Quiz result APIs return `is_official`, `official_score`, and `official_attempt_number`.
+**Quiz official score:** The first **successfully submitted** attempt is the official score. Retries may score higher but never replace the official result. `GET /quizzes/{quiz}` (authenticated + enrolled) and quiz result APIs return `official_score`, `official_attempt_number`, `official_attempt_id`, `official_passed`, and `has_previous_attempt` (on quiz show).
+
+### Course plans (public)
+
+List active plans for a published course (no auth required):
+
+```http
+GET /api/v1/courses/{slug}/plans
+```
+
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "name": "Basic Plan",
+      "description": "Basic course access",
+      "price": "299.00",
+      "currency": "EGP",
+      "is_lifetime": false,
+      "duration_days": 30,
+      "max_quiz_attempts": 2,
+      "grant_certificate": false
+    }
+  ]
+}
+```
+
+Enroll via a plan: `POST /api/v1/courses/{slug}/plans/{planId}/enroll` (auth required).
 
 ### Course leaderboard
 
@@ -316,7 +345,7 @@ Student payloads **never** include `is_correct` or `answer_key`.
 
 | Method | Path | Auth | What it does |
 |-------|------|------|----------------|
-| GET | `/quizzes/{quiz}` | Required | Quiz meta + `interactive_activities` |
+| GET | `/quizzes/{quiz}` | Required | Quiz meta + official score fields + `interactive_activities` |
 | POST | `/quizzes/{quiz}/attempts` | Required | Start or resume attempt |
 | GET | `/quiz-attempts/{attempt}` | Required | Attempt + questions (no answers) |
 | POST | `/quiz-attempts/{attempt}/answers` | Required | Save one answer |

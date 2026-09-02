@@ -33,6 +33,7 @@ Assessment demo (`php artisan db:seed --class=AssessmentDemoCoursesSeeder`):
 - Courses: `intro-biology-lab`, `basic-physics-lab`, `basic-chemistry-lab`, `microscope-course`
 
 **Course plans & access**
+- `GET /courses/{slug}/plans` — list active plans for a published course (public, no auth)
 - `GET /courses/{slug}/access` — plan entitlements snapshot for enrolled user
 - `POST /courses/{slug}/plans/{planId}/enroll` — enroll via free plan
 - Quiz pass/progress uses **official score only** (first submitted attempt)
@@ -45,13 +46,14 @@ Assessment demo (`php artisan db:seed --class=AssessmentDemoCoursesSeeder`):
 - `POST /auth/forgot-password`, `POST /auth/reset-password`, `POST /auth/email/verification-notification`
 
 **Quiz official score**
+- `GET /quizzes/{quiz}` (enrolled user) returns `official_score`, `official_attempt_number`, `official_attempt_id`, `official_passed`, `has_previous_attempt`
 - First **submitted** attempt = official (`is_official`, `official_score`, `official_attempt_number`, `official_passed`)
 - Retries never replace official score; `current_attempt_score` shows this attempt only
 - Submit body may include `time_spent_seconds` (client-measured active time)
 
 **Quiz result / post-review** (`POST /quiz-attempts/{id}/submit` and `GET /quiz-attempts/{id}/result`):
 - `attempt_number`, `time_taken`, `time_taken_seconds`, `quiz_id`
-- `is_official`, `official_score`, `official_attempt_number`, `official_passed`, `current_attempt_score`
+- `is_official`, `official_score`, `official_attempt_number`, `official_attempt_id`, `official_passed`, `current_attempt_score`
 - `question_results[].user_answer`, `question_results[].correct_answer`
 
 **Start quiz when max attempts reached (422):**
@@ -98,6 +100,7 @@ QUIZ_RESULT_TEST = [
     "  pm.expect(d).to.have.property('is_official');",
     "  pm.expect(d).to.have.property('official_score');",
     "  pm.expect(d).to.have.property('official_attempt_number');",
+    "  pm.expect(d).to.have.property('official_attempt_id');",
     "  pm.expect(d).to.have.property('official_passed');",
     "  pm.expect(d).to.have.property('current_attempt_score');",
     "  pm.expect(d.question_results).to.be.an('array');",
@@ -107,6 +110,31 @@ QUIZ_RESULT_TEST = [
     "  }",
     "});",
     "if (d.is_official) pm.collectionVariables.set('official_attempt_id', String(d.attempt_id));",
+    "",
+]
+
+QUIZ_SHOW_TEST = [
+    "pm.test('HTTP 2xx', function () {",
+    "  pm.expect(pm.response.code).to.be.within(200, 299);",
+    "});",
+    "pm.test('JSON has data', function () {",
+    "  const json = pm.response.json();",
+    "  pm.expect(json).to.have.property('data');",
+    "});",
+    "const d = pm.response.json().data;",
+    "pm.test('quiz metadata', function () {",
+    "  pm.expect(d).to.have.property('id');",
+    "  pm.expect(d).to.have.property('title');",
+    "  pm.expect(d.interactive_activities).to.be.an('array');",
+    "});",
+    "pm.test('official score fields present', function () {",
+    "  pm.expect(d).to.have.property('official_score');",
+    "  pm.expect(d).to.have.property('official_attempt_number');",
+    "  pm.expect(d).to.have.property('official_attempt_id');",
+    "  pm.expect(d).to.have.property('official_passed');",
+    "  pm.expect(d).to.have.property('has_previous_attempt');",
+    "});",
+    "if (d.official_attempt_id) pm.collectionVariables.set('official_attempt_id', String(d.official_attempt_id));",
     "",
 ]
 
@@ -334,6 +362,47 @@ LEARNING_PLAN_ITEMS = [
                         "  pm.expect(body.leaderboard).to.be.an('array');",
                         "  pm.expect(body).to.have.property('meta');",
                         "});",
+                        "",
+                    ],
+                },
+            }
+        ],
+    },
+    {
+        "name": "Get Course Plans",
+        "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": {
+                "raw": "{{baseUrl}}/api/v1/courses/{{course_slug}}/plans",
+                "host": ["{{baseUrl}}"],
+                "path": ["api", "v1", "courses", "{{course_slug}}", "plans"],
+            },
+            "description": "Public listing of active course plans for a published course. No auth required.\nReturns id, name, description, price, currency, is_lifetime, duration_days, max_quiz_attempts, grant_certificate.",
+            "auth": {"type": "noauth"},
+        },
+        "response": [],
+        "event": [
+            {
+                "listen": "test",
+                "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                        "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                        "const body = pm.response.json();",
+                        "pm.test('plans array', () => {",
+                        "  pm.expect(body).to.have.property('data');",
+                        "  pm.expect(body.data).to.be.an('array');",
+                        "});",
+                        "if (body.data.length) {",
+                        "  pm.collectionVariables.set('course_plan_id', String(body.data[0].id));",
+                        "  const plan = body.data[0];",
+                        "  pm.test('plan fields', () => {",
+                        "    pm.expect(plan).to.have.property('price');",
+                        "    pm.expect(plan).to.have.property('currency');",
+                        "    pm.expect(plan).to.have.property('is_lifetime');",
+                        "  });",
+                        "}",
                         "",
                     ],
                 },
@@ -869,6 +938,7 @@ def insert_learning_access_items(col: dict) -> None:
     if not learning:
         return
     insert_items_after(learning, "Get Course Progress", LEARNING_ACCESS_ITEMS)
+    insert_items_after(learning, "Get Course Plans", [deepcopy(LEARNING_PLAN_ITEMS[3])])
 
 
 def insert_official_result_item(col: dict) -> None:
@@ -883,6 +953,22 @@ def insert_official_result_item(col: dict) -> None:
         len(assessment["item"]),
     )
     assessment["item"].insert(idx + 1, deepcopy(OFFICIAL_RESULT_ITEM))
+
+
+def update_get_quiz_tests(col: dict) -> None:
+    def patch(item: dict) -> None:
+        if item.get("name") != "Get Quiz":
+            return
+        item["request"]["description"] = (
+            "Quiz metadata including interactive_activities.\n"
+            "When authenticated with enrollment, also returns official_score, official_attempt_number, "
+            "official_attempt_id, official_passed, has_previous_attempt (first successfully submitted attempt only)."
+        )
+        for ev in item.get("event", []):
+            if ev.get("listen") == "test":
+                ev["script"]["exec"] = QUIZ_SHOW_TEST[:]
+
+    walk_items(col.get("item", []), patch)
 
 
 def update_start_quiz_tests(col: dict) -> None:
@@ -969,6 +1055,7 @@ def process_collection(path: Path) -> None:
     insert_auth_email_items(col)
     insert_learning_access_items(col)
     insert_official_result_item(col)
+    update_get_quiz_tests(col)
     update_start_quiz_tests(col)
     update_quiz_submit_and_result(col)
     update_login_tests(col)
