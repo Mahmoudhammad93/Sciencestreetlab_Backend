@@ -77,6 +77,79 @@ NEW_VARS = [
     {"key": "official_attempt_id", "value": "1"},
     {"key": "plan_demo_course_slug", "value": "basic-physics-lab"},
     {"key": "school_demo_course_slug", "value": "demo-school-physics"},
+    {"key": "school_demo_quiz_id", "value": "1"},
+    {"key": "school_complete_plan_id", "value": "1"},
+]
+
+SCHOOL_DEMO_COURSE_TEST = [
+    "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+    "const body = pm.response.json();",
+    "pm.test('course payload', () => {",
+    "  pm.expect(body.data.slug).to.eql(pm.collectionVariables.get('school_demo_course_slug'));",
+    "  pm.expect(body.data.access_type).to.eql('school');",
+    "});",
+    "const intro = (body.data.lessons || []).find(l => l.slug === 'intro-physics');",
+    "if (intro && intro.quiz && intro.quiz.id) {",
+    "  pm.collectionVariables.set('school_demo_quiz_id', String(intro.quiz.id));",
+    "  pm.collectionVariables.set('quiz_id', String(intro.quiz.id));",
+    "}",
+    "",
+]
+
+SCHOOL_DEMO_PLANS_TEST = [
+    "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+    "const body = pm.response.json();",
+    "pm.test('three active plans', () => {",
+    "  pm.expect(body.data).to.be.an('array');",
+    "  pm.expect(body.data.length).to.eql(3);",
+    "});",
+    "pm.test('plan price tiers', () => {",
+    "  pm.expect(body.data[0].name).to.eql('Starter Plan');",
+    "  pm.expect(body.data[0].price).to.eql('199.00');",
+    "  pm.expect(body.data[1].name).to.eql('Complete Plan');",
+    "  pm.expect(body.data[1].is_lifetime).to.eql(true);",
+    "  pm.expect(body.data[2].max_quiz_attempts).to.eql(1);",
+    "});",
+    "if (body.data[1]) pm.collectionVariables.set('school_complete_plan_id', String(body.data[1].id));",
+    "",
+]
+
+SCHOOL_DEMO_ACCESS_TEST = [
+    "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+    "const body = pm.response.json();",
+    "pm.test('enrolled on complete plan', () => {",
+    "  pm.expect(body.enrolled).to.eql(true);",
+    "  pm.expect(body.uses_plan).to.eql(true);",
+    "  pm.expect(body.plan.name).to.eql('Complete Plan');",
+    "  pm.expect(body.access.certificate).to.eql(true);",
+    "});",
+    "",
+]
+
+SCHOOL_DEMO_ENROLLMENT_TEST = [
+    "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+    "const body = pm.response.json();",
+    "pm.test('active enrollment', () => {",
+    "  pm.expect(body.data.status).to.eql('active');",
+    "  pm.expect(body.data.course_plan_id).to.be.a('number');",
+    "  pm.expect(body.data.expires_at).to.eql(null);",
+    "});",
+    "",
+]
+
+SCHOOL_DEMO_QUIZ_TEST = [
+    "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+    "const d = pm.response.json().data;",
+    "pm.test('official score demo', () => {",
+    "  pm.expect(d).to.have.property('official_score');",
+    "  pm.expect(d).to.have.property('official_attempt_number');",
+    "  pm.expect(d).to.have.property('official_attempt_id');",
+    "  pm.expect(d).to.have.property('official_passed');",
+    "  pm.expect(d.has_previous_attempt).to.eql(true);",
+    "  pm.expect(d.official_attempt_number).to.eql(1);",
+    "});",
+    "if (d.official_attempt_id) pm.collectionVariables.set('official_attempt_id', String(d.official_attempt_id));",
+    "",
 ]
 
 QUIZ_SUBMIT_BODY = '{\n  "time_spent_seconds": 45\n}'
@@ -487,6 +560,12 @@ SCHOOL_DEMO_ITEMS = [
             "auth": {"type": "noauth"},
         },
         "response": [],
+        "event": [
+            {
+                "listen": "test",
+                "script": {"type": "text/javascript", "exec": SCHOOL_DEMO_COURSE_TEST[:]},
+            }
+        ],
     },
     {
         "name": "Get School Demo Course Plans",
@@ -501,16 +580,7 @@ SCHOOL_DEMO_ITEMS = [
         "event": [
             {
                 "listen": "test",
-                "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                        "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
-                        "const body = pm.response.json();",
-                        "pm.test('three active plans', () => pm.expect(body.data.length).to.eql(3));",
-                        "if (body.data[1]) pm.collectionVariables.set('school_complete_plan_id', String(body.data[1].id));",
-                        "",
-                    ],
-                },
+                "script": {"type": "text/javascript", "exec": SCHOOL_DEMO_PLANS_TEST[:]},
             }
         ],
     },
@@ -523,6 +593,12 @@ SCHOOL_DEMO_ITEMS = [
             "description": "Plan entitlements for school-demo student (Complete Plan — full access + certificate).",
         },
         "response": [],
+        "event": [
+            {
+                "listen": "test",
+                "script": {"type": "text/javascript", "exec": SCHOOL_DEMO_ACCESS_TEST[:]},
+            }
+        ],
     },
     {
         "name": "Get School Demo Enrollment",
@@ -533,6 +609,12 @@ SCHOOL_DEMO_ITEMS = [
             "description": "Enrollment on Complete Plan for school-demo student.",
         },
         "response": [],
+        "event": [
+            {
+                "listen": "test",
+                "script": {"type": "text/javascript", "exec": SCHOOL_DEMO_ENROLLMENT_TEST[:]},
+            }
+        ],
     },
     {
         "name": "Get School Demo Quiz (official score)",
@@ -540,25 +622,13 @@ SCHOOL_DEMO_ITEMS = [
             "method": "GET",
             "header": [{"key": "Accept", "value": "application/json"}],
             "url": "{{baseUrl}}/api/v1/quizzes/{{school_demo_quiz_id}}",
-            "description": "Introduction to Physics quiz — should show official_score ~60 from first submitted attempt (retry ~90 does not replace).",
+            "description": "Introduction to Physics quiz — official_score ~60 from first submit; retry ~90 does not replace.\nRun Get School Demo Course first to set school_demo_quiz_id.",
         },
         "response": [],
         "event": [
             {
                 "listen": "test",
-                "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                        "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
-                        "const d = pm.response.json().data;",
-                        "pm.test('official score fields', () => {",
-                        "  pm.expect(d).to.have.property('official_score');",
-                        "  pm.expect(d).to.have.property('has_previous_attempt');",
-                        "  pm.expect(d.has_previous_attempt).to.eql(true);",
-                        "});",
-                        "",
-                    ],
-                },
+                "script": {"type": "text/javascript", "exec": SCHOOL_DEMO_QUIZ_TEST[:]},
             }
         ],
     },
@@ -1079,6 +1149,26 @@ def insert_official_result_item(col: dict) -> None:
     assessment["item"].insert(idx + 1, deepcopy(OFFICIAL_RESULT_ITEM))
 
 
+def update_school_demo_tests(col: dict) -> None:
+    patches = {
+        "Get School Demo Course": SCHOOL_DEMO_COURSE_TEST,
+        "Get School Demo Course Plans": SCHOOL_DEMO_PLANS_TEST,
+        "Get School Demo Course Access": SCHOOL_DEMO_ACCESS_TEST,
+        "Get School Demo Enrollment": SCHOOL_DEMO_ENROLLMENT_TEST,
+        "Get School Demo Quiz (official score)": SCHOOL_DEMO_QUIZ_TEST,
+    }
+
+    def patch(item: dict) -> None:
+        name = item.get("name", "")
+        if name not in patches:
+            return
+        for ev in item.get("event", []):
+            if ev.get("listen") == "test":
+                ev["script"]["exec"] = patches[name][:]
+
+    walk_items(col.get("item", []), patch)
+
+
 def update_get_quiz_tests(col: dict) -> None:
     def patch(item: dict) -> None:
         if item.get("name") != "Get Quiz":
@@ -1179,6 +1269,7 @@ def process_collection(path: Path) -> None:
     insert_auth_email_items(col)
     insert_learning_access_items(col)
     insert_official_result_item(col)
+    update_school_demo_tests(col)
     update_get_quiz_tests(col)
     update_start_quiz_tests(col)
     update_quiz_submit_and_result(col)

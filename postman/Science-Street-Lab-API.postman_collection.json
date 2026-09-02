@@ -199,6 +199,14 @@
     {
       "key": "school_demo_course_slug",
       "value": "demo-school-physics"
+    },
+    {
+      "key": "school_demo_quiz_id",
+      "value": "1"
+    },
+    {
+      "key": "school_complete_plan_id",
+      "value": "1"
     }
   ],
   "item": [
