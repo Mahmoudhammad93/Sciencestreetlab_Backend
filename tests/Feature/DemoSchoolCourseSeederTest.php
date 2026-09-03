@@ -6,6 +6,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\Quiz;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\Product;
 use App\Modules\Learning\Domain\Enums\AccessType;
 use App\Modules\Learning\Domain\Enums\EnrollmentStatus;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
@@ -141,6 +142,83 @@ final class DemoSchoolCourseSeederTest extends TestCase
             ->assertJsonPath('data.0.name', 'Starter Plan')
             ->assertJsonPath('data.1.price', '499.00')
             ->assertJsonPath('data.2.max_quiz_attempts', 1);
+    }
+
+    public function test_each_paid_plan_has_a_linked_catalog_product(): void
+    {
+        $course = Course::query()->where('slug', DemoSchoolCourseSeeder::COURSE_SLUG)->firstOrFail();
+
+        $activePlans = CoursePlan::query()
+            ->where('course_id', $course->id)
+            ->where('is_active', true)
+            ->get();
+
+        foreach ($activePlans as $plan) {
+            $product = Product::query()
+                ->where('course_plan_id', $plan->id)
+                ->where('course_id', $course->id)
+                ->first();
+
+            $this->assertNotNull($product, "Plan {$plan->getTranslation('name', 'en')} has no product");
+            $this->assertSame(
+                number_format((float) $plan->price, 2, '.', ''),
+                number_format((float) $product->price, 2, '.', ''),
+            );
+        }
+    }
+
+    public function test_paid_plan_checkout_creates_enrollment_with_that_plan(): void
+    {
+        $course = Course::query()->where('slug', DemoSchoolCourseSeeder::COURSE_SLUG)->firstOrFail();
+        $starterPlan = CoursePlan::query()
+            ->where('course_id', $course->id)
+            ->where('name->en', 'Starter Plan')
+            ->firstOrFail();
+        $product = Product::query()->where('course_plan_id', $starterPlan->id)->firstOrFail();
+
+        $buyer = User::factory()->create();
+        Sanctum::actingAs($buyer);
+
+        $this->postJson('/api/v1/cart/items', ['product_id' => $product->id])->assertCreated();
+
+        $orderId = $this->postJson('/api/v1/checkout', [
+            'billing_address' => [
+                'first_name' => 'School',
+                'email' => $buyer->email,
+                'phone' => '01012345678',
+                'city' => 'Cairo',
+                'country' => 'EG',
+            ],
+            'shipping_address' => ['city' => 'Cairo', 'country' => 'EG'],
+        ])->json('data.id');
+
+        $paymentId = $this->postJson("/api/v1/checkout/{$orderId}/pay")->json('data.payment_id');
+        $this->postJson("/api/v1/payments/mock/{$paymentId}/complete")->assertOk();
+
+        $enrollment = Enrollment::query()
+            ->where('user_id', $buyer->id)
+            ->where('course_id', $course->id)
+            ->first();
+
+        $this->assertNotNull($enrollment);
+        $this->assertSame($starterPlan->id, $enrollment->course_plan_id);
+        $this->assertSame(EnrollmentStatus::Active, $enrollment->status);
+        $this->assertNotNull($enrollment->expires_at, 'Starter plan is 30 days, so it must expire');
+    }
+
+    public function test_free_plan_enroll_endpoint_rejects_paid_plans(): void
+    {
+        $course = Course::query()->where('slug', DemoSchoolCourseSeeder::COURSE_SLUG)->firstOrFail();
+        $completePlan = CoursePlan::query()
+            ->where('course_id', $course->id)
+            ->where('name->en', 'Complete Plan')
+            ->firstOrFail();
+
+        Sanctum::actingAs(User::factory()->create());
+
+        $this->postJson("/api/v1/courses/{$course->slug}/plans/{$completePlan->id}/enroll")
+            ->assertStatus(402)
+            ->assertJsonPath('message', 'Paid plans require checkout and payment.');
     }
 
     public function test_running_seeder_twice_does_not_duplicate_demo_course_or_plans(): void

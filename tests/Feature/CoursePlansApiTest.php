@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Modules\Catalog\Domain\Enums\ProductStatus;
+use App\Modules\Catalog\Domain\Enums\ProductType;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\Product;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
 use App\Modules\Learning\Infrastructure\Persistence\Models\CoursePlan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -23,7 +26,7 @@ final class CoursePlansApiTest extends TestCase
         $this->seed();
         $this->course = Course::query()->where('slug', 'microscope-course')->firstOrFail();
         $this->otherCourse = Course::query()->create([
-            'slug' => 'other-course-' . uniqid(),
+            'slug' => 'other-course-'.uniqid(),
             'is_published' => true,
             'published_at' => now(),
             'title' => ['en' => 'Other Course', 'ar' => 'دورة أخرى'],
@@ -171,6 +174,48 @@ final class CoursePlansApiTest extends TestCase
     /**
      * @param  array<string, mixed>  $overrides
      */
+    public function test_paid_plan_exposes_linked_product_id_for_checkout(): void
+    {
+        $plan = $this->createPlan(['price' => 250, 'sort_order' => 1]);
+        $product = Product::query()->create([
+            'sku' => 'TEST-PLAN-PRODUCT',
+            'slug' => 'test-plan-product',
+            'type' => ProductType::Course,
+            'status' => ProductStatus::Published,
+            'price' => 250,
+            'currency' => 'EGP',
+            'course_id' => $this->course->id,
+            'course_plan_id' => $plan->id,
+            'published_at' => now(),
+            'name' => ['en' => 'Test Plan Product', 'ar' => 'منتج'],
+        ]);
+
+        $this->getJson('/api/v1/courses/microscope-course/plans')
+            ->assertOk()
+            ->assertJsonPath('data.0.is_free', false)
+            ->assertJsonPath('data.0.product_id', $product->id);
+    }
+
+    public function test_paid_plan_without_product_returns_null_product_id(): void
+    {
+        $this->createPlan(['price' => 250, 'sort_order' => 1]);
+
+        $this->getJson('/api/v1/courses/microscope-course/plans')
+            ->assertOk()
+            ->assertJsonPath('data.0.is_free', false)
+            ->assertJsonPath('data.0.product_id', null);
+    }
+
+    public function test_free_plan_is_marked_free_with_no_product_id(): void
+    {
+        $this->createPlan(['price' => 0, 'sort_order' => 1]);
+
+        $this->getJson('/api/v1/courses/microscope-course/plans')
+            ->assertOk()
+            ->assertJsonPath('data.0.is_free', true)
+            ->assertJsonPath('data.0.product_id', null);
+    }
+
     private function createPlan(array $overrides = []): CoursePlan
     {
         return CoursePlan::query()->create(array_merge([

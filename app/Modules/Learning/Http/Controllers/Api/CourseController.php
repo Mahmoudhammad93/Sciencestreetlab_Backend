@@ -70,6 +70,7 @@ final class CourseController extends Controller
         }
 
         $plans = $course->plans()
+            ->with('product')
             ->where('is_active', true)
             ->orderBy('sort_order')
             ->orderBy('id')

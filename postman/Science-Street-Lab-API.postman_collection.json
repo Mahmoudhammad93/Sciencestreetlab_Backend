@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a73e08f0-1975-4c1d-9fb3-5a91721375db",
     "name": "Science Street Lab API",
-    "description": "REST API collection for Science Street Lab (Laravel `/api/v1`). **All endpoints live in this one file.**\n\n**Auth:** Laravel Sanctum Bearer token. Login/Register auto-save `token`.\n**Base URL:** `{{baseUrl}}` (default `http://localhost:8000`).\n**Environment:** import `Science-Street-Lab.local.postman_environment.json`.\n\n**Demo accounts**\n- Admin: `admin@sciencestreetlab.com` / `password`\n- Student: `demo@sciencestreetlab.com` / `password`\n- Plan demo: `plan-demo@sciencestreetlab.com` / `password` (Physics plan — run `CoursePlanDemoSeeder`)\n- School demo: `school-demo@sciencestreetlab.com` / `password` (`demo-school-physics` — run `DemoSchoolCourseSeeder` or full seed)\n\n**Suggested order**\n1. Health → App Health / Public website settings\n2. Auth → Login (or Login demo student)\n3. Learning → Enroll → Get Course Plans → Course Access → Curriculum → Leaderboard\n4. Catalog → Commerce (cart → checkout → mock pay) for paid course plans\n5. Assessment → Start quiz → Save answers → Submit (with `time_spent_seconds`) → Get result\n\nAssessment demo (`php artisan db:seed --class=AssessmentDemoCoursesSeeder`):\n- Courses: `intro-biology-lab`, `basic-physics-lab`, `basic-chemistry-lab`, `microscope-course`\n\n**Course plans & access**\n- `GET /courses/{slug}/plans` — list active plans for a published course (public, no auth)\n- `GET /courses/{slug}/access` — plan entitlements snapshot for enrolled user\n- `POST /courses/{slug}/plans/{planId}/enroll` — enroll via free plan\n- Quiz pass/progress uses **official score only** (first submitted attempt)\n\n**Course leaderboard**\n- `GET /courses/{slug}/leaderboard` — ranks by average official quiz % (optional auth for `current_user`)\n\n**Auth email**\n- Register sends verification email (`email_verified: false` until link clicked)\n- `POST /auth/forgot-password`, `POST /auth/reset-password`, `POST /auth/email/verification-notification`\n\n**Quiz official score**\n- `GET /quizzes/{quiz}` (enrolled user) returns `official_score`, `official_attempt_number`, `official_attempt_id`, `official_passed`, `has_previous_attempt`\n- First **submitted** attempt = official (`is_official`, `official_score`, `official_attempt_number`, `official_passed`)\n- Retries never replace official score; `current_attempt_score` shows this attempt only\n- Submit body may include `time_spent_seconds` (client-measured active time)\n\n**Quiz result / post-review** (`POST /quiz-attempts/{id}/submit` and `GET /quiz-attempts/{id}/result`):\n- `attempt_number`, `time_taken`, `time_taken_seconds`, `quiz_id`\n- `is_official`, `official_score`, `official_attempt_number`, `official_attempt_id`, `official_passed`, `current_attempt_score`\n- `question_results[].user_answer`, `question_results[].correct_answer`\n\n**Start quiz when max attempts reached (422):**\n- `code`: `MAX_ATTEMPTS_REACHED`\n- `official_attempt_id`, `last_attempt_id` — use for GET result\n\nStudent question payloads never include `is_correct` or `answer_key`.\n",
+    "description": "REST API collection for Science Street Lab (Laravel `/api/v1`). **All endpoints live in this one file.**\n\n**Auth:** Laravel Sanctum Bearer token. Login/Register auto-save `token`.\n**Base URL:** `{{baseUrl}}` (default `http://localhost:8000`).\n**Environment:** import `Science-Street-Lab.local.postman_environment.json`.\n\n**Demo accounts**\n- Admin: `admin@sciencestreetlab.com` / `password`\n- Student: `demo@sciencestreetlab.com` / `password`\n- Plan demo: `plan-demo@sciencestreetlab.com` / `password` (Physics plan — run `CoursePlanDemoSeeder`)\n- School demo: `school-demo@sciencestreetlab.com` / `password` (`demo-school-physics` — run `DemoSchoolCourseSeeder` or full seed)\n\n**Suggested order**\n1. Health → App Health / Public website settings\n2. Auth → Login (or Login demo student)\n3. Learning → Enroll → Get Course Plans → Course Access → Curriculum → Leaderboard\n4. Catalog → Commerce (cart → checkout → mock pay) for paid course plans\n5. Assessment → Start quiz → Save answers → Submit (with `time_spent_seconds`) → Get result\n\nAssessment demo (`php artisan db:seed --class=AssessmentDemoCoursesSeeder`):\n- Courses: `intro-biology-lab`, `basic-physics-lab`, `basic-chemistry-lab`, `microscope-course`\n\n**Course plans & access**\n- `GET /courses/{slug}/plans` — list active plans for a published course (public, no auth)\n- `GET /courses/{slug}/access` — plan entitlements snapshot for enrolled user\n- `POST /courses/{slug}/plans/{planId}/enroll` — enroll via **free** plan only\n- Quiz pass/progress uses **official score only** (first submitted attempt)\n\n**Buying a paid plan**\nPlans expose `is_free` and `product_id`. Free plans enroll directly; paid plans return\n`402 \"Paid plans require checkout and payment.\"` on the enroll endpoint. Buy them instead with:\n`POST /cart/items` (`product_id`) → `POST /checkout` → `POST /checkout/{order}/pay` → complete payment.\n`OrderPaid` then grants the enrollment on that plan. See the **Buy Paid Plan 1–6** requests in Learning.\n\n**Not covered by this collection** (not client-callable): `GET /auth/email/verify/{id}/{hash}`\n(signed link from email) and the MyFatoorah callback/confirm redirects (called by the gateway).\n\n**Course leaderboard**\n- `GET /courses/{slug}/leaderboard` — ranks by average official quiz % (optional auth for `current_user`)\n\n**Auth email**\n- Register sends verification email (`email_verified: false` until link clicked)\n- `POST /auth/forgot-password`, `POST /auth/reset-password`, `POST /auth/email/verification-notification`\n\n**Quiz official score**\n- `GET /quizzes/{quiz}` (enrolled user) returns `official_score`, `official_attempt_number`, `official_attempt_id`, `official_passed`, `has_previous_attempt`\n- First **submitted** attempt = official (`is_official`, `official_score`, `official_attempt_number`, `official_passed`)\n- Retries never replace official score; `current_attempt_score` shows this attempt only\n- Submit body may include `time_spent_seconds` (client-measured active time)\n\n**Quiz result / post-review** (`POST /quiz-attempts/{id}/submit` and `GET /quiz-attempts/{id}/result`):\n- `attempt_number`, `time_taken`, `time_taken_seconds`, `quiz_id`\n- `is_official`, `official_score`, `official_attempt_number`, `official_attempt_id`, `official_passed`, `current_attempt_score`\n- `question_results[].user_answer`, `question_results[].correct_answer`\n\n**Start quiz when max attempts reached (422):**\n- `code`: `MAX_ATTEMPTS_REACHED`\n- `official_attempt_id`, `last_attempt_id` — use for GET result\n\nStudent question payloads never include `is_correct` or `answer_key`.\n",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -206,6 +206,26 @@
     },
     {
       "key": "school_complete_plan_id",
+      "value": "1"
+    },
+    {
+      "key": "school_starter_plan_id",
+      "value": "1"
+    },
+    {
+      "key": "school_starter_product_id",
+      "value": "1"
+    },
+    {
+      "key": "school_order_id",
+      "value": "1"
+    },
+    {
+      "key": "school_payment_id",
+      "value": "1"
+    },
+    {
+      "key": "plan_product_id",
       "value": "1"
     }
   ],
@@ -1678,7 +1698,7 @@
                 "plans"
               ]
             },
-            "description": "Public listing of active course plans for a published course. No auth required.\nReturns id, name, description, price, currency, is_lifetime, duration_days, max_quiz_attempts, grant_certificate.",
+            "description": "Public listing of active course plans for a published course. No auth required.\nReturns id, name, description, price, currency, is_lifetime, duration_days, max_quiz_attempts, grant_certificate, is_free, product_id.\n\n`is_free: true` → enroll directly with POST /courses/{slug}/plans/{planId}/enroll.\n`is_free: false` → that endpoint returns 402; buy `product_id` through cart → checkout → pay instead.",
             "auth": {
               "type": "noauth"
             }
@@ -1698,7 +1718,23 @@
                   "});",
                   "if (body.data.length) {",
                   "  pm.collectionVariables.set('course_plan_id', String(body.data[0].id));",
-                  "}"
+                  "  const plan = body.data[0];",
+                  "  pm.test('plan fields', () => {",
+                  "    pm.expect(plan).to.have.property('price');",
+                  "    pm.expect(plan).to.have.property('currency');",
+                  "    pm.expect(plan).to.have.property('is_lifetime');",
+                  "    pm.expect(plan).to.have.property('is_free');",
+                  "    pm.expect(plan).to.have.property('product_id');",
+                  "  });",
+                  "  pm.test('free plans carry no product, paid plans point at one', () => {",
+                  "    body.data.forEach(p => {",
+                  "      if (p.is_free) pm.expect(p.product_id).to.eql(null);",
+                  "    });",
+                  "  });",
+                  "  const paid = body.data.find(p => !p.is_free && p.product_id);",
+                  "  if (paid) pm.collectionVariables.set('plan_product_id', String(paid.product_id));",
+                  "}",
+                  ""
                 ]
               }
             }
@@ -1742,6 +1778,222 @@
                   "  const d = pm.response.json().data;",
                   "  if (d && d.id) pm.collectionVariables.set('enrollment_id', String(d.id));",
                   "}",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buy Paid Plan 1 — Direct Enroll Fails (402)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/courses/{{school_demo_course_slug}}/plans/{{school_starter_plan_id}}/enroll",
+            "description": "**Expected to fail with 402.** The direct plan-enroll endpoint only accepts free plans.\nPaid plans must go through the checkout flow in the next four requests.\nRun Get School Demo Course Plans first to set school_starter_plan_id."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('paid plan cannot enroll directly (402)', () => pm.response.to.have.status(402));",
+                  "pm.test('explains checkout is required', () => {",
+                  "  pm.expect(pm.response.json().message).to.eql('Paid plans require checkout and payment.');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buy Paid Plan 2 — Add Plan Product to Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/cart/items",
+            "description": "Add the Starter Plan product to the cart. `school_starter_product_id` comes from `product_id` on the plans response.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": {{school_starter_product_id}},\n  \"quantity\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buy Paid Plan 3 — Checkout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/checkout",
+            "description": "Create the order. Saves `school_order_id` for the pay step.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"billing_address\": {\n    \"first_name\": \"School\",\n    \"last_name\": \"Demo\",\n    \"email\": \"school-demo@sciencestreetlab.com\",\n    \"phone\": \"01012345678\",\n    \"city\": \"Cairo\",\n    \"country\": \"EG\"\n  },\n  \"shipping_address\": {\n    \"city\": \"Cairo\",\n    \"country\": \"EG\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.id) pm.collectionVariables.set('school_order_id', String(body.data.id));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buy Paid Plan 4 — Pay Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/checkout/{{school_order_id}}/pay",
+            "description": "Start payment. Saves `school_payment_id` so the mock gateway can complete it.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gateway\": \"mock\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "const body = pm.response.json();",
+                  "if (body.data && body.data.payment_id) pm.collectionVariables.set('school_payment_id', String(body.data.payment_id));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buy Paid Plan 5 — Complete Mock Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/payments/mock/{{school_payment_id}}/complete",
+            "description": "Local-only mock gateway. Fires `OrderPaid`, which runs `GrantEnrollmentOnOrderPaid` and creates the enrollment on the purchased plan.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buy Paid Plan 6 — Verify Enrollment",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/courses/{{school_demo_course_slug}}/enrollment",
+            "description": "Confirms the enrollment now points at the Starter Plan bought through checkout."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "const body = pm.response.json();",
+                  "pm.test('enrollment granted on the purchased plan', () => {",
+                  "  pm.expect(body.data.status).to.eql('active');",
+                  "  pm.expect(String(body.data.course_plan_id)).to.eql(pm.collectionVariables.get('school_starter_plan_id'));",
+                  "});",
                   ""
                 ]
               }
@@ -1836,8 +2088,25 @@
                 "exec": [
                   "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
                   "const body = pm.response.json();",
-                  "pm.test('three active plans', () => pm.expect(body.data.length).to.eql(3));",
+                  "pm.test('three active plans', () => {",
+                  "  pm.expect(body.data).to.be.an('array');",
+                  "  pm.expect(body.data.length).to.eql(3);",
+                  "});",
+                  "pm.test('plan price tiers', () => {",
+                  "  pm.expect(body.data[0].name).to.eql('Starter Plan');",
+                  "  pm.expect(body.data[0].price).to.eql('199.00');",
+                  "  pm.expect(body.data[1].name).to.eql('Complete Plan');",
+                  "  pm.expect(body.data[1].is_lifetime).to.eql(true);",
+                  "  pm.expect(body.data[2].max_quiz_attempts).to.eql(1);",
+                  "});",
+                  "pm.test('paid plans expose product_id for checkout', () => {",
+                  "  body.data.filter(p => !p.is_free).forEach(p => pm.expect(p.product_id).to.be.a('number'));",
+                  "});",
                   "if (body.data[1]) pm.collectionVariables.set('school_complete_plan_id', String(body.data[1].id));",
+                  "if (body.data[0]) {",
+                  "  pm.collectionVariables.set('school_starter_plan_id', String(body.data[0].id));",
+                  "  if (body.data[0].product_id) pm.collectionVariables.set('school_starter_product_id', String(body.data[0].product_id));",
+                  "}",
                   ""
                 ]
               }
@@ -1896,11 +2165,15 @@
                 "exec": [
                   "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
                   "const d = pm.response.json().data;",
-                  "pm.test('official score fields', () => {",
+                  "pm.test('official score demo', () => {",
                   "  pm.expect(d).to.have.property('official_score');",
-                  "  pm.expect(d).to.have.property('has_previous_attempt');",
+                  "  pm.expect(d).to.have.property('official_attempt_number');",
+                  "  pm.expect(d).to.have.property('official_attempt_id');",
+                  "  pm.expect(d).to.have.property('official_passed');",
                   "  pm.expect(d.has_previous_attempt).to.eql(true);",
+                  "  pm.expect(d.official_attempt_number).to.eql(1);",
                   "});",
+                  "if (d.official_attempt_id) pm.collectionVariables.set('official_attempt_id', String(d.official_attempt_id));",
                   ""
                 ]
               }
@@ -2333,6 +2606,66 @@
           "response": []
         },
         {
+          "name": "List My Enrollments (/me alias)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/me/enrollments",
+            "description": "Alias of `GET /enrollments`. Same payload, kept for clients that prefer the `/me` prefix."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "const body = pm.response.json();",
+                  "pm.test('enrollments list', () => pm.expect(body.data).to.be.an('array'));",
+                  "if (body.data && body.data.length) pm.collectionVariables.set('enrollment_id', String(body.data[0].id));",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get My Enrollment (/me alias)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/me/enrollments/{{enrollment_id}}",
+            "description": "Alias of `GET /enrollments/{id}`. Run List My Enrollments first to set enrollment_id."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "pm.test('enrollment detail', () => {",
+                  "  pm.expect(pm.response.json().data).to.have.property('status');",
+                  "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Report Topic Progress",
           "request": {
             "method": "POST",
@@ -2593,6 +2926,38 @@
                   "if (d.interactive_activities && d.interactive_activities[0]) {",
                   "  pm.collectionVariables.set('activity_id', String(d.interactive_activities[0].id));",
                   "}",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Attempt (legacy /attempts path)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/attempts/{{attempt_id}}",
+            "description": "Legacy alias of `GET /quiz-attempts/{attempt}`. The `/attempts/{id}/submit` and `/attempts/{id}/result` siblings are already in this folder."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "pm.test('attempt payload', () => {",
+                  "  const d = pm.response.json().data;",
+                  "  pm.expect(d).to.have.property('id');",
+                  "  pm.expect(d).to.have.property('status');",
+                  "});",
                   ""
                 ]
               }

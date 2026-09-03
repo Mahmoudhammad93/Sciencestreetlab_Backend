@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\Learning\Infrastructure\Persistence\Models;
 
+use App\Modules\Catalog\Infrastructure\Persistence\Models\Product;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 use Spatie\Translatable\HasTranslations;
 
@@ -45,6 +47,11 @@ class CoursePlan extends Model
     public function enrollments(): HasMany
     {
         return $this->hasMany(Enrollment::class);
+    }
+
+    public function product(): HasOne
+    {
+        return $this->hasOne(Product::class);
     }
 
     public function isFree(): bool

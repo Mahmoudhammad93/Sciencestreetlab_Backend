@@ -301,13 +301,42 @@ GET /api/v1/courses/{slug}/plans
       "is_lifetime": false,
       "duration_days": 30,
       "max_quiz_attempts": 2,
-      "grant_certificate": false
+      "grant_certificate": false,
+      "is_free": false,
+      "product_id": 40
     }
   ]
 }
 ```
 
-Enroll via a plan: `POST /api/v1/courses/{slug}/plans/{planId}/enroll` (auth required).
+`is_free` tells the client which enrollment path to take, and `product_id` is the catalog product to buy for paid plans (`null` for free plans, and `null` for a paid plan that has no product wired up yet).
+
+#### Enrolling in a plan
+
+**Free plans** enroll directly:
+
+```http
+POST /api/v1/courses/{slug}/plans/{planId}/enroll
+Authorization: Bearer {token}
+```
+
+**Paid plans** return `402` on that endpoint:
+
+```json
+{ "message": "Paid plans require checkout and payment." }
+```
+
+This is intentional — a paid plan is only granted after payment clears. Use the checkout flow with the plan's `product_id`:
+
+```http
+POST /api/v1/cart/items          { "product_id": 40, "quantity": 1 }
+POST /api/v1/checkout            { "billing_address": {...}, "shipping_address": {...} }
+POST /api/v1/checkout/{order}/pay
+# then complete payment at the gateway, or locally:
+POST /api/v1/payments/mock/{payment_id}/complete
+```
+
+When the order is paid, `OrderPaid` triggers `GrantEnrollmentOnOrderPaid`, which reads `course_id` and `course_plan_id` from the order item and creates the enrollment with that plan's entitlements snapshotted.
 
 **Demo school course** (`DemoSchoolCourseSeeder`):
 
@@ -318,6 +347,7 @@ Enroll via a plan: `POST /api/v1/courses/{slug}/plans/{planId}/enroll` (auth req
 | Demo student | `school-demo@sciencestreetlab.com` / `password` |
 | Enrolled plan | Complete Plan (lifetime, full access) |
 | Plans API | 3 active plans: Starter (199 EGP), Complete (499 EGP), Exam Prep (299 EGP) |
+| Plan products | `SS-SCHOOL-PHYS-STARTER`, `SS-SCHOOL-PHYS-COMPLETE`, `SS-SCHOOL-PHYS-EXAM` — each linked to its plan so checkout is testable |
 | Official score demo | Intro quiz — first submit 60%, retry 90% (official stays 60%) |
 
 Run: `php artisan db:seed --class=DemoSchoolCourseSeeder` (or full `db:seed`).

@@ -16,6 +16,9 @@ use App\Modules\Assessment\Infrastructure\Persistence\Models\Question;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\QuestionOption;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\Quiz;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\QuizOfficialScore;
+use App\Modules\Catalog\Domain\Enums\ProductStatus;
+use App\Modules\Catalog\Domain\Enums\ProductType;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\Product;
 use App\Modules\Certification\Infrastructure\Persistence\Models\CertificateTemplate;
 use App\Modules\Learning\Application\Services\CoursePlanEntitlementSyncService;
 use App\Modules\Learning\Application\Services\EnrollUserService;
@@ -95,11 +98,12 @@ final class DemoSchoolCourseSeeder extends Seeder
         $this->ensureAllTopicTypes();
         $this->seedQuizzes();
         $plans = $this->seedPlans($course);
+        $products = $this->seedPlanProducts($course, $plans);
         $user = $this->seedDemoStudent();
         $enrollment = $this->seedEnrollment($user, $course, $plans['complete']);
         $this->seedOfficialScoreDemo($user, $enrollment);
 
-        $this->printSummary($course, $plans, $user, $enrollment);
+        $this->printSummary($course, $plans, $products, $user, $enrollment);
     }
 
     private function seedLessonsAndTopics(Course $course): void
@@ -286,7 +290,7 @@ final class DemoSchoolCourseSeeder extends Seeder
 
     private function ensureAllTopicTypes(): void
     {
-        $seeder = new EnsureAllTopicTypesSeeder();
+        $seeder = new EnsureAllTopicTypesSeeder;
         foreach ($this->lessons as $lesson) {
             $seeder->ensureTypes($lesson->fresh(['topics', 'interactiveActivities']));
         }
@@ -468,6 +472,73 @@ final class DemoSchoolCourseSeeder extends Seeder
         return compact('starter', 'complete', 'exam', 'inactive');
     }
 
+    /**
+     * Paid plans can only be bought through checkout, so each one needs a catalog product.
+     *
+     * @param  array{starter: CoursePlan, complete: CoursePlan, exam: CoursePlan, inactive: CoursePlan}  $plans
+     * @return array<string, Product>
+     */
+    private function seedPlanProducts(Course $course, array $plans): array
+    {
+        $definitions = [
+            'starter' => [
+                'sku' => 'SS-SCHOOL-PHYS-STARTER',
+                'slug' => 'demo-school-physics-starter-plan',
+                'name' => ['ar' => 'خطة البداية — فيزياء المدرسة', 'en' => 'Starter Plan — School Physics'],
+                'short_description' => [
+                    'ar' => 'وصول 30 يوم للدرسين الأولين',
+                    'en' => '30-day access to the first two lessons',
+                ],
+            ],
+            'complete' => [
+                'sku' => 'SS-SCHOOL-PHYS-COMPLETE',
+                'slug' => 'demo-school-physics-complete-plan',
+                'name' => ['ar' => 'الخطة الكاملة — فيزياء المدرسة', 'en' => 'Complete Plan — School Physics'],
+                'short_description' => [
+                    'ar' => 'وصول كامل مدى الحياة مع شهادة',
+                    'en' => 'Full lifetime access with certificate',
+                ],
+            ],
+            'exam' => [
+                'sku' => 'SS-SCHOOL-PHYS-EXAM',
+                'slug' => 'demo-school-physics-exam-plan',
+                'name' => ['ar' => 'خطة الامتحان — فيزياء المدرسة', 'en' => 'Exam Preparation Plan — School Physics'],
+                'short_description' => [
+                    'ar' => 'وصول 60 يوم لمحتوى المراجعة',
+                    'en' => '60-day access to revision content',
+                ],
+            ],
+        ];
+
+        $products = [];
+
+        foreach ($definitions as $key => $definition) {
+            $plan = $plans[$key];
+
+            $products[$key] = Product::query()->updateOrCreate(
+                ['sku' => $definition['sku']],
+                [
+                    'slug' => $definition['slug'],
+                    'type' => ProductType::Course,
+                    'status' => ProductStatus::Published,
+                    'price' => $plan->price,
+                    'currency' => $plan->currency,
+                    'manage_stock' => false,
+                    'is_featured' => false,
+                    'course_id' => $course->id,
+                    'course_plan_id' => $plan->id,
+                    'sort_order' => (int) $plan->sort_order,
+                    'published_at' => now(),
+                    'name' => $definition['name'],
+                    'short_description' => $definition['short_description'],
+                    'description' => $definition['short_description'],
+                ],
+            );
+        }
+
+        return $products;
+    }
+
     private function seedDemoStudent(): User
     {
         return User::query()->updateOrCreate(
@@ -538,8 +609,9 @@ final class DemoSchoolCourseSeeder extends Seeder
 
     /**
      * @param  array{starter: CoursePlan, complete: CoursePlan, exam: CoursePlan, inactive: CoursePlan}  $plans
+     * @param  array<string, Product>  $products
      */
-    private function printSummary(Course $course, array $plans, User $user, Enrollment $enrollment): void
+    private function printSummary(Course $course, array $plans, array $products, User $user, Enrollment $enrollment): void
     {
         $introQuiz = $this->quizzes['intro-physics'];
 
@@ -551,12 +623,19 @@ final class DemoSchoolCourseSeeder extends Seeder
         $this->command?->info("Enrollment id: {$enrollment->id} on Complete Plan (lifetime, expires_at: null)");
         $this->command?->info("Intro quiz id: {$introQuiz->id} — official score demo (60% official, 90% retry)");
         $this->command?->info('');
+        $this->command?->info('Paid plan products (checkout flow):');
+        foreach ($products as $key => $product) {
+            $this->command?->info("  {$key}: product id {$product->id} ({$product->sku}, {$product->price} {$product->currency}) → plan {$product->course_plan_id}");
+        }
+        $this->command?->info('');
         $this->command?->info('API examples:');
         $this->command?->info('  GET /api/v1/courses/'.self::COURSE_SLUG);
         $this->command?->info('  GET /api/v1/courses/'.self::COURSE_SLUG.'/plans');
         $this->command?->info('  GET /api/v1/courses/'.self::COURSE_SLUG.'/access');
         $this->command?->info('  GET /api/v1/courses/'.self::COURSE_SLUG.'/enrollment');
         $this->command?->info("  GET /api/v1/quizzes/{$introQuiz->id}");
+        $this->command?->info('');
+        $this->command?->info('Paid plan enrollment: POST /cart/items (product_id) → POST /checkout → POST /checkout/{order}/pay → complete payment');
         $this->command?->info('');
     }
 }

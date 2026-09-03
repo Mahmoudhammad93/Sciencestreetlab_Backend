@@ -36,8 +36,17 @@ Assessment demo (`php artisan db:seed --class=AssessmentDemoCoursesSeeder`):
 **Course plans & access**
 - `GET /courses/{slug}/plans` — list active plans for a published course (public, no auth)
 - `GET /courses/{slug}/access` — plan entitlements snapshot for enrolled user
-- `POST /courses/{slug}/plans/{planId}/enroll` — enroll via free plan
+- `POST /courses/{slug}/plans/{planId}/enroll` — enroll via **free** plan only
 - Quiz pass/progress uses **official score only** (first submitted attempt)
+
+**Buying a paid plan**
+Plans expose `is_free` and `product_id`. Free plans enroll directly; paid plans return
+`402 "Paid plans require checkout and payment."` on the enroll endpoint. Buy them instead with:
+`POST /cart/items` (`product_id`) → `POST /checkout` → `POST /checkout/{order}/pay` → complete payment.
+`OrderPaid` then grants the enrollment on that plan. See the **Buy Paid Plan 1–6** requests in Learning.
+
+**Not covered by this collection** (not client-callable): `GET /auth/email/verify/{id}/{hash}`
+(signed link from email) and the MyFatoorah callback/confirm redirects (called by the gateway).
 
 **Course leaderboard**
 - `GET /courses/{slug}/leaderboard` — ranks by average official quiz % (optional auth for `current_user`)
@@ -79,6 +88,11 @@ NEW_VARS = [
     {"key": "school_demo_course_slug", "value": "demo-school-physics"},
     {"key": "school_demo_quiz_id", "value": "1"},
     {"key": "school_complete_plan_id", "value": "1"},
+    {"key": "school_starter_plan_id", "value": "1"},
+    {"key": "school_starter_product_id", "value": "1"},
+    {"key": "school_order_id", "value": "1"},
+    {"key": "school_payment_id", "value": "1"},
+    {"key": "plan_product_id", "value": "1"},
 ]
 
 SCHOOL_DEMO_COURSE_TEST = [
@@ -110,7 +124,113 @@ SCHOOL_DEMO_PLANS_TEST = [
     "  pm.expect(body.data[1].is_lifetime).to.eql(true);",
     "  pm.expect(body.data[2].max_quiz_attempts).to.eql(1);",
     "});",
+    "pm.test('paid plans expose product_id for checkout', () => {",
+    "  body.data.filter(p => !p.is_free).forEach(p => pm.expect(p.product_id).to.be.a('number'));",
+    "});",
     "if (body.data[1]) pm.collectionVariables.set('school_complete_plan_id', String(body.data[1].id));",
+    "if (body.data[0]) {",
+    "  pm.collectionVariables.set('school_starter_plan_id', String(body.data[0].id));",
+    "  if (body.data[0].product_id) pm.collectionVariables.set('school_starter_product_id', String(body.data[0].product_id));",
+    "}",
+    "",
+]
+
+COURSE_PLANS_DESCRIPTION = (
+    "Public listing of active course plans for a published course. No auth required.\n"
+    "Returns id, name, description, price, currency, is_lifetime, duration_days, "
+    "max_quiz_attempts, grant_certificate, is_free, product_id.\n\n"
+    "`is_free: true` → enroll directly with POST /courses/{slug}/plans/{planId}/enroll.\n"
+    "`is_free: false` → that endpoint returns 402; buy `product_id` through cart → checkout → pay instead."
+)
+
+COURSE_PLANS_TEST = [
+    "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+    "const body = pm.response.json();",
+    "pm.test('plans array', () => {",
+    "  pm.expect(body).to.have.property('data');",
+    "  pm.expect(body.data).to.be.an('array');",
+    "});",
+    "if (body.data.length) {",
+    "  pm.collectionVariables.set('course_plan_id', String(body.data[0].id));",
+    "  const plan = body.data[0];",
+    "  pm.test('plan fields', () => {",
+    "    pm.expect(plan).to.have.property('price');",
+    "    pm.expect(plan).to.have.property('currency');",
+    "    pm.expect(plan).to.have.property('is_lifetime');",
+    "    pm.expect(plan).to.have.property('is_free');",
+    "    pm.expect(plan).to.have.property('product_id');",
+    "  });",
+    "  pm.test('free plans carry no product, paid plans point at one', () => {",
+    "    body.data.forEach(p => {",
+    "      if (p.is_free) pm.expect(p.product_id).to.eql(null);",
+    "    });",
+    "  });",
+    "  const paid = body.data.find(p => !p.is_free && p.product_id);",
+    "  if (paid) pm.collectionVariables.set('plan_product_id', String(paid.product_id));",
+    "}",
+    "",
+]
+
+MY_ENROLLMENTS_TEST = [
+    "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+    "const body = pm.response.json();",
+    "pm.test('enrollments list', () => pm.expect(body.data).to.be.an('array'));",
+    "if (body.data && body.data.length) pm.collectionVariables.set('enrollment_id', String(body.data[0].id));",
+    "",
+]
+
+MY_ENROLLMENT_DETAIL_TEST = [
+    "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+    "pm.test('enrollment detail', () => {",
+    "  pm.expect(pm.response.json().data).to.have.property('status');",
+    "});",
+    "",
+]
+
+ATTEMPT_SHOW_TEST = [
+    "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+    "pm.test('attempt payload', () => {",
+    "  const d = pm.response.json().data;",
+    "  pm.expect(d).to.have.property('id');",
+    "  pm.expect(d).to.have.property('status');",
+    "});",
+    "",
+]
+
+SCHOOL_PAID_ENROLL_REJECTED_TEST = [
+    "pm.test('paid plan cannot enroll directly (402)', () => pm.response.to.have.status(402));",
+    "pm.test('explains checkout is required', () => {",
+    "  pm.expect(pm.response.json().message).to.eql('Paid plans require checkout and payment.');",
+    "});",
+    "",
+]
+
+SCHOOL_CART_TEST = [
+    "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+    "",
+]
+
+SCHOOL_CHECKOUT_TEST = [
+    "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+    "const body = pm.response.json();",
+    "if (body.data && body.data.id) pm.collectionVariables.set('school_order_id', String(body.data.id));",
+    "",
+]
+
+SCHOOL_PAY_TEST = [
+    "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+    "const body = pm.response.json();",
+    "if (body.data && body.data.payment_id) pm.collectionVariables.set('school_payment_id', String(body.data.payment_id));",
+    "",
+]
+
+SCHOOL_PAID_ENROLLMENT_TEST = [
+    "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+    "const body = pm.response.json();",
+    "pm.test('enrollment granted on the purchased plan', () => {",
+    "  pm.expect(body.data.status).to.eql('active');",
+    "  pm.expect(String(body.data.course_plan_id)).to.eql(pm.collectionVariables.get('school_starter_plan_id'));",
+    "});",
     "",
 ]
 
@@ -453,34 +573,14 @@ LEARNING_PLAN_ITEMS = [
                 "host": ["{{baseUrl}}"],
                 "path": ["api", "v1", "courses", "{{course_slug}}", "plans"],
             },
-            "description": "Public listing of active course plans for a published course. No auth required.\nReturns id, name, description, price, currency, is_lifetime, duration_days, max_quiz_attempts, grant_certificate.",
+            "description": COURSE_PLANS_DESCRIPTION,
             "auth": {"type": "noauth"},
         },
         "response": [],
         "event": [
             {
                 "listen": "test",
-                "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                        "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
-                        "const body = pm.response.json();",
-                        "pm.test('plans array', () => {",
-                        "  pm.expect(body).to.have.property('data');",
-                        "  pm.expect(body.data).to.be.an('array');",
-                        "});",
-                        "if (body.data.length) {",
-                        "  pm.collectionVariables.set('course_plan_id', String(body.data[0].id));",
-                        "  const plan = body.data[0];",
-                        "  pm.test('plan fields', () => {",
-                        "    pm.expect(plan).to.have.property('price');",
-                        "    pm.expect(plan).to.have.property('currency');",
-                        "    pm.expect(plan).to.have.property('is_lifetime');",
-                        "  });",
-                        "}",
-                        "",
-                    ],
-                },
+                "script": {"type": "text/javascript", "exec": COURSE_PLANS_TEST[:]},
             }
         ],
     },
@@ -632,7 +732,192 @@ SCHOOL_DEMO_ITEMS = [
             }
         ],
     },
+    {
+        "name": "Buy Paid Plan 1 — Direct Enroll Fails (402)",
+        "request": {
+            "method": "POST",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/v1/courses/{{school_demo_course_slug}}/plans/{{school_starter_plan_id}}/enroll",
+            "description": "**Expected to fail with 402.** The direct plan-enroll endpoint only accepts free plans.\nPaid plans must go through the checkout flow in the next four requests.\nRun Get School Demo Course Plans first to set school_starter_plan_id.",
+        },
+        "response": [],
+        "event": [
+            {
+                "listen": "test",
+                "script": {"type": "text/javascript", "exec": SCHOOL_PAID_ENROLL_REJECTED_TEST[:]},
+            }
+        ],
+    },
+    {
+        "name": "Buy Paid Plan 2 — Add Plan Product to Cart",
+        "request": {
+            "method": "POST",
+            "header": [
+                {"key": "Accept", "value": "application/json"},
+                {"key": "Content-Type", "value": "application/json"},
+            ],
+            "url": "{{baseUrl}}/api/v1/cart/items",
+            "description": "Add the Starter Plan product to the cart. `school_starter_product_id` comes from `product_id` on the plans response.",
+            "body": {
+                "mode": "raw",
+                "raw": '{\n  "product_id": {{school_starter_product_id}},\n  "quantity": 1\n}',
+                "options": {"raw": {"language": "json"}},
+            },
+        },
+        "response": [],
+        "event": [
+            {
+                "listen": "test",
+                "script": {"type": "text/javascript", "exec": SCHOOL_CART_TEST[:]},
+            }
+        ],
+    },
+    {
+        "name": "Buy Paid Plan 3 — Checkout",
+        "request": {
+            "method": "POST",
+            "header": [
+                {"key": "Accept", "value": "application/json"},
+                {"key": "Content-Type", "value": "application/json"},
+            ],
+            "url": "{{baseUrl}}/api/v1/checkout",
+            "description": "Create the order. Saves `school_order_id` for the pay step.",
+            "body": {
+                "mode": "raw",
+                "raw": (
+                    '{\n  "billing_address": {\n'
+                    '    "first_name": "School",\n'
+                    '    "last_name": "Demo",\n'
+                    '    "email": "school-demo@sciencestreetlab.com",\n'
+                    '    "phone": "01012345678",\n'
+                    '    "city": "Cairo",\n'
+                    '    "country": "EG"\n'
+                    '  },\n  "shipping_address": {\n'
+                    '    "city": "Cairo",\n'
+                    '    "country": "EG"\n'
+                    "  }\n}"
+                ),
+                "options": {"raw": {"language": "json"}},
+            },
+        },
+        "response": [],
+        "event": [
+            {
+                "listen": "test",
+                "script": {"type": "text/javascript", "exec": SCHOOL_CHECKOUT_TEST[:]},
+            }
+        ],
+    },
+    {
+        "name": "Buy Paid Plan 4 — Pay Order",
+        "request": {
+            "method": "POST",
+            "header": [
+                {"key": "Accept", "value": "application/json"},
+                {"key": "Content-Type", "value": "application/json"},
+            ],
+            "url": "{{baseUrl}}/api/v1/checkout/{{school_order_id}}/pay",
+            "description": "Start payment. Saves `school_payment_id` so the mock gateway can complete it.",
+            "body": {
+                "mode": "raw",
+                "raw": '{\n  "gateway": "mock"\n}',
+                "options": {"raw": {"language": "json"}},
+            },
+        },
+        "response": [],
+        "event": [
+            {
+                "listen": "test",
+                "script": {"type": "text/javascript", "exec": SCHOOL_PAY_TEST[:]},
+            }
+        ],
+    },
+    {
+        "name": "Buy Paid Plan 5 — Complete Mock Payment",
+        "request": {
+            "method": "POST",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/v1/payments/mock/{{school_payment_id}}/complete",
+            "description": "Local-only mock gateway. Fires `OrderPaid`, which runs `GrantEnrollmentOnOrderPaid` and creates the enrollment on the purchased plan.",
+            "auth": {"type": "noauth"},
+        },
+        "response": [],
+        "event": [
+            {
+                "listen": "test",
+                "script": {"type": "text/javascript", "exec": SCHOOL_CART_TEST[:]},
+            }
+        ],
+    },
+    {
+        "name": "Buy Paid Plan 6 — Verify Enrollment",
+        "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/v1/courses/{{school_demo_course_slug}}/enrollment",
+            "description": "Confirms the enrollment now points at the Starter Plan bought through checkout.",
+        },
+        "response": [],
+        "event": [
+            {
+                "listen": "test",
+                "script": {"type": "text/javascript", "exec": SCHOOL_PAID_ENROLLMENT_TEST[:]},
+            }
+        ],
+    },
 ]
+
+ME_ENROLLMENT_ITEMS = [
+    {
+        "name": "List My Enrollments (/me alias)",
+        "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/v1/me/enrollments",
+            "description": "Alias of `GET /enrollments`. Same payload, kept for clients that prefer the `/me` prefix.",
+        },
+        "response": [],
+        "event": [
+            {
+                "listen": "test",
+                "script": {"type": "text/javascript", "exec": MY_ENROLLMENTS_TEST[:]},
+            }
+        ],
+    },
+    {
+        "name": "Get My Enrollment (/me alias)",
+        "request": {
+            "method": "GET",
+            "header": [{"key": "Accept", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/v1/me/enrollments/{{enrollment_id}}",
+            "description": "Alias of `GET /enrollments/{id}`. Run List My Enrollments first to set enrollment_id.",
+        },
+        "response": [],
+        "event": [
+            {
+                "listen": "test",
+                "script": {"type": "text/javascript", "exec": MY_ENROLLMENT_DETAIL_TEST[:]},
+            }
+        ],
+    },
+]
+
+LEGACY_ATTEMPT_ITEM = {
+    "name": "Get Attempt (legacy /attempts path)",
+    "request": {
+        "method": "GET",
+        "header": [{"key": "Accept", "value": "application/json"}],
+        "url": "{{baseUrl}}/api/v1/attempts/{{attempt_id}}",
+        "description": "Legacy alias of `GET /quiz-attempts/{attempt}`. The `/attempts/{id}/submit` and `/attempts/{id}/result` siblings are already in this folder.",
+    },
+    "response": [],
+    "event": [
+        {
+            "listen": "test",
+            "script": {"type": "text/javascript", "exec": ATTEMPT_SHOW_TEST[:]},
+        }
+    ],
+}
 
 LEARNING_ACCESS_ITEMS = LEARNING_PLAN_ITEMS[:3]
 OFFICIAL_RESULT_ITEM = {
@@ -1133,6 +1418,26 @@ def insert_learning_access_items(col: dict) -> None:
     insert_items_after(learning, "Get Course Progress", LEARNING_ACCESS_ITEMS)
     insert_items_after(learning, "Get Course Plans", [deepcopy(LEARNING_PLAN_ITEMS[3])])
     insert_items_after(learning, "Enroll via Course Plan", [deepcopy(i) for i in SCHOOL_DEMO_ITEMS])
+    insert_items_after(learning, "Get Enrollment", [deepcopy(i) for i in ME_ENROLLMENT_ITEMS])
+
+
+def insert_legacy_attempt_item(col: dict) -> None:
+    assessment = find_folder(col.get("item", []), "Assessment")
+    if not assessment:
+        return
+    insert_items_after(assessment, "Start Quiz Attempt", [deepcopy(LEGACY_ATTEMPT_ITEM)])
+
+
+def update_course_plans_item(col: dict) -> None:
+    def patch(item: dict) -> None:
+        if item.get("name") != "Get Course Plans":
+            return
+        item["request"]["description"] = COURSE_PLANS_DESCRIPTION
+        for ev in item.get("event", []):
+            if ev.get("listen") == "test":
+                ev["script"]["exec"] = COURSE_PLANS_TEST[:]
+
+    walk_items(col.get("item", []), patch)
 
 
 def insert_official_result_item(col: dict) -> None:
@@ -1269,6 +1574,8 @@ def process_collection(path: Path) -> None:
     insert_auth_email_items(col)
     insert_learning_access_items(col)
     insert_official_result_item(col)
+    insert_legacy_attempt_item(col)
+    update_course_plans_item(col)
     update_school_demo_tests(col)
     update_get_quiz_tests(col)
     update_start_quiz_tests(col)

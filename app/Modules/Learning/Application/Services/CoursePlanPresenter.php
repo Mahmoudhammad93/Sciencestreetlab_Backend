@@ -25,6 +25,9 @@ final class CoursePlanPresenter
             'duration_days' => $plan->duration_days,
             'max_quiz_attempts' => $plan->max_quiz_attempts,
             'grant_certificate' => (bool) $plan->grant_certificate,
+            'is_free' => $plan->isFree(),
+            // Free plans enroll directly; paid plans must be bought through this product.
+            'product_id' => $plan->isFree() ? null : $plan->product?->id,
         ];
     }
 }
