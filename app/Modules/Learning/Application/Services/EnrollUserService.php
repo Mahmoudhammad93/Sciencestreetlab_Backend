@@ -158,7 +158,7 @@ final class EnrollUserService
                 'metadata' => [],
             ]);
 
-            return $order;
+           return $order->load('items');
         });
     }
 }
