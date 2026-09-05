@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
-
+    use Illuminate\Support\Facades\Http;
 Route::prefix('v1')->group(function (): void {
     Route::get('/health', function () {
         return response()->json([
@@ -38,4 +38,29 @@ Route::prefix('v1')->group(function (): void {
                 ->middleware('throttle:auth-verification-resend');
         });
     });
+
+
+Route::get('/test-bunny', function () {
+    $libraryId = config('services.bunny.stream.library_id');
+    $apiKey = config('services.bunny.stream.api_key');
+
+    $response = Http::withHeaders([
+        'AccessKey' => $apiKey,
+        'Accept' => 'application/json',
+    ])->get(
+        "https://video.bunnycdn.com/library/{$libraryId}/videos"
+    );
+
+    return response()->json([
+        'status' => $response->status(),
+        'body' => $response->json(),
+    ]);
+});
+Route::get('/test-bunny-create', function (
+    \App\Services\BunnyStreamService $bunny
+) {
+    return response()->json(
+        $bunny->createVideo('Test Lesson Video')
+    );
+});
 });
