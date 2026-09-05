@@ -64,37 +64,39 @@ final class EnrollmentController extends Controller
         ]);
     }
 
-    public function enroll(Request $request, string $slug): JsonResponse
-    {
-        $course = Course::query()->where('slug', $slug)->where('is_published', true)->firstOrFail();
+   public function enroll(Request $request, string $slug): JsonResponse
+{
+    $course = Course::query()->where('slug', $slug)->where('is_published', true)->firstOrFail();
 
-        try {
-            $result = $this->enrollUser->enrollDirect($request->user(), $course);
-        } catch (DomainException $e) {
-            $status = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 422;
-
-            return response()->json([
-                'message' => $e->getMessage(),
-                'code' => match ($status) {
-                    402 => 'PAYMENT_REQUIRED',
-                    403 => 'ENROLLMENT_FORBIDDEN',
-                    default => 'ENROLLMENT_FAILED',
-                },
-                'access_type' => $course->access_type->value,
-                'product_id' => $course->product_id,
-            ], $status);
-        }
-
-        $enrollment = $result['enrollment']->load('course');
+    try {
+        $result = $this->enrollUser->enrollDirect($request->user(), $course);
+    } catch (DomainException $e) {
+        $status = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 422;
 
         return response()->json([
-            'data' => [
-                'enrollment' => $enrollment,
-                'course' => $this->presenter->present($course, $request->user()),
-                'already_enrolled' => ! $result['created'],
-            ],
-        ], $result['created'] ? 201 : 200);
+            'message' => $e->getMessage(),
+            'code' => $status === 403 ? 'ENROLLMENT_FORBIDDEN' : 'ENROLLMENT_FAILED',
+        ], $status);
     }
+
+    if ($result['status'] === 'awaiting_payment') {
+        return response()->json([
+            'message' => 'Payment required to complete enrollment.',
+            'code' => 'PAYMENT_REQUIRED',
+            'data' => ['order' => $result['order']],
+        ], 402);
+    }
+
+    $enrollment = $result['enrollment']->load('course');
+
+    return response()->json([
+        'data' => [
+            'enrollment' => $enrollment,
+            'course' => $this->presenter->present($course, $request->user()),
+            'already_enrolled' => $result['status'] === 'already_enrolled',
+        ],
+    ], ($result['created'] ?? false) ? 201 : 200);
+}
 
     public function forCourse(Request $request, string $slug): JsonResponse
     {
@@ -146,24 +148,32 @@ final class EnrollmentController extends Controller
     }
 
     public function enrollPlan(Request $request, string $slug, int $planId): JsonResponse
-    {
-        $course = Course::query()->where('slug', $slug)->where('is_published', true)->firstOrFail();
-        $plan = CoursePlan::query()
-            ->whereKey($planId)
-            ->where('course_id', $course->id)
-            ->where('is_active', true)
-            ->firstOrFail();
+{
+    $course = Course::query()->where('slug', $slug)->where('is_published', true)->firstOrFail();
+    $plan = CoursePlan::query()
+        ->whereKey($planId)
+        ->where('course_id', $course->id)
+        ->where('is_active', true)
+        ->firstOrFail();
 
-        try {
-            $enrollment = $this->enrollUser->enrollWithPlan($request->user(), $plan);
-        } catch (DomainException $e) {
-            $status = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 422;
+    try {
+        $result = $this->enrollUser->enrollWithPlan($request->user(), $plan);
+    } catch (DomainException $e) {
+        $status = $e->getCode() >= 400 && $e->getCode() < 600 ? $e->getCode() : 422;
 
-            return response()->json(['message' => $e->getMessage()], $status);
-        }
-
-        return response()->json([
-            'data' => $this->planAccess->accessSummary($enrollment->fresh(['coursePlan', 'entitlements'])),
-        ], 201);
+        return response()->json(['message' => $e->getMessage()], $status);
     }
+
+    if ($result['status'] === 'awaiting_payment') {
+        return response()->json([
+            'message' => 'Payment required to complete enrollment.',
+            'code' => 'PAYMENT_REQUIRED',
+            'data' => ['order' => $result['order']],
+        ], 402);
+    }
+
+    return response()->json([
+        'data' => $this->planAccess->accessSummary($result['enrollment']->fresh(['coursePlan', 'entitlements'])),
+    ], 201);
+}
 }

@@ -18,17 +18,27 @@ class Topic extends Model
     public array $translatable = ['title', 'content'];
 
     protected $fillable = [
-        'lesson_id', 'slug', 'sort_order', 'content_type', 'video_url',
-        'video_provider', 'is_published', 'title', 'content',
-    ];
+    'lesson_id',
+    'slug',
+    'sort_order',
+    'content_type',
+    'video_url',
+    'video_provider',
+    'bunny_video_id',
+    'video_status',
+    'video_progress',
+    'is_published',
+    'title',
+    'content',
+];
 
     protected function casts(): array
-    {
-        return [
-            'is_published' => 'boolean',
-        ];
-    }
-
+{
+    return [
+        'is_published' => 'boolean',
+        'video_progress' => 'integer',
+    ];
+}
     public function lesson(): BelongsTo
     {
         return $this->belongsTo(Lesson::class);
