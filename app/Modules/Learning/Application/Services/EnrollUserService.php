@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Modules\Learning\Application\Services;
 
 use App\Models\User;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\Product;
+use App\Modules\Commerce\Infrastructure\Persistence\Models\Order;
 use App\Modules\Learning\Domain\Enums\AccessType;
 use App\Modules\Learning\Domain\Enums\EnrollmentStatus;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
@@ -63,21 +65,9 @@ final class EnrollUserService
         });
     }
 
-    public function enrollWithPlan(User $user, CoursePlan $plan): Enrollment
-    {
-        $plan->loadMissing('course');
-
-        if ($plan->isFree()) {
-            return $this->enroll($user, $plan->course, null, $plan);
-        }
-
-        throw new DomainException('Paid plans require checkout and payment.', 402);
-    }
-
     /**
-     * Direct enrollment for free courses (paid courses must go through checkout).
      *
-     * @return array{enrollment: Enrollment, created: bool}
+     * @return array{status: string, enrollment?: Enrollment, order?: Order, created?: bool}
      */
     public function enrollDirect(User $user, Course $course): array
     {
@@ -88,17 +78,87 @@ final class EnrollUserService
             ->first();
 
         if ($existing) {
-            return ['enrollment' => $existing, 'created' => false];
+            return ['status' => 'already_enrolled', 'enrollment' => $existing, 'created' => false];
         }
 
         return match ($course->access_type) {
             AccessType::Free => [
+                'status' => 'active',
                 'enrollment' => $this->enroll($user, $course),
                 'created' => true,
             ],
-            AccessType::Paid => throw new DomainException('Paid course requires checkout and payment.', 402),
+            AccessType::Paid => [
+                'status' => 'awaiting_payment',
+                'order' => $this->createOrderForCourseProduct($user, $course),
+            ],
             AccessType::School => throw new DomainException('School courses require school membership.', 403),
             AccessType::Closed => throw new DomainException('This course is closed for enrollment.', 403),
         };
+    }
+
+    /**
+     * @return array{status: string, enrollment?: Enrollment, order?: Order}
+     */
+    public function enrollWithPlan(User $user, CoursePlan $plan): array
+    {
+        $plan->loadMissing('course', 'product');
+
+        if ($plan->isFree()) {
+            return [
+                'status' => 'active',
+                'enrollment' => $this->enroll($user, $plan->course, null, $plan),
+            ];
+        }
+
+        return [
+            'status' => 'awaiting_payment',
+            'order' => $this->createOrderForPlanProduct($user, $plan),
+        ];
+    }
+
+    private function createOrderForCourseProduct(User $user, Course $course): Order
+    {
+        $product = Product::query()->findOrFail($course->product_id);
+
+        return $this->createAwaitingPaymentOrder($user, $product, $course->getTranslation('title', app()->getLocale()));
+    }
+
+    private function createOrderForPlanProduct(User $user, CoursePlan $plan): Order
+    {
+        $product = $plan->product ?? Product::query()->findOrFail($plan->product_id);
+        $label = $plan->course->getTranslation('title', app()->getLocale()).' - '.$plan->getTranslation('name', app()->getLocale());
+
+        return $this->createAwaitingPaymentOrder($user, $product, $label);
+    }
+
+    private function createAwaitingPaymentOrder(User $user, Product $product, string $label): Order
+    {
+        return DB::transaction(function () use ($user, $product, $label): Order {
+            $order = Order::create([
+                'user_id' => $user->id,
+                'status' => 'awaiting_payment',
+                'order_type' => 'course',
+                'subtotal' => $product->price,
+                'discount_amount' => 0,
+                'shipping_amount' => 0,
+                'tax_amount' => 0,
+                'total' => $product->price,
+                'currency' => $product->currency ?? 'EGP',
+                'billing_address' => [],
+                'shipping_address' => [],
+            ]);
+
+            $order->items()->create([
+                'product_id' => $product->id,
+                'product_name' => $label,
+                'product_sku' => $product->sku,
+                'quantity' => 1,
+                'unit_price' => $product->price,
+                'total_price' => $product->price,
+                'metadata' => [],
+            ]);
+
+            return $order;
+        });
     }
 }
