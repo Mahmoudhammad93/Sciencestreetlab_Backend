@@ -95,7 +95,7 @@ final class LessonController extends Controller
                         'title' => $topic->getTranslation('title', $locale),
                         'content' => $topic->getTranslation('content', $locale) ?: null,
                         'content_type' => $topic->content_type,
-                        'file_url' => $topic->content_type === 'pdf' ? $topic->video_url : null,
+                        'file_url' => $topic->content_type === 'pdf'|| $topic->content_type === 'interactive' ? $topic->video_url : null,
                         'has_video' => $topic->content_type === 'video' && filled($topic->video_url),
                         'is_locked' => ! $this->access->canAccessTopic($enrollment, $topic),
                         'is_completed' => $completion && (float) $completion->watch_progress_percent >= 90,
