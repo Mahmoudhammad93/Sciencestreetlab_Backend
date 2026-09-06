@@ -206,7 +206,7 @@ final class DemoSchoolCourseSeederTest extends TestCase
         $this->assertNotNull($enrollment->expires_at, 'Starter plan is 30 days, so it must expire');
     }
 
-    public function test_free_plan_enroll_endpoint_rejects_paid_plans(): void
+    public function test_paid_plan_enroll_endpoint_creates_awaiting_payment_order(): void
     {
         $course = Course::query()->where('slug', DemoSchoolCourseSeeder::COURSE_SLUG)->firstOrFail();
         $completePlan = CoursePlan::query()
@@ -218,7 +218,9 @@ final class DemoSchoolCourseSeederTest extends TestCase
 
         $this->postJson("/api/v1/courses/{$course->slug}/plans/{$completePlan->id}/enroll")
             ->assertStatus(402)
-            ->assertJsonPath('message', 'Paid plans require checkout and payment.');
+            ->assertJsonPath('code', 'PAYMENT_REQUIRED')
+            ->assertJsonPath('message', 'Payment required to complete enrollment.')
+            ->assertJsonStructure(['data' => ['order' => ['id', 'status', 'total']]]);
     }
 
     public function test_running_seeder_twice_does_not_duplicate_demo_course_or_plans(): void

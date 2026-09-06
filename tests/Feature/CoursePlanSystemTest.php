@@ -100,8 +100,10 @@ final class CoursePlanSystemTest extends TestCase
             'interactive_activity_ids' => [],
         ]);
 
-        $enrollment = app(EnrollUserService::class)->enrollWithPlan($user, $plan);
+        $result = app(EnrollUserService::class)->enrollWithPlan($user, $plan);
+        $enrollment = $result['enrollment'];
 
+        $this->assertSame('active', $result['status']);
         $this->assertSame($plan->id, $enrollment->course_plan_id);
         $this->assertNotNull($enrollment->expires_at);
         $this->assertDatabaseHas('enrollment_entitlements', [

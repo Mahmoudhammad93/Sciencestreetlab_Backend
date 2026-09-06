@@ -14,7 +14,7 @@ COLLECTIONS = [
 MAIN_API_DESCRIPTION = """REST API collection for Science Street Lab (Laravel `/api/v1`). **All endpoints live in this one file.**
 
 **Auth:** Laravel Sanctum Bearer token. Login/Register auto-save `token`.
-**Base URL:** `{{baseUrl}}` (default `http://localhost:8000`).
+**Base URL:** `{{baseUrl}}` (default `http://localhost:8002`).
 **Environment:** import `Science-Street-Lab.local.postman_environment.json`.
 
 **Demo accounts**
@@ -41,9 +41,9 @@ Assessment demo (`php artisan db:seed --class=AssessmentDemoCoursesSeeder`):
 
 **Buying a paid plan**
 Plans expose `is_free` and `product_id`. Free plans enroll directly; paid plans return
-`402 "Paid plans require checkout and payment."` on the enroll endpoint. Buy them instead with:
-`POST /cart/items` (`product_id`) → `POST /checkout` → `POST /checkout/{order}/pay` → complete payment.
-`OrderPaid` then grants the enrollment on that plan. See the **Buy Paid Plan 1–6** requests in Learning.
+`402` with `code: PAYMENT_REQUIRED` and an `order` already created for checkout/pay.
+Continue with `POST /checkout/{order}/pay` (or the cart flow). See **Buy Paid Plan 1–6**.
+`OrderPaid` then grants the enrollment on that plan.
 
 **Not covered by this collection** (not client-callable): `GET /auth/email/verify/{id}/{hash}`
 (signed link from email) and the MyFatoorah callback/confirm redirects (called by the gateway).
@@ -198,9 +198,13 @@ ATTEMPT_SHOW_TEST = [
 ]
 
 SCHOOL_PAID_ENROLL_REJECTED_TEST = [
-    "pm.test('paid plan cannot enroll directly (402)', () => pm.response.to.have.status(402));",
-    "pm.test('explains checkout is required', () => {",
-    "  pm.expect(pm.response.json().message).to.eql('Paid plans require checkout and payment.');",
+    "pm.test('paid plan returns 402 with payment-required payload', () => pm.response.to.have.status(402));",
+    "pm.test('PAYMENT_REQUIRED code and order', () => {",
+    "  const body = pm.response.json();",
+    "  pm.expect(body.code).to.eql('PAYMENT_REQUIRED');",
+    "  pm.expect(body.message).to.eql('Payment required to complete enrollment.');",
+    "  pm.expect(body.data.order).to.have.property('id');",
+    "  if (body.data.order.id) pm.collectionVariables.set('school_order_id', String(body.data.order.id));",
     "});",
     "",
 ]
@@ -738,7 +742,12 @@ SCHOOL_DEMO_ITEMS = [
             "method": "POST",
             "header": [{"key": "Accept", "value": "application/json"}],
             "url": "{{baseUrl}}/api/v1/courses/{{school_demo_course_slug}}/plans/{{school_starter_plan_id}}/enroll",
-            "description": "**Expected to fail with 402.** The direct plan-enroll endpoint only accepts free plans.\nPaid plans must go through the checkout flow in the next four requests.\nRun Get School Demo Course Plans first to set school_starter_plan_id.",
+            "description": (
+                "**Expected 402** for paid plans.\n"
+                "Response: `{ code: PAYMENT_REQUIRED, data: { order } }` — order is created for you.\n"
+                "Continue with Buy Paid Plan 4 (pay) using `school_order_id`, or cart checkout.\n"
+                "Run Get School Demo Course Plans first to set school_starter_plan_id."
+            ),
         },
         "response": [],
         "event": [
@@ -1461,6 +1470,7 @@ def update_school_demo_tests(col: dict) -> None:
         "Get School Demo Course Access": SCHOOL_DEMO_ACCESS_TEST,
         "Get School Demo Enrollment": SCHOOL_DEMO_ENROLLMENT_TEST,
         "Get School Demo Quiz (official score)": SCHOOL_DEMO_QUIZ_TEST,
+        "Buy Paid Plan 1 — Direct Enroll Fails (402)": SCHOOL_PAID_ENROLL_REJECTED_TEST,
     }
 
     def patch(item: dict) -> None:

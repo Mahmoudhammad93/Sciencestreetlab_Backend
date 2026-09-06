@@ -66,7 +66,6 @@ final class EnrollUserService
     }
 
     /**
-     *
      * @return array{status: string, enrollment?: Enrollment, order?: Order, created?: bool}
      */
     public function enrollDirect(User $user, Course $course): array
@@ -155,10 +154,14 @@ final class EnrollUserService
                 'quantity' => 1,
                 'unit_price' => $product->price,
                 'total_price' => $product->price,
-                'metadata' => [],
+                'metadata' => [
+                    'product_type' => $product->type?->value,
+                    'course_id' => $product->course_id,
+                    'course_plan_id' => $product->course_plan_id,
+                ],
             ]);
 
-           return $order->load('items');
+            return $order->load('items');
         });
     }
 }
