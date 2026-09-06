@@ -13,9 +13,9 @@ use Filament\Widgets\TableWidget as BaseWidget;
 
 class PendingReviewsWidget extends BaseWidget
 {
-    protected static ?int $sort = 6;
+    protected static ?int $sort = 11;
 
-    protected int | string | array $columnSpan = 'full';
+    protected int|string|array $columnSpan = 'full';
 
     protected static ?string $heading = 'Photos waiting for review';
 

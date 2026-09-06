@@ -10,13 +10,13 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
 
-class RecentOrdersWidget extends BaseWidget
+class StuckCheckoutsWidget extends BaseWidget
 {
-    protected static ?int $sort = 9;
+    protected static ?int $sort = 8;
 
     protected int|string|array $columnSpan = 1;
 
-    protected static ?string $heading = 'Recent orders';
+    protected static ?string $heading = 'Stuck checkouts (awaiting payment)';
 
     public function table(Table $table): Table
     {
@@ -24,37 +24,29 @@ class RecentOrdersWidget extends BaseWidget
             ->query(
                 Order::query()
                     ->with('user')
+                    ->where('status', 'awaiting_payment')
                     ->latest()
             )
             ->defaultPaginationPageOption(5)
             ->paginated([5])
+            ->emptyStateHeading('No stuck checkouts')
+            ->emptyStateDescription('All orders have moved past awaiting payment.')
             ->columns([
                 Tables\Columns\TextColumn::make('order_number')
                     ->label('Order')
-                    ->searchable()
                     ->url(fn (Order $record): string => OrderResource::getUrl('edit', ['record' => $record])),
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Customer')
                     ->placeholder('Guest'),
-                Tables\Columns\TextColumn::make('status')
+                Tables\Columns\TextColumn::make('order_type')
+                    ->label('Channel')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'paid', 'delivered' => 'success',
-                        'awaiting_payment', 'pending' => 'warning',
-                        'cancelled', 'refunded' => 'danger',
-                        default => 'info',
-                    }),
+                    ->formatStateUsing(fn (?string $state): string => $state === 'course' ? 'Course plan' : 'Catalog'),
                 Tables\Columns\TextColumn::make('total')
-                    ->money('EGP')
-                    ->sortable(),
+                    ->money('EGP'),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->since()
-                    ->sortable(),
-            ])
-            ->actions([
-                Tables\Actions\Action::make('open')
-                    ->url(fn (Order $record): string => OrderResource::getUrl('edit', ['record' => $record]))
-                    ->icon('heroicon-m-arrow-top-right-on-square'),
+                    ->label('Waiting since')
+                    ->since(),
             ]);
     }
 }

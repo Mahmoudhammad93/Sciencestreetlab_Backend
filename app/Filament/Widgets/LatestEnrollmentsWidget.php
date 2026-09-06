@@ -12,9 +12,9 @@ use Filament\Widgets\TableWidget as BaseWidget;
 
 class LatestEnrollmentsWidget extends BaseWidget
 {
-    protected static ?int $sort = 5;
+    protected static ?int $sort = 10;
 
-    protected int | string | array $columnSpan = 1;
+    protected int|string|array $columnSpan = 1;
 
     protected static ?string $heading = 'Latest enrollments';
 

@@ -13,9 +13,9 @@ class OrdersByStatusChart extends ChartWidget
 
     protected static ?string $description = 'Current checkout pipeline';
 
-    protected static ?int $sort = 3;
+    protected static ?int $sort = 6;
 
-    protected int | string | array $columnSpan = 1;
+    protected int|string|array $columnSpan = 1;
 
     protected static ?string $maxHeight = '280px';
 
@@ -84,5 +84,17 @@ class OrdersByStatusChart extends ChartWidget
     protected function getType(): string
     {
         return 'doughnut';
+    }
+
+    protected function getOptions(): array
+    {
+        return [
+            'plugins' => [
+                'legend' => [
+                    'display' => true,
+                    'position' => 'bottom',
+                ],
+            ],
+        ];
     }
 }

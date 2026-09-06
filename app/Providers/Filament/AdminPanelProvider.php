@@ -2,6 +2,18 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Dashboard;
+use App\Filament\Widgets\CeoBusinessStats;
+use App\Filament\Widgets\EnrollmentTrendChart;
+use App\Filament\Widgets\LatestEnrollmentsWidget;
+use App\Filament\Widgets\OrdersByStatusChart;
+use App\Filament\Widgets\PendingReviewsWidget;
+use App\Filament\Widgets\RecentOrdersWidget;
+use App\Filament\Widgets\RevenueByChannelChart;
+use App\Filament\Widgets\RevenueChart;
+use App\Filament\Widgets\StatsOverview;
+use App\Filament\Widgets\StuckCheckoutsWidget;
+use App\Filament\Widgets\TopCoursesWidget;
 use App\Services\SiteSettings;
 use Filament\Enums\ThemeMode;
 use Filament\Http\Middleware\Authenticate;
@@ -45,16 +57,21 @@ class AdminPanelProvider extends PanelProvider
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
-                \App\Filament\Pages\Dashboard::class,
+                Dashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
-                \App\Filament\Widgets\StatsOverview::class,
-                \App\Filament\Widgets\RevenueChart::class,
-                \App\Filament\Widgets\OrdersByStatusChart::class,
-                \App\Filament\Widgets\RecentOrdersWidget::class,
-                \App\Filament\Widgets\LatestEnrollmentsWidget::class,
-                \App\Filament\Widgets\PendingReviewsWidget::class,
+                StatsOverview::class,
+                CeoBusinessStats::class,
+                RevenueChart::class,
+                RevenueByChannelChart::class,
+                EnrollmentTrendChart::class,
+                OrdersByStatusChart::class,
+                TopCoursesWidget::class,
+                StuckCheckoutsWidget::class,
+                RecentOrdersWidget::class,
+                LatestEnrollmentsWidget::class,
+                PendingReviewsWidget::class,
             ])
             ->navigationGroups([
                 'Catalog',

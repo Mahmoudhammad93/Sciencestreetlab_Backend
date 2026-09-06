@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace App\Filament\Widgets;
 
-use App\Modules\Commerce\Infrastructure\Persistence\Models\Order;
+use App\Modules\Learning\Infrastructure\Persistence\Models\Enrollment;
 use Filament\Widgets\ChartWidget;
 use Illuminate\Support\Facades\DB;
 
-class RevenueChart extends ChartWidget
+class EnrollmentTrendChart extends ChartWidget
 {
-    protected static ?string $heading = 'Paid revenue';
+    protected static ?string $heading = 'New enrollments';
 
-    protected static ?string $description = 'Completed payments by day';
+    protected static ?string $description = 'Learners joining courses over time';
 
-    protected static ?int $sort = 3;
+    protected static ?int $sort = 5;
 
     protected int|string|array $columnSpan = 1;
 
@@ -36,11 +36,11 @@ class RevenueChart extends ChartWidget
         $days = (int) ($this->filter ?: 14);
         $from = now()->subDays($days - 1)->startOfDay();
 
-        $rows = Order::query()
-            ->whereNotNull('paid_at')
-            ->where('paid_at', '>=', $from)
-            ->selectRaw('DATE(paid_at) as day, SUM(total) as total')
-            ->groupBy(DB::raw('DATE(paid_at)'))
+        $rows = Enrollment::query()
+            ->whereNotNull('enrolled_at')
+            ->where('enrolled_at', '>=', $from)
+            ->selectRaw('DATE(enrolled_at) as day, COUNT(*) as total')
+            ->groupBy(DB::raw('DATE(enrolled_at)'))
             ->pluck('total', 'day');
 
         $labels = [];
@@ -49,20 +49,18 @@ class RevenueChart extends ChartWidget
         for ($i = $days - 1; $i >= 0; $i--) {
             $date = now()->subDays($i);
             $labels[] = $date->format('M j');
-            $values[] = (float) ($rows[$date->toDateString()] ?? 0);
+            $values[] = (int) ($rows[$date->toDateString()] ?? 0);
         }
 
         return [
-            'datasets' => [
-                [
-                    'label' => 'EGP',
-                    'data' => $values,
-                    'fill' => true,
-                    'borderColor' => '#2828a0',
-                    'backgroundColor' => 'rgba(40, 40, 160, 0.12)',
-                    'tension' => 0.35,
-                ],
-            ],
+            'datasets' => [[
+                'label' => 'Enrollments',
+                'data' => $values,
+                'fill' => true,
+                'borderColor' => '#16a34a',
+                'backgroundColor' => 'rgba(22, 163, 74, 0.15)',
+                'tension' => 0.35,
+            ]],
             'labels' => $labels,
         ];
     }

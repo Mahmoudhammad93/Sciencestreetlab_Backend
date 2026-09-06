@@ -18,6 +18,10 @@ class Dashboard extends BaseDashboard
     {
         $subheading = SiteSettings::getString('dashboard_subheading');
 
-        return $subheading !== '' ? $subheading : null;
+        if ($subheading !== '') {
+            return $subheading;
+        }
+
+        return 'CEO overview — commerce, learning, payments, and growth';
     }
 }
