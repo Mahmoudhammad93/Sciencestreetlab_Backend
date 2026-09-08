@@ -20,12 +20,13 @@ use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
 use App\Modules\Learning\Infrastructure\Persistence\Models\CoursePlan;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Lesson;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Topic;
+use Database\Seeders\Concerns\SeedsStationPracticeLessons;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Production demo: 5 courses × 1 lesson × 5 stations (video + interactive HTML each).
+ * Production demo: 5 courses × main stations lesson + 4 practice lessons (question types).
  *
  * Configure via Config (set by production:reset-and-seed-courses):
  * - production.examples_dir
@@ -34,6 +35,8 @@ use Illuminate\Support\Facades\DB;
  */
 final class ProductionFiveStationsCoursesSeeder extends Seeder
 {
+    use SeedsStationPracticeLessons;
+
     /**
      * @var list<array{slug: string, title: array{ar: string, en: string}, description: array{ar: string, en: string}}>
      */
@@ -285,24 +288,39 @@ final class ProductionFiveStationsCoursesSeeder extends Seeder
                     ->whereNotIn('id', $activityIds)
                     ->delete();
 
-                $this->seedPlansAndProducts($course, $lesson, $topicIds, $activityIds, $sync);
+                $practice = $this->seedPracticeLessons($course, $courseDef['slug']);
 
-                $this->command?->info('  ✓ '.$courseDef['slug'].' ('.count($topicIds).' topics, 3 EGP plans)');
+                $this->seedPlansAndProducts(
+                    $course,
+                    $lesson,
+                    $topicIds,
+                    $activityIds,
+                    $practice,
+                    $sync,
+                );
+
+                $this->command?->info(
+                    '  ✓ '.$courseDef['slug']
+                    .' ('.count($topicIds).' station topics + '
+                    .count($practice['lesson_ids']).' practice lessons, 3 EGP plans)'
+                );
             }
         });
 
-        $this->command?->info('Seeded 5 production courses (video + interactive × 5 stations, 3 EGP plans each).');
+        $this->command?->info('Seeded 5 production courses (stations + 4 practice lessons, 3 EGP plans each).');
     }
 
     /**
      * @param  list<int>  $topicIds
      * @param  list<int>  $activityIds
+     * @param  array{lesson_ids: list<int>, topic_ids: list<int>, quiz_ids: list<int>}  $practice
      */
     private function seedPlansAndProducts(
         Course $course,
         Lesson $lesson,
         array $topicIds,
         array $activityIds,
+        array $practice,
         CoursePlanEntitlementSyncService $sync,
     ): void {
         // Deactivate any leftover free-only plan from earlier seeds.
@@ -368,37 +386,54 @@ final class ProductionFiveStationsCoursesSeeder extends Seeder
             ],
         );
 
-        // topic order: light-v, light-i, sound-v, sound-i, plants-v, plants-i, rubber-v, rubber-i, race-v, race-i
+        // Station topic order: video+interactive pairs for 5 labs.
         $starterTopicIds = array_slice($topicIds, 0, 4);
         $starterActivityIds = array_slice($activityIds, 0, 2);
+        $starterPracticeLessonIds = array_slice($practice['lesson_ids'], 0, 1);
+        $starterPracticeTopicIds = array_slice($practice['topic_ids'], 0, 3);
+        $starterQuizIds = array_slice($practice['quiz_ids'], 0, 1);
 
         $examTopicIds = array_values(array_filter([
-            $topicIds[0] ?? null, $topicIds[1] ?? null, // light
-            $topicIds[4] ?? null, $topicIds[5] ?? null, // plants
-            $topicIds[8] ?? null, $topicIds[9] ?? null, // race
+            $topicIds[0] ?? null, $topicIds[1] ?? null,
+            $topicIds[4] ?? null, $topicIds[5] ?? null,
+            $topicIds[8] ?? null, $topicIds[9] ?? null,
         ], fn ($id) => $id !== null));
         $examActivityIds = array_values(array_filter([
-            $activityIds[0] ?? null, // light
-            $activityIds[2] ?? null, // plants
-            $activityIds[4] ?? null, // race
+            $activityIds[0] ?? null,
+            $activityIds[2] ?? null,
+            $activityIds[4] ?? null,
+        ], fn ($id) => $id !== null));
+        $examPracticeLessonIds = array_values(array_filter([
+            $practice['lesson_ids'][0] ?? null,
+            $practice['lesson_ids'][3] ?? null,
+        ], fn ($id) => $id !== null));
+        $examQuizIds = array_values(array_filter([
+            $practice['quiz_ids'][0] ?? null,
+            $practice['quiz_ids'][3] ?? null,
         ], fn ($id) => $id !== null));
 
+        $allLessonIds = array_values(array_unique(array_merge([$lesson->id], $practice['lesson_ids'])));
+        $allTopicIds = array_values(array_merge($topicIds, $practice['topic_ids']));
+
         $sync->syncPlanEntitlements($starter, [
-            'lesson_ids' => [$lesson->id],
-            'topic_ids' => $starterTopicIds,
+            'lesson_ids' => array_values(array_unique(array_merge([$lesson->id], $starterPracticeLessonIds))),
+            'topic_ids' => array_values(array_merge($starterTopicIds, $starterPracticeTopicIds)),
             'interactive_activity_ids' => $starterActivityIds,
+            'quiz_ids' => $starterQuizIds,
         ]);
 
         $sync->syncPlanEntitlements($complete, [
-            'lesson_ids' => [$lesson->id],
-            'topic_ids' => $topicIds,
+            'lesson_ids' => $allLessonIds,
+            'topic_ids' => $allTopicIds,
             'interactive_activity_ids' => $activityIds,
+            'quiz_ids' => $practice['quiz_ids'],
         ]);
 
         $sync->syncPlanEntitlements($exam, [
-            'lesson_ids' => [$lesson->id],
-            'topic_ids' => $examTopicIds,
+            'lesson_ids' => array_values(array_unique(array_merge([$lesson->id], $examPracticeLessonIds))),
+            'topic_ids' => array_values(array_merge($examTopicIds, $starterPracticeTopicIds)),
             'interactive_activity_ids' => $examActivityIds,
+            'quiz_ids' => $examQuizIds,
         ]);
 
         $this->seedPlanProducts($course, [

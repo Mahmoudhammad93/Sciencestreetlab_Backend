@@ -17,18 +17,20 @@ use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
 use App\Modules\Learning\Infrastructure\Persistence\Models\CoursePlan;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Lesson;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Topic;
+use Database\Seeders\Concerns\SeedsStationPracticeLessons;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Five FREE courses × 1 lesson × 5 stations (video + interactive HTML).
- * Same labs as production, free access + Free Plan (0 EGP).
+ * Five FREE courses × main stations lesson + 4 practice lessons (question types).
  *
  * php artisan db:seed --class=FreeFiveStationsCoursesSeeder
  */
 final class FreeFiveStationsCoursesSeeder extends Seeder
 {
+    use SeedsStationPracticeLessons;
+
     /** @var list<string> */
     public const COURSE_SLUGS = [
         'free-station-discover',
@@ -286,13 +288,15 @@ final class FreeFiveStationsCoursesSeeder extends Seeder
                     ->whereNotIn('id', $activityIds)
                     ->delete();
 
+                $practice = $this->seedPracticeLessons($course, $courseDef['slug']);
+
                 $plan = CoursePlan::query()->updateOrCreate(
                     ['course_id' => $course->id, 'name->en' => 'Free Plan'],
                     [
                         'name' => ['ar' => 'خطة مجانية', 'en' => 'Free Plan'],
                         'description' => [
-                            'ar' => 'وصول مجاني كامل لكل المحطات.',
-                            'en' => 'Full free access to all stations.',
+                            'ar' => 'وصول مجاني كامل لكل المحطات ودروس التدريب.',
+                            'en' => 'Full free access to all stations and practice lessons.',
                         ],
                         'price' => 0,
                         'currency' => 'EGP',
@@ -312,15 +316,20 @@ final class FreeFiveStationsCoursesSeeder extends Seeder
                     ->update(['is_active' => false]);
 
                 $sync->syncPlanEntitlements($plan, [
-                    'lesson_ids' => [$lesson->id],
-                    'topic_ids' => $topicIds,
+                    'lesson_ids' => array_values(array_unique(array_merge([$lesson->id], $practice['lesson_ids']))),
+                    'topic_ids' => array_values(array_merge($topicIds, $practice['topic_ids'])),
                     'interactive_activity_ids' => $activityIds,
+                    'quiz_ids' => $practice['quiz_ids'],
                 ]);
 
-                $this->command?->info('  ✓ '.$courseDef['slug'].' (free, '.count($topicIds).' topics)');
+                $this->command?->info(
+                    '  ✓ '.$courseDef['slug']
+                    .' (free, '.count($topicIds).' station topics + '
+                    .count($practice['lesson_ids']).' practice lessons)'
+                );
             }
         });
 
-        $this->command?->info('Seeded 5 FREE station courses.');
+        $this->command?->info('Seeded 5 FREE station courses with practice lessons.');
     }
 }
