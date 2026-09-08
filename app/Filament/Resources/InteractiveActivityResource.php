@@ -40,6 +40,12 @@ class InteractiveActivityResource extends Resource
                 ))
                 ->searchable()
                 ->required(),
+            Forms\Components\Select::make('topic_id')
+                ->label('Topic (optional)')
+                ->relationship('topic', 'slug')
+                ->searchable()
+                ->preload()
+                ->helperText('Link this activity to an interactive topic so the lesson player can open it.'),
             Forms\Components\TextInput::make('title.ar')->label('Title (AR)')->required(),
             Forms\Components\TextInput::make('title.en')->label('Title (EN)'),
             Forms\Components\Textarea::make('description.ar')->label('Description (AR)')->columnSpanFull(),

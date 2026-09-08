@@ -67,12 +67,15 @@ final class LearningCatalogSeeder extends Seeder
     {
         $definitions = [
             'SS-MICRO-001' => [
-                'slug' => 'science-street-microscope',
+                'slug' => 'science-street-microscope-2',
                 'type' => ProductType::Kit,
-                'price' => 3720,
+                'price' => 2790,
                 'compare_price' => 3720,
                 'name' => ['ar' => 'ميكروسكوب شارع العلوم', 'en' => 'Science Street Microscope'],
-                'short_description' => ['ar' => 'ميكروسكوب تعليمي للأطفال', 'en' => 'Educational microscope for kids'],
+                'short_description' => [
+                    'ar' => 'أول ميكروسكوب تعليمي رقمي بتكبير يصل إلى 1000×',
+                    'en' => 'Educational digital microscope up to 1000×',
+                ],
             ],
             'SS-GEN-001' => [
                 'slug' => 'manual-power-generator',

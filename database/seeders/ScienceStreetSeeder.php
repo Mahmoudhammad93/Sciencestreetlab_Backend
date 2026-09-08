@@ -27,11 +27,16 @@ final class ScienceStreetSeeder extends Seeder
 
         $this->call(LearningCatalogSeeder::class);
         $this->call(WordPressProductSyncSeeder::class);
+        $this->call(ScienceStreetMicroscopeProductSeeder::class);
         $this->call(DemoLearningSeeder::class);
         $this->call(AssessmentDemoCoursesSeeder::class);
         $this->call(EnsureAllTopicTypesSeeder::class);
         $this->call(DemoSchoolCourseSeeder::class);
         $this->call(FiveLabCoursesSeeder::class);
+        $this->call(ThreeStationsCourseSeeder::class);
+        $this->call(FreeInteractiveLabsSeeder::class);
+        $this->call(ProductionFiveStationsCoursesSeeder::class);
+        $this->call(FreeFiveStationsCoursesSeeder::class);
 
         $microscopeCourse = Course::query()->where('slug', 'microscope-course')->firstOrFail();
 

@@ -56,25 +56,43 @@ final class WordPressProductSyncSeeder extends Seeder
                 $courseId = $courseBySlug['gear-mechanics'] ?? null;
             }
 
+            $isMicroscopeKit = in_array($slug, ['science-street-microscope', 'science-street-microscope-2'], true);
+            // Keep the flagship kit purchasable even when the WP mirror says sold out.
+            $inStock = $isMicroscopeKit ? true : (bool) ($item['in_stock'] ?? true);
+            $salePrice = $isMicroscopeKit ? 2790.0 : ($price > 0 ? $price : (float) ($existing?->price ?? 100));
+            $comparePrice = $isMicroscopeKit
+                ? 3720.0
+                : (float) ($item['regular_price'] ?? $price);
+
+            $payload = [
+                'sku' => $isMicroscopeKit ? 'SS-MICRO-001' : $sku,
+                'slug' => $isMicroscopeKit ? 'science-street-microscope-2' : $slug,
+                'type' => $isCourse ? ProductType::Course : ProductType::Kit,
+                'status' => ProductStatus::Published,
+                'price' => $salePrice,
+                'compare_price' => $comparePrice,
+                'currency' => 'EGP',
+                'stock_quantity' => $inStock ? 999 : 0,
+                'manage_stock' => false,
+                'course_id' => $courseId,
+                'published_at' => now(),
+                'name' => ['ar' => $name, 'en' => $name],
+                'short_description' => [
+                    'ar' => $isCourse ? 'كورس رقمي من شارع العلوم' : 'منتج من متجر شارع العلوم',
+                    'en' => $isCourse ? 'Digital course from Science Street' : 'Science Street shop product',
+                ],
+            ];
+
+            if ($isMicroscopeKit) {
+                // One canonical kit row (SKU), regardless of WP slug variant.
+                Product::query()->updateOrCreate(['sku' => 'SS-MICRO-001'], $payload);
+
+                continue;
+            }
+
             Product::query()->updateOrCreate(
                 ['slug' => $slug],
-                [
-                    'sku' => $sku,
-                    'type' => $isCourse ? ProductType::Course : ProductType::Kit,
-                    'status' => ProductStatus::Published,
-                    'price' => $price > 0 ? $price : ($existing?->price ?? 100),
-                    'compare_price' => (float) ($item['regular_price'] ?? $price),
-                    'currency' => 'EGP',
-                    'stock_quantity' => ($item['in_stock'] ?? true) ? 999 : 0,
-                    'manage_stock' => false,
-                    'course_id' => $courseId,
-                    'published_at' => now(),
-                    'name' => ['ar' => $name, 'en' => $name],
-                    'short_description' => [
-                        'ar' => $isCourse ? 'كورس رقمي من شارع العلوم' : 'منتج من متجر شارع العلوم',
-                        'en' => $isCourse ? 'Digital course from Science Street' : 'Science Street shop product',
-                    ],
-                ]
+                $payload
             );
         }
 

@@ -103,6 +103,43 @@ class TopicResource extends Resource
                         ->label('Video file')
                         ->dehydrated(true),
                 ]),
+
+            Forms\Components\Section::make('Interactive HTML')
+                ->description('Upload a standalone .html file (or a ZIP with index.html). Saved as an Interactive Activity linked to this topic.')
+                ->visible(fn (Forms\Get $get): bool => $get('content_type') === 'interactive')
+                ->schema([
+                    Forms\Components\FileUpload::make('interactive_html_upload')
+                        ->label('HTML file')
+                        ->acceptedFileTypes(['text/html', 'application/xhtml+xml', '.html', '.htm'])
+                        ->disk('local')
+                        ->directory('tmp/topic-interactive-uploads')
+                        ->dehydrated(false)
+                        ->helperText('One complete HTML activity (stored as index.html).'),
+                    Forms\Components\FileUpload::make('interactive_zip_upload')
+                        ->label('ZIP package (optional)')
+                        ->acceptedFileTypes(['application/zip', 'application/x-zip-compressed', '.zip'])
+                        ->disk('local')
+                        ->directory('tmp/topic-interactive-uploads')
+                        ->dehydrated(false)
+                        ->helperText('ZIP containing index.html + css/js/images if needed.'),
+                    Forms\Components\Placeholder::make('interactive_activity_info')
+                        ->label('Linked activity')
+                        ->content(function (?Topic $record): string {
+                            if (! $record) {
+                                return 'Will be created after save.';
+                            }
+                            $activity = $record->interactiveActivity;
+                            if (! $activity) {
+                                return 'No package yet — upload HTML and save.';
+                            }
+
+                            $hasPackage = filled($activity->activity_package_path);
+
+                            return 'Activity #'.$activity->id
+                                .($hasPackage ? ' (package ready)' : ' (no package file)')
+                                .' — also editable under Assessment → Interactive Activities.';
+                        }),
+                ]),
         ]);
     }
 

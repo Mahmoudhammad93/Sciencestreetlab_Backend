@@ -7,6 +7,7 @@ namespace App\Filament\Resources\TopicResource\Pages;
 
 use App\Filament\Resources\TopicResource;
 use App\Filament\Resources\TopicResource\Concerns\HasBunnyUpload;
+use App\Filament\Resources\TopicResource\Concerns\HasInteractiveHtmlUpload;
 use App\Services\BunnyStreamService;
 use Filament\Actions;
 use Filament\Notifications\Notification;
@@ -15,6 +16,7 @@ use Filament\Resources\Pages\EditRecord;
 class EditTopic extends EditRecord
 {
     use HasBunnyUpload;
+    use HasInteractiveHtmlUpload;
 
     protected static string $resource = TopicResource::class;
 
@@ -55,5 +57,10 @@ class EditTopic extends EditRecord
     protected function mutateFormDataBeforeSave(array $data): array
     {
         return $this->applyBunnyVideoData($data);
+    }
+
+    protected function afterSave(): void
+    {
+        $this->syncInteractivePackage($this->record->fresh(), $this->data);
     }
 }

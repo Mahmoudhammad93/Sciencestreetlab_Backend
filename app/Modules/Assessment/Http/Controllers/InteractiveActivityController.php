@@ -127,7 +127,9 @@ final class InteractiveActivityController extends Controller
         return response()->file($absolute, [
             'Content-Type' => $mime,
             'X-Content-Type-Options' => 'nosniff',
-            'Content-Security-Policy' => "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:;",
+            // data:/blob: required for embedded narrator MP3 + AudioContext beeps
+            'Content-Security-Policy' => "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; media-src 'self' data: blob:;",
+            'Permissions-Policy' => 'autoplay=*, fullscreen=*',
             'Cache-Control' => 'private, max-age=300',
         ]);
     }

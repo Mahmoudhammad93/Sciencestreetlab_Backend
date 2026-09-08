@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Learning\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Assessment\Application\Services\InteractiveActivityPackageService;
 use App\Modules\Assessment\Application\Services\QuizAttemptService;
 use App\Modules\Learning\Application\Services\CourseAccessService;
 use App\Modules\Learning\Application\Services\CoursePresenter;
@@ -89,13 +90,24 @@ final class LessonController extends Controller
                 'topics' => $lesson->topics->map(function ($topic) use ($locale, $enrollment) {
                     $completion = $enrollment->topicCompletions->firstWhere('topic_id', $topic->id);
 
+                    $fileUrl = null;
+                    if ($topic->content_type === 'pdf') {
+                        $fileUrl = $topic->video_url;
+                    } elseif ($topic->content_type === 'interactive') {
+                        $topic->loadMissing('interactiveActivity');
+                        $activity = $topic->interactiveActivity;
+                        $fileUrl = $activity
+                            ? app(InteractiveActivityPackageService::class)->signedLaunchUrl($activity)
+                            : $topic->video_url;
+                    }
+
                     return [
                         'id' => $topic->id,
                         'slug' => $topic->slug,
                         'title' => $topic->getTranslation('title', $locale),
                         'content' => $topic->getTranslation('content', $locale) ?: null,
                         'content_type' => $topic->content_type,
-                        'file_url' => $topic->content_type === 'pdf'|| $topic->content_type === 'interactive' ? $topic->video_url : null,
+                        'file_url' => $fileUrl,
                         'has_video' => $topic->content_type === 'video' && filled($topic->video_url),
                         'is_locked' => ! $this->access->canAccessTopic($enrollment, $topic),
                         'is_completed' => $completion && (float) $completion->watch_progress_percent >= 90,
