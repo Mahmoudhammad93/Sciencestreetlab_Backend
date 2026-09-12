@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources;
 
+use App\Filament\Forms\Components\ImageDropzone;
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\User;
 use Filament\Forms;
@@ -26,20 +27,30 @@ class UserResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\TextInput::make('name')->required(),
-            Forms\Components\TextInput::make('email')->email()->required()->unique(ignoreRecord: true),
-            Forms\Components\TextInput::make('phone')->tel(),
-            Forms\Components\Select::make('locale')->options(['ar' => 'Arabic', 'en' => 'English'])->default('ar'),
-            Forms\Components\TextInput::make('password')
-                ->password()
-                ->dehydrateStateUsing(fn (?string $state) => filled($state) ? Hash::make($state) : null)
-                ->dehydrated(fn (?string $state) => filled($state))
-                ->required(fn (string $operation) => $operation === 'create'),
-            Forms\Components\Select::make('roles')
-                ->relationship('roles', 'name')
-                ->multiple()
-                ->preload(),
-            Forms\Components\Toggle::make('is_active')->default(true),
+            Forms\Components\Section::make('Account')->schema([
+                Forms\Components\TextInput::make('name')->required(),
+                Forms\Components\TextInput::make('email')->email()->required()->unique(ignoreRecord: true),
+                Forms\Components\TextInput::make('phone')->tel(),
+                Forms\Components\Select::make('locale')->options(['ar' => 'Arabic', 'en' => 'English'])->default('ar'),
+                Forms\Components\TextInput::make('password')
+                    ->password()
+                    ->dehydrateStateUsing(fn (?string $state) => filled($state) ? Hash::make($state) : null)
+                    ->dehydrated(fn (?string $state) => filled($state))
+                    ->required(fn (string $operation) => $operation === 'create'),
+                Forms\Components\Select::make('roles')
+                    ->relationship('roles', 'name')
+                    ->multiple()
+                    ->preload(),
+                Forms\Components\Toggle::make('is_active')->default(true),
+            ])->columns(2),
+            Forms\Components\Section::make('Avatar')->schema([
+                ImageDropzone::make(
+                    'avatar_path',
+                    'avatars',
+                    'Profile photo',
+                    'Drag and drop a profile photo here, or click to browse.'
+                ),
+            ]),
         ]);
     }
 
@@ -47,6 +58,10 @@ class UserResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\ImageColumn::make('avatar_path')
+                    ->label('Avatar')
+                    ->getStateUsing(fn (User $record): ?string => ImageDropzone::publicUrl($record->avatar_path))
+                    ->circular(),
                 Tables\Columns\TextColumn::make('name')->searchable(),
                 Tables\Columns\TextColumn::make('email')->searchable(),
                 Tables\Columns\TextColumn::make('roles.name')->badge(),

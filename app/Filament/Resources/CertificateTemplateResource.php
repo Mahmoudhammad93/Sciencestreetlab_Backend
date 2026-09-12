@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources;
 
+use App\Filament\Forms\Components\ImageDropzone;
 use App\Filament\Resources\CertificateTemplateResource\Pages;
 use App\Modules\Certification\Infrastructure\Persistence\Models\CertificateTemplate;
 use Filament\Forms;
@@ -25,11 +26,20 @@ class CertificateTemplateResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\TextInput::make('slug')->required()->unique(ignoreRecord: true),
-            Forms\Components\TextInput::make('name.ar')->label('Name (AR)')->required(),
-            Forms\Components\TextInput::make('name.en')->label('Name (EN)'),
-            Forms\Components\TextInput::make('background_path')->label('Background path'),
-            Forms\Components\Toggle::make('is_active')->default(true),
+            Forms\Components\Section::make('Template')->schema([
+                Forms\Components\TextInput::make('slug')->required()->unique(ignoreRecord: true),
+                Forms\Components\TextInput::make('name.ar')->label('Name (AR)')->required(),
+                Forms\Components\TextInput::make('name.en')->label('Name (EN)'),
+                Forms\Components\Toggle::make('is_active')->default(true),
+            ])->columns(2),
+            Forms\Components\Section::make('Background image')->schema([
+                ImageDropzone::make(
+                    'background_path',
+                    'certificates',
+                    'Background image',
+                    'Drag and drop a certificate background here, or click to browse.'
+                ),
+            ]),
         ]);
     }
 
@@ -37,6 +47,9 @@ class CertificateTemplateResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\ImageColumn::make('background_path')
+                    ->label('Background')
+                    ->getStateUsing(fn (CertificateTemplate $record): ?string => ImageDropzone::publicUrl($record->background_path)),
                 Tables\Columns\TextColumn::make('slug')->searchable(),
                 Tables\Columns\TextColumn::make('name')->formatStateUsing(fn ($record) => $record->getTranslation('name', 'ar')),
                 Tables\Columns\IconColumn::make('is_active')->boolean(),

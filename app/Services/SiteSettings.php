@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\SiteSetting;
+use App\Support\PublicMediaUrl;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 
@@ -115,7 +116,9 @@ final class SiteSettings
             'contact_phone' => $all['contact_phone'],
             'whatsapp' => $all['whatsapp'],
             'address' => $all['address'],
-            'logo_url' => $all['logo_url'],
+            'logo_url' => PublicMediaUrl::make(
+                is_string($all['logo_url'] ?? null) ? $all['logo_url'] : null
+            ),
             'facebook_url' => $all['facebook_url'],
             'instagram_url' => $all['instagram_url'],
             'youtube_url' => $all['youtube_url'],

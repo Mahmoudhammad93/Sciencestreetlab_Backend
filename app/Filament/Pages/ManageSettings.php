@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Pages;
 
+use App\Filament\Forms\Components\ImageDropzone;
 use App\Services\SiteSettings;
 use Filament\Actions\Action;
 use Filament\Forms;
@@ -78,10 +79,12 @@ class ManageSettings extends Page
                                             ->label('Tagline (English)')
                                             ->rows(2)
                                             ->columnSpanFull(),
-                                        Forms\Components\TextInput::make('logo_url')
-                                            ->label('Logo URL')
-                                            ->url()
-                                            ->columnSpanFull(),
+                                        ImageDropzone::make(
+                                            'logo_url',
+                                            'brand',
+                                            'Site logo',
+                                            'Drag and drop the site logo here, or click to browse.'
+                                        ),
                                     ]),
                                 Forms\Components\Section::make('Website colors')
                                     ->description('These colors apply to the public storefront.')
@@ -211,6 +214,12 @@ class ManageSettings extends Page
     public function save(): void
     {
         $state = $this->form->getState();
+        $existing = SiteSettings::get();
+
+        // Keep previous logo when the dropzone is empty (e.g. external URL still in use).
+        if (blank($state['logo_url'] ?? null) && filled($existing['logo_url'] ?? null)) {
+            $state['logo_url'] = $existing['logo_url'];
+        }
 
         $state['primary_color'] = SiteSettings::normalizeHex((string) ($state['primary_color'] ?? ''), '#2828a0');
         $state['accent_color'] = SiteSettings::normalizeHex((string) ($state['accent_color'] ?? ''), '#fcd500');

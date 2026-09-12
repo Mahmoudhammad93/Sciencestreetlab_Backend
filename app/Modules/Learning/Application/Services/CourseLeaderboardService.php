@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Modules\Learning\Domain\Enums\EnrollmentStatus;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Lesson;
+use App\Support\PublicMediaUrl;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -136,7 +137,9 @@ final class CourseLeaderboardService
                 'user' => [
                     'id' => (int) $row->user_id,
                     'name' => (string) $row->name,
-                    'avatar_url' => $row->avatar_path !== null ? (string) $row->avatar_path : null,
+                    'avatar_url' => PublicMediaUrl::make(
+                        $row->avatar_path !== null ? (string) $row->avatar_path : null
+                    ),
                 ],
                 'score' => round((float) $row->score, 2),
                 'completion_percentage' => round((float) $row->progress_percent, 2),

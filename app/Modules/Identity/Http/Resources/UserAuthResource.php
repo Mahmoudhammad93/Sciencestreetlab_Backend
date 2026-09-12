@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Identity\Http\Resources;
 
 use App\Models\User;
+use App\Support\PublicMediaUrl;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -27,7 +28,7 @@ final class UserAuthResource extends JsonResource
             'phone' => $user->phone,
             'locale' => $user->locale,
             'timezone' => $user->timezone,
-            'avatar_url' => $user->avatar_path,
+            'avatar_url' => PublicMediaUrl::make($user->avatar_path),
             'email_verified' => $user->hasVerifiedEmail(),
             'email_verified_at' => $user->email_verified_at?->toIso8601String(),
         ];

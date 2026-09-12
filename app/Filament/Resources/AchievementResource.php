@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\Resources;
 
+use App\Filament\Forms\Components\ImageDropzone;
 use App\Filament\Resources\AchievementResource\Pages;
 use App\Modules\Gamification\Domain\Enums\AchievementCategory;
 use App\Modules\Gamification\Infrastructure\Persistence\Models\Achievement;
@@ -26,17 +27,27 @@ class AchievementResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\TextInput::make('slug')->required()->unique(ignoreRecord: true),
-            Forms\Components\Select::make('category')
-                ->options(collect(AchievementCategory::cases())->mapWithKeys(fn ($c) => [$c->value => $c->name]))
-                ->required(),
-            Forms\Components\TextInput::make('points')->numeric()->default(0)->required(),
-            Forms\Components\TextInput::make('badge_color')->label('Badge color (#hex)'),
-            Forms\Components\TextInput::make('name.ar')->label('Name (AR)')->required(),
-            Forms\Components\TextInput::make('name.en')->label('Name (EN)'),
-            Forms\Components\Textarea::make('description.ar')->label('Description (AR)'),
-            Forms\Components\Textarea::make('description.en')->label('Description (EN)'),
-            Forms\Components\Toggle::make('is_active')->default(true),
+            Forms\Components\Section::make('Achievement')->schema([
+                Forms\Components\TextInput::make('slug')->required()->unique(ignoreRecord: true),
+                Forms\Components\Select::make('category')
+                    ->options(collect(AchievementCategory::cases())->mapWithKeys(fn ($c) => [$c->value => $c->name]))
+                    ->required(),
+                Forms\Components\TextInput::make('points')->numeric()->default(0)->required(),
+                Forms\Components\TextInput::make('badge_color')->label('Badge color (#hex)'),
+                Forms\Components\TextInput::make('name.ar')->label('Name (AR)')->required(),
+                Forms\Components\TextInput::make('name.en')->label('Name (EN)'),
+                Forms\Components\Textarea::make('description.ar')->label('Description (AR)'),
+                Forms\Components\Textarea::make('description.en')->label('Description (EN)'),
+                Forms\Components\Toggle::make('is_active')->default(true),
+            ])->columns(2),
+            Forms\Components\Section::make('Icon / badge image')->schema([
+                ImageDropzone::make(
+                    'icon_path',
+                    'achievements',
+                    'Achievement icon',
+                    'Drag and drop an icon or badge image here, or click to browse.'
+                ),
+            ]),
         ]);
     }
 
@@ -44,6 +55,10 @@ class AchievementResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\ImageColumn::make('icon_path')
+                    ->label('Icon')
+                    ->getStateUsing(fn (Achievement $record): ?string => ImageDropzone::publicUrl($record->icon_path))
+                    ->circular(),
                 Tables\Columns\TextColumn::make('slug')->searchable(),
                 Tables\Columns\TextColumn::make('name')->formatStateUsing(fn ($record) => $record->getTranslation('name', 'ar')),
                 Tables\Columns\TextColumn::make('category')->badge(),

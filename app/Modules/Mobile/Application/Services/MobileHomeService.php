@@ -12,6 +12,7 @@ use App\Modules\Gamification\Application\Services\PointsService;
 use App\Modules\Gamification\Infrastructure\Persistence\Models\UserAchievement;
 use App\Modules\Learning\Domain\Enums\EnrollmentStatus;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Enrollment;
+use App\Support\PublicMediaUrl;
 use Illuminate\Support\Facades\Schema;
 
 final class MobileHomeService
@@ -46,7 +47,7 @@ final class MobileHomeService
             'user' => [
                 'name' => $user->name,
                 'points' => $points->total_points,
-                'avatar_url' => $user->avatar_path,
+                'avatar_url' => PublicMediaUrl::make($user->avatar_path),
                 'locale' => $user->locale,
             ],
             'continue_learning' => $continueLearning,

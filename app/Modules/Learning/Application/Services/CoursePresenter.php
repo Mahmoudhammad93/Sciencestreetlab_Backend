@@ -11,6 +11,7 @@ use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Enrollment;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Lesson;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Topic;
+use App\Support\PublicMediaUrl;
 
 final class CoursePresenter
 {
@@ -38,7 +39,7 @@ final class CoursePresenter
             'uuid' => $course->uuid,
             'slug' => $course->slug,
             'title' => $course->getTranslation('title', $locale),
-            'image' => $course->image_url,
+            'image' => PublicMediaUrl::make($course->image_url),
             'short_description' => $course->getTranslation('short_description', $locale) ?: null,
             'long_description' => $course->getTranslation('description', $locale) ?: null,
             'access_type' => $course->access_type->value,
