@@ -39,6 +39,9 @@ Route::prefix('v1')->group(function (): void {
         });
     });
 
+    // Alias for the storefront client that posts to /api/v1/reset-password.
+    Route::post('/reset-password', [\App\Modules\Identity\Http\Controllers\Api\PasswordResetController::class, 'resetPassword'])
+        ->middleware('throttle:auth-password-reset');
 
 Route::get('/test-bunny', function () {
     $libraryId = config('services.bunny.stream.library_id');
