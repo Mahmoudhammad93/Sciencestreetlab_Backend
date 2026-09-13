@@ -295,6 +295,172 @@ final class InteractiveActivityService
     }
 
     /**
+     * Store a completed interactive-activity score.
+     *
+     * Percentage is always calculated here. A client-supplied percentage is ignored.
+     * This path is independent of quiz official scoring.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    public function recordScoreAttempt(User $user, InteractiveActivity $activity, array $payload): InteractiveActivityAttempt
+    {
+        $enrollment = $this->authorizeActivity($user, $activity);
+
+        $score = (float) $payload['score'];
+        $maxScore = (float) ($payload['max_score'] ?? $payload['maxScore']);
+        $duration = $payload['duration_seconds'] ?? $payload['durationSeconds'] ?? null;
+        $durationSeconds = $duration === null || $duration === '' ? null : (int) $duration;
+
+        if ($score < 0 || $maxScore <= 0 || $score > $maxScore) {
+            throw new DomainException('VALIDATION_ERROR: Score must be between 0 and max score.', 422);
+        }
+
+        if ($durationSeconds !== null && $durationSeconds < 0) {
+            throw new DomainException('VALIDATION_ERROR: Duration must be zero or greater.', 422);
+        }
+
+        $result = strtolower((string) ($payload['result'] ?? 'completed'));
+        $status = match ($result) {
+            'completed' => InteractiveActivityAttemptStatus::Completed,
+            'abandoned' => InteractiveActivityAttemptStatus::Abandoned,
+            default => throw new DomainException('VALIDATION_ERROR: Result must be completed or abandoned.', 422),
+        };
+
+        $percentage = round(($score / $maxScore) * 100, 2);
+
+        return DB::transaction(function () use (
+            $user, $activity, $enrollment, $payload, $score, $maxScore,
+            $durationSeconds, $status, $percentage, $result
+        ) {
+            $used = InteractiveActivityAttempt::query()
+                ->where('activity_id', $activity->id)
+                ->where('user_id', $user->id)
+                ->lockForUpdate()
+                ->count();
+
+            if ($activity->max_attempts !== null && $used >= (int) $activity->max_attempts) {
+                throw new DomainException('MAX_ATTEMPTS_REACHED: No interactive attempts remaining.', 422);
+            }
+
+            $metadata = is_array($payload['metadata'] ?? null) ? $payload['metadata'] : [];
+            $metadata['result'] = $result;
+            $metadata['score_source'] = 'interactive_activity_score';
+            if (array_key_exists('percentage', $payload)) {
+                $metadata['ignored_client_percentage'] = $payload['percentage'];
+            }
+
+            $attempt = InteractiveActivityAttempt::query()->create([
+                'user_id' => $user->id,
+                'activity_id' => $activity->id,
+                'lesson_id' => $activity->lesson_id,
+                'enrollment_id' => $enrollment->id,
+                'attempt_number' => $used + 1,
+                'status' => $status,
+                'client_score' => $score,
+                'verified_score' => null,
+                'max_score' => $maxScore,
+                'percentage' => $percentage,
+                'score_verified' => false,
+                'time_spent_seconds' => $durationSeconds,
+                'result' => [
+                    'client_reported' => [
+                        'score' => $score,
+                        'max_score' => $maxScore,
+                        'result' => $result,
+                    ],
+                    'authoritative_score' => null,
+                    'note' => 'Interactive activity score stored separately from quiz official scoring. Percentage calculated by the server.',
+                ],
+                'metadata' => $metadata,
+                'started_at' => now(),
+                'completed_at' => $status === InteractiveActivityAttemptStatus::Completed ? now() : null,
+            ]);
+
+            if ($status === InteractiveActivityAttemptStatus::Completed && $activity->topic_id) {
+                $topic = $activity->topic;
+                if ($topic) {
+                    $this->progress->recordTopicProgress($enrollment, $topic, [
+                        'watch_progress_percent' => 100,
+                        'completed' => true,
+                        'watched_seconds' => $durationSeconds ?? 0,
+                    ]);
+                }
+            }
+
+            return $attempt->fresh(['activity']);
+        });
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function scoreSummary(User $user, InteractiveActivity $activity): array
+    {
+        $this->authorizeActivity($user, $activity);
+
+        $attempts = InteractiveActivityAttempt::query()
+            ->where('user_id', $user->id)
+            ->where('activity_id', $activity->id)
+            ->orderByDesc('id')
+            ->get();
+
+        $completed = $attempts
+            ->where('status', InteractiveActivityAttemptStatus::Completed)
+            ->sortByDesc(fn (InteractiveActivityAttempt $attempt): array => [
+                $attempt->percentage ?? -1,
+                $attempt->completed_at?->getTimestamp() ?? 0,
+                $attempt->id,
+            ]);
+
+        $best = $completed->first();
+        $latest = $attempts->sortByDesc(fn (InteractiveActivityAttempt $attempt): int => $attempt->completed_at?->getTimestamp() ?? $attempt->created_at?->getTimestamp() ?? $attempt->id)->first();
+
+        return [
+            'activity_id' => $activity->id,
+            'best_score' => $best?->client_score !== null ? (float) $best->client_score : null,
+            'max_score' => $best?->max_score !== null ? (float) $best->max_score : null,
+            'percentage' => $best?->percentage !== null ? (float) $best->percentage : null,
+            'attempts_count' => $attempts->count(),
+            'latest_attempt' => $latest ? $this->attemptScorePayload($latest) : null,
+        ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function attemptHistory(User $user, InteractiveActivity $activity): array
+    {
+        $this->authorizeActivity($user, $activity);
+
+        return InteractiveActivityAttempt::query()
+            ->where('user_id', $user->id)
+            ->where('activity_id', $activity->id)
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn (InteractiveActivityAttempt $attempt): array => $this->attemptScorePayload($attempt))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function attemptScorePayload(InteractiveActivityAttempt $attempt): array
+    {
+        return [
+            'id' => $attempt->id,
+            'attempt_number' => $attempt->attempt_number,
+            'score' => $attempt->client_score !== null ? (float) $attempt->client_score : null,
+            'max_score' => $attempt->max_score !== null ? (float) $attempt->max_score : null,
+            'percentage' => $attempt->percentage !== null ? (float) $attempt->percentage : null,
+            'duration_seconds' => $attempt->time_spent_seconds,
+            'status' => $attempt->status->value,
+            'completed_at' => $attempt->completed_at?->toIso8601String(),
+            'created_at' => $attempt->created_at?->toIso8601String(),
+        ];
+    }
+
+    /**
      * @param  array<string, mixed>  $expected
      * @param  array<string, mixed>  $answers
      */

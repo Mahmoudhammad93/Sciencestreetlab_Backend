@@ -2,9 +2,16 @@
 
 declare(strict_types=1);
 
+use App\Modules\Catalog\Http\Controllers\Api\CategoryController;
 use App\Modules\Catalog\Http\Controllers\Api\ProductController;
 use App\Modules\Catalog\Http\Controllers\Api\WishlistController;
 use Illuminate\Support\Facades\Route;
+
+Route::prefix('categories')->group(function (): void {
+    Route::get('/', [CategoryController::class, 'index']);
+    Route::get('/{slug}', [CategoryController::class, 'show']);
+    Route::get('/{slug}/products', [CategoryController::class, 'products']);
+});
 
 Route::prefix('products')->group(function (): void {
     Route::get('/', [ProductController::class, 'index']);

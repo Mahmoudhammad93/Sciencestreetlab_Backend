@@ -11,4 +11,6 @@ interface ProductRepositoryInterface
     public function findBySlug(string $slug): ?Product;
 
     public function findPublished(): iterable;
+
+    public function findPublishedByCategory(int $categoryId): iterable;
 }

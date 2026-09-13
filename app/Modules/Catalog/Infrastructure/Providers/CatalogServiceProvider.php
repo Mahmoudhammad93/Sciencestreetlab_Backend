@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Catalog\Infrastructure\Providers;
 
+use App\Modules\Catalog\Domain\Repositories\CategoryRepositoryInterface;
 use App\Modules\Catalog\Domain\Repositories\ProductRepositoryInterface;
+use App\Modules\Catalog\Infrastructure\Persistence\EloquentCategoryRepository;
 use App\Modules\Catalog\Infrastructure\Persistence\EloquentProductRepository;
 use App\Shared\Kernel\ModuleServiceProvider;
 
@@ -18,5 +20,6 @@ final class CatalogServiceProvider extends ModuleServiceProvider
     public function register(): void
     {
         $this->app->bind(ProductRepositoryInterface::class, EloquentProductRepository::class);
+        $this->app->bind(CategoryRepositoryInterface::class, EloquentCategoryRepository::class);
     }
 }

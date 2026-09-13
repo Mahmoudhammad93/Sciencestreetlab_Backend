@@ -7,6 +7,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ProductResource\Pages;
 use App\Modules\Catalog\Domain\Enums\ProductStatus;
 use App\Modules\Catalog\Domain\Enums\ProductType;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\Category;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\Product;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
 use App\Modules\Learning\Infrastructure\Persistence\Models\CoursePlan;
@@ -81,6 +82,20 @@ class ProductResource extends Resource
                     ->nullable()
                     ->visible(fn (Get $get): bool => filled($get('course_id')))
                     ->helperText('Optional. Purchases grant access through this specific plan.'),
+                Forms\Components\Select::make('category_id')
+                    ->label('Category')
+                    ->options(fn (): array => Category::query()
+                        ->orderBy('sort_order')
+                        ->orderBy('slug')
+                        ->get()
+                        ->mapWithKeys(fn (Category $category): array => [
+                            $category->id => trim(($category->getTranslation('name', 'en') ?: $category->slug).' / '.($category->getTranslation('name', 'ar') ?: '')),
+                        ])
+                        ->all())
+                    ->searchable()
+                    ->preload()
+                    ->nullable()
+                    ->helperText('Shop category. Does not change course or plan enrollment.'),
                 Forms\Components\TextInput::make('sort_order')
                     ->numeric()
                     ->default(0)
@@ -181,6 +196,7 @@ class ProductResource extends Resource
                     ->square(),
                 Tables\Columns\TextColumn::make('sku')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('name')->label('Name')->searchable(),
+                Tables\Columns\TextColumn::make('category.slug')->label('Category')->toggleable(),
                 Tables\Columns\TextColumn::make('type')->badge(),
                 Tables\Columns\TextColumn::make('price')->money('EGP')->sortable(),
                 Tables\Columns\TextColumn::make('status')->badge(),

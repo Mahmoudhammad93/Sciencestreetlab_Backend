@@ -121,8 +121,11 @@ Guest cart items are merged into the user cart on login/register when a session 
 
 | Method | Path | Auth | What it does |
 |-------|------|------|----------------|
-| GET | `/products` | Public | Product list |
-| GET | `/products/{slug}` | Public | Product detail (price, course_id, images) |
+| GET | `/products` | Public | Product list (includes `category` when set) |
+| GET | `/products/{slug}` | Public | Product detail (price, course_id, category, images) |
+| GET | `/categories` | Public | Active categories, ordered by `sort_order` |
+| GET | `/categories/{slug}` | Public | Active category. Inactive or unknown slugs return 404 |
+| GET | `/categories/{slug}/products` | Public | Published products in an active category |
 | GET | `/wishlist` | Required | Wishlist |
 | POST | `/wishlist/{product}` | Required | Toggle wishlist |
 
@@ -338,6 +341,8 @@ POST /api/v1/payments/mock/{payment_id}/complete
 
 When the order is paid, `OrderPaid` triggers `GrantEnrollmentOnOrderPaid`, which reads `course_id` and `course_plan_id` from the order item and creates the enrollment with that plan's entitlements snapshotted.
 
+**Order confirmation email** (no public endpoint): a queued listener sends `OrderConfirmationMail` only after `OrderPaid`. Creating an order, or failing a payment, does not send it. A second `OrderPaid` for the same order does not send a second email (`orders.confirmation_email_sent_at`). The mail includes the customer name, order number, date, payment status, items, quantities, unit prices, subtotal, discount, total, currency, and a View Order link built from `FRONTEND_URL` (`{FRONTEND_URL}/orders/{order_number}`, overridable with `FRONTEND_ORDER_URL`). It does not enroll the student; enrollment stays in `GrantEnrollmentOnOrderPaid`.
+
 **Demo school course** (`DemoSchoolCourseSeeder`):
 
 | Item | Value |
@@ -517,7 +522,9 @@ These are **full HTML/JS games**, not quiz options. The API hosts a signed ifram
 | GET | `/lessons/{lesson}/interactive-activities` | Required | Activities on a lesson |
 | GET | `/interactive-activities/{activity}` | Required | Activity meta |
 | GET | `/interactive-activities/{activity}/launch` | Required | Signed iframe URL + protocol |
-| POST | `/interactive-activities/{activity}/attempts` | Required | Start attempt (optional `quiz_attempt_id`) |
+| POST | `/interactive-activities/{activity}/attempts` | Required | Start attempt (optional `quiz_attempt_id`, ignored). If the body includes `score`, records a completed interactive score instead — see below. |
+| GET | `/interactive-activities/{activity}/my-score` | Required | Authenticated user's best interactive score for this activity |
+| GET | `/interactive-activities/{activity}/attempts` | Required | Authenticated user's attempt history (newest first) |
 | GET | `/interactive-activity-attempts/{attempt}` | Required | Attempt + progress |
 | POST | `/interactive-activity-attempts/{attempt}/progress` | Required | Save in-progress state |
 | POST | `/interactive-activity-attempts/{attempt}/result` | Required | Finish (client score) |
@@ -552,6 +559,46 @@ These are **full HTML/JS games**, not quiz options. The API hosts a signed ifram
 ```
 
 `client_score` is **untrusted**. `verified_score` is used only if the package has expected answers.
+
+### Interactive activity score (not quiz official scoring)
+
+Quiz official scores are unchanged. A score submitted here is stored on `interactive_activity_attempts` only.
+
+`POST /interactive-activities/{activity}/attempts` with a `score` records a completed attempt. An empty body still starts or resumes an in-progress attempt.
+
+```json
+{
+  "score": 8,
+  "maxScore": 10,
+  "durationSeconds": 145,
+  "result": "completed",
+  "metadata": {}
+}
+```
+
+The server calculates `percentage = score / max_score * 100` (2 decimal places) and ignores any client `percentage`. `score` must be `>= 0`, `max_score` must be `> 0`, and `score` must be `<= max_score`. Access uses the same enrollment check as launch.
+
+`GET /interactive-activities/{activity}/my-score` returns the best completed percentage for the current user:
+
+```json
+{
+  "data": {
+    "activity_id": 123,
+    "best_score": 8,
+    "max_score": 10,
+    "percentage": 80,
+    "attempts_count": 3,
+    "latest_attempt": {
+      "score": 7,
+      "max_score": 10,
+      "percentage": 70,
+      "completed_at": "2026-09-13T12:00:00+00:00"
+    }
+  }
+}
+```
+
+`GET /interactive-activities/{activity}/attempts` returns that user's history only. Duplicate attempts are stored unless the activity `max_attempts` limit is reached. If the activity belongs to a topic, a completed score also records topic progress. It does not write `quiz_official_scores`.
 
 ### Mixed quiz (questions + HTML)
 

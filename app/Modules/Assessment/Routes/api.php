@@ -43,6 +43,8 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/interactive-activities/{activity}', [InteractiveActivityApiController::class, 'show']);
     Route::get('/interactive-activities/{activity}/launch', [InteractiveActivityApiController::class, 'launch']);
     Route::post('/interactive-activities/{activity}/attempts', [InteractiveActivityApiController::class, 'startAttempt']);
+    Route::get('/interactive-activities/{activity}/my-score', [InteractiveActivityApiController::class, 'myScore']);
+    Route::get('/interactive-activities/{activity}/attempts', [InteractiveActivityApiController::class, 'attempts']);
     Route::get('/interactive-activity-attempts/{attempt}', [InteractiveActivityApiController::class, 'showAttempt']);
     Route::post('/interactive-activity-attempts/{attempt}/progress', [InteractiveActivityApiController::class, 'submitProgress']);
     Route::post('/interactive-activity-attempts/{attempt}/result', [InteractiveActivityApiController::class, 'submitResult']);

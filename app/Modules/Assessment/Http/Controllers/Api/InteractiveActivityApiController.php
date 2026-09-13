@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Modules\Assessment\Application\Services\InteractiveActivityService;
 use App\Modules\Assessment\Domain\Enums\InteractiveActivityAttemptStatus;
 use App\Modules\Assessment\Domain\Enums\InteractiveActivityStatus;
+use App\Modules\Assessment\Http\Requests\RecordInteractiveActivityScoreRequest;
 use App\Modules\Assessment\Http\Requests\StartInteractiveActivityRequest;
 use App\Modules\Assessment\Http\Requests\SubmitInteractiveActivityProgressRequest;
 use App\Modules\Assessment\Http\Requests\SubmitInteractiveActivityResultRequest;
@@ -74,6 +75,10 @@ final class InteractiveActivityApiController extends Controller
 
     public function startAttempt(StartInteractiveActivityRequest $request, InteractiveActivity $activity): JsonResponse
     {
+        if ($request->exists('score')) {
+            return $this->recordScore($request, $activity);
+        }
+
         try {
             $attempt = $this->activities->startAttempt(
                 $request->user(),
@@ -88,6 +93,60 @@ final class InteractiveActivityApiController extends Controller
         return (new InteractiveActivityAttemptResource($attempt, true, $launch))
             ->response()
             ->setStatusCode(201);
+    }
+
+    public function myScore(Request $request, InteractiveActivity $activity): JsonResponse
+    {
+        try {
+            $summary = $this->activities->scoreSummary($request->user(), $activity);
+        } catch (DomainException $e) {
+            return ApiError::fromDomain($e);
+        }
+
+        return response()->json(['data' => $summary]);
+    }
+
+    public function attempts(Request $request, InteractiveActivity $activity): JsonResponse
+    {
+        try {
+            $history = $this->activities->attemptHistory($request->user(), $activity);
+        } catch (DomainException $e) {
+            return ApiError::fromDomain($e);
+        }
+
+        return response()->json(['data' => $history]);
+    }
+
+    private function recordScore(Request $request, InteractiveActivity $activity): JsonResponse
+    {
+        $form = RecordInteractiveActivityScoreRequest::createFrom($request);
+        $form->setContainer(app())->setRedirector(app('redirect'));
+        $form->setUserResolver(fn () => $request->user());
+        $form->validateResolved();
+
+        try {
+            $attempt = $this->activities->recordScoreAttempt(
+                $request->user(),
+                $activity,
+                $form->validated(),
+            );
+        } catch (DomainException $e) {
+            return ApiError::fromDomain($e);
+        }
+
+        return response()->json([
+            'data' => [
+                'id' => $attempt->id,
+                'activity_id' => $attempt->activity_id,
+                'attempt_number' => $attempt->attempt_number,
+                'score' => (float) $attempt->client_score,
+                'max_score' => (float) $attempt->max_score,
+                'percentage' => (float) $attempt->percentage,
+                'duration_seconds' => $attempt->time_spent_seconds,
+                'status' => $attempt->status->value,
+                'completed_at' => $attempt->completed_at?->toIso8601String(),
+            ],
+        ], 201);
     }
 
     public function showAttempt(Request $request, InteractiveActivityAttempt $attempt): JsonResponse

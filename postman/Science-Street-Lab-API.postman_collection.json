@@ -890,7 +890,7 @@
     },
     {
       "name": "Catalog",
-      "description": "Products & wishlist",
+      "description": "Products, categories, and wishlist",
       "item": [
         {
           "name": "List Products",
@@ -942,10 +942,70 @@
                 "{{product_slug}}"
               ]
             },
-            "description": "",
+            "description": "Product detail. Includes category when the product belongs to one.",
             "auth": {
               "type": "noauth"
             }
+          },
+          "response": []
+        },
+        {
+          "name": "List Categories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "categories"]
+            },
+            "description": "Active categories only, ordered by sort_order. Inactive categories are omitted.",
+            "auth": { "type": "noauth" }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Category",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categories/{{category_slug}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "categories", "{{category_slug}}"]
+            },
+            "description": "Active category by slug. Returns 404 when the slug is missing or the category is inactive.",
+            "auth": { "type": "noauth" }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Category Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categories/{{category_slug}}/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "categories", "{{category_slug}}", "products"]
+            },
+            "description": "Published products in an active category. Each product includes its category.",
+            "auth": { "type": "noauth" }
           },
           "response": []
         },
@@ -1401,7 +1461,7 @@
                     "complete"
                   ]
                 },
-                "description": "Dev helper to complete a mock payment.",
+                "description": "Dev helper to complete a mock payment. Successful completion marks the order paid, dispatches OrderPaid (enrollment stays in the existing listener), and queues one order confirmation email. A failed payment does not send that email. Completing the same payment again does not send a second email.",
                 "auth": {
                   "type": "noauth"
                 }
@@ -1953,6 +2013,7 @@
               }
             ],
             "url": "{{baseUrl}}/api/v1/payments/mock/{{school_payment_id}}/complete",
+            "description": "Completes the school-plan mock payment. On success the existing OrderPaid listener enrolls the student and a separate queued listener sends one order confirmation email. This is not a new public endpoint.",
             "description": "Local-only mock gateway. Fires `OrderPaid`, which runs `GrantEnrollmentOnOrderPaid` and creates the enrollment on the purchased plan.",
             "auth": {
               "type": "noauth"
@@ -4234,8 +4295,61 @@
                   "raw": "{\n  \"quiz_attempt_id\": null\n}"
                 },
                 "url": "{{baseUrl}}/api/v1/interactive-activities/{{activity_id}}/attempts",
-                "description": "POST /api/v1/interactive-activities/{activity}/attempts\nStarts or resumes an in-progress activity attempt (independent of QuizAttempt).\nResponse: attempt_id, activity_id, status, started_at, launch / launch_url, can_start/can_resume flags on GET activity.\nquiz_attempt_id is accepted but ignored."
+                "description": "POST /api/v1/interactive-activities/{activity}/attempts\nStarts or resumes an in-progress activity attempt when score is omitted (quiz_attempt_id is accepted but ignored).\nIf the body includes score, the same path records a completed interactive score. Percentage is calculated by the server and a client percentage is ignored. This does not write quiz official scores."
               }
+            },
+            {
+              "name": "Submit interactive activity score",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"score\": 8,\n  \"maxScore\": 10,\n  \"durationSeconds\": 145,\n  \"result\": \"completed\",\n  \"metadata\": {}\n}"
+                },
+                "url": "{{baseUrl}}/api/v1/interactive-activities/{{activity_id}}/attempts",
+                "description": "Records a completed interactive-activity attempt. Server sets percentage = score / maxScore * 100. Requires enrollment. Duplicate attempts are stored unless max_attempts is reached. Does not affect quiz official scoring."
+              },
+              "response": []
+            },
+            {
+              "name": "Get my interactive score",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/interactive-activities/{{activity_id}}/my-score",
+                "description": "Best completed interactive score for the authenticated user. best_score, max_score, percentage, attempts_count, latest_attempt."
+              },
+              "response": []
+            },
+            {
+              "name": "List my interactive attempts",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": "{{baseUrl}}/api/v1/interactive-activities/{{activity_id}}/attempts",
+                "description": "Attempt history for the authenticated user only, newest first."
+              },
+              "response": []
             },
             {
               "name": "Get activity attempt",

@@ -29,7 +29,7 @@ class Product extends Model implements HasMedia
     protected $fillable = [
         'uuid', 'sku', 'slug', 'type', 'status', 'price', 'compare_price',
         'currency', 'stock_quantity', 'manage_stock', 'is_featured',
-        'average_rating', 'review_count', 'course_id', 'course_plan_id', 'sort_order', 'published_at',
+        'average_rating', 'review_count', 'course_id', 'course_plan_id', 'category_id', 'sort_order', 'published_at',
         'name', 'short_description', 'description', 'meta_title', 'meta_description',
     ];
 
@@ -63,6 +63,11 @@ class Product extends Model implements HasMedia
     public function coursePlan(): BelongsTo
     {
         return $this->belongsTo(CoursePlan::class);
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
     }
 
     public function registerMediaCollections(): void
