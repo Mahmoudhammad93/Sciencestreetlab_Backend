@@ -34,12 +34,16 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
-    'bunny' => [
-    'stream' => [
-        'library_id' => env('BUNNY_STREAM_LIBRARY_ID'),
-        'api_key' => env('BUNNY_STREAM_API_KEY'),
-        'cdn_hostname' => env('BUNNY_STREAM_CDN_HOSTNAME'),
+    'brevo' => [
+        'key' => env('BREVO_API_KEY'),
     ],
-],
+
+    'bunny' => [
+        'stream' => [
+            'library_id' => env('BUNNY_STREAM_LIBRARY_ID'),
+            'api_key' => env('BUNNY_STREAM_API_KEY'),
+            'cdn_hostname' => env('BUNNY_STREAM_CDN_HOSTNAME'),
+        ],
+    ],
 
 ];

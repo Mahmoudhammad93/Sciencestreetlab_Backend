@@ -19,7 +19,7 @@ final class ResetPasswordNotification extends ResetPassword implements ShouldQue
     {
         $frontend = rtrim((string) config('sciencestreet.frontend_url'), '/');
 
-        return $frontend.'/reset-password?'.http_build_query([
+        return $frontend.'/my-account/reset-password?'.http_build_query([
             'token' => $this->token,
             'email' => $notifiable->getEmailForPasswordReset(),
         ]);

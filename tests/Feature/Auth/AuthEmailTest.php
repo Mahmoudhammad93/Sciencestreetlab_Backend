@@ -10,6 +10,7 @@ use App\Modules\Identity\Notifications\VerifyEmailNotification;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Notifications\SendQueuedNotifications;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
@@ -140,6 +141,19 @@ final class AuthEmailTest extends TestCase
         Notification::assertCount(1);
     }
 
+    public function test_reset_password_email_uses_the_public_frontend_reset_page(): void
+    {
+        config(['sciencestreet.frontend_url' => 'https://app.example.com']);
+
+        $user = User::factory()->create(['email' => 'reset@example.com']);
+        $mail = (new ResetPasswordNotification('plain-token'))->toMail($user);
+
+        $this->assertSame(
+            'https://app.example.com/my-account/reset-password?token=plain-token&email=reset%40example.com',
+            $mail->actionUrl,
+        );
+    }
+
     public function test_password_reset_changes_password_and_invalidates_token(): void
     {
         $user = User::factory()->create([
@@ -197,11 +211,11 @@ final class AuthEmailTest extends TestCase
         $user = User::factory()->unverified()->create();
         $user->sendEmailVerificationNotification();
 
-        Queue::assertPushed(\Illuminate\Notifications\SendQueuedNotifications::class);
+        Queue::assertPushed(SendQueuedNotifications::class);
 
         $token = Password::createToken($user);
         $user->sendPasswordResetNotification($token);
 
-        Queue::assertPushed(\Illuminate\Notifications\SendQueuedNotifications::class);
+        Queue::assertPushed(SendQueuedNotifications::class);
     }
 }

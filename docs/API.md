@@ -341,7 +341,7 @@ POST /api/v1/payments/mock/{payment_id}/complete
 
 When the order is paid, `OrderPaid` triggers `GrantEnrollmentOnOrderPaid`, which reads `course_id` and `course_plan_id` from the order item and creates the enrollment with that plan's entitlements snapshotted.
 
-**Order confirmation email and enrollment QR** (email is not a public endpoint):
+**Order confirmation email and enrollment QR** (email is not a public endpoint). Operational setup (Brevo sender, IP allowlist, domain auth, queue) is in [EMAIL.md](EMAIL.md).
 
 ```text
 Purchase → Payment success → OrderPaid → Enrollment → Confirmation email → QR scan → Public verification
