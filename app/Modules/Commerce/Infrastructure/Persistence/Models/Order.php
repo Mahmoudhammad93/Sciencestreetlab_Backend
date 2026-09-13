@@ -13,10 +13,16 @@ use Illuminate\Support\Str;
 
 class Order extends Model
 {
+    /** @var list<string> */
+    protected $hidden = [
+        'confirmation_email_claimed_at',
+    ];
+
     protected $fillable = [
         'uuid', 'order_number', 'user_id', 'status', 'order_type', 'subtotal', 'discount_amount',
         'shipping_amount', 'tax_amount', 'total', 'currency', 'coupon_id', 'coupon_code',
-        'billing_address', 'shipping_address', 'notes', 'paid_at', 'confirmation_email_sent_at', 'shipped_at',
+        'billing_address', 'shipping_address', 'notes', 'paid_at', 'confirmation_email_sent_at',
+        'confirmation_email_claimed_at', 'shipped_at',
         'delivered_at', 'cancelled_at',
     ];
 
@@ -44,6 +50,7 @@ class Order extends Model
             'shipping_address' => 'array',
             'paid_at' => 'datetime',
             'confirmation_email_sent_at' => 'datetime',
+            'confirmation_email_claimed_at' => 'datetime',
             'shipped_at' => 'datetime',
             'delivered_at' => 'datetime',
             'cancelled_at' => 'datetime',

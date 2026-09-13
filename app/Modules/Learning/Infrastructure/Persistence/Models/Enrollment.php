@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Learning\Infrastructure\Persistence\Models;
 
 use App\Models\User;
+use App\Modules\Commerce\Infrastructure\Persistence\Models\OrderItem;
 use App\Modules\Learning\Domain\Enums\EnrollmentStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,11 +13,31 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Enrollment extends Model
 {
+    /** @var list<string> */
+    protected $hidden = [
+        'enrollment_verification_token',
+    ];
+
     protected $fillable = [
         'user_id', 'course_id', 'course_plan_id', 'order_item_id', 'status', 'progress_percent',
         'enrolled_at', 'started_at', 'completed_at', 'expires_at', 'grant_certificate',
         'last_accessed_lesson_id', 'last_accessed_topic_id', 'last_accessed_at',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Enrollment $enrollment): void {
+            if (filled($enrollment->enrollment_verification_token)) {
+                return;
+            }
+
+            do {
+                $token = bin2hex(random_bytes(32));
+            } while (static::query()->where('enrollment_verification_token', $token)->exists());
+
+            $enrollment->enrollment_verification_token = $token;
+        });
+    }
 
     protected function casts(): array
     {
@@ -50,6 +71,28 @@ class Enrollment extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function orderItem(): BelongsTo
+    {
+        return $this->belongsTo(OrderItem::class);
+    }
+
+    public function verificationUrl(): string
+    {
+        $frontend = rtrim((string) config('sciencestreet.frontend_url'), '/');
+        $template = config('sciencestreet.enrollment_verification_url_template');
+        $token = (string) $this->enrollment_verification_token;
+
+        if (is_string($template) && $template !== '') {
+            return str_replace(
+                ['{frontend}', '{token}'],
+                [$frontend, $token],
+                $template,
+            );
+        }
+
+        return $frontend.'/verify/enrollment/'.$token;
     }
 
     public function topicCompletions(): HasMany

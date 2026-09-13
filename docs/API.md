@@ -341,7 +341,21 @@ POST /api/v1/payments/mock/{payment_id}/complete
 
 When the order is paid, `OrderPaid` triggers `GrantEnrollmentOnOrderPaid`, which reads `course_id` and `course_plan_id` from the order item and creates the enrollment with that plan's entitlements snapshotted.
 
-**Order confirmation email** (no public endpoint): a queued listener sends `OrderConfirmationMail` only after `OrderPaid`. Creating an order, or failing a payment, does not send it. A second `OrderPaid` for the same order does not send a second email (`orders.confirmation_email_sent_at`). The mail includes the customer name, order number, date, payment status, items, quantities, unit prices, subtotal, discount, total, currency, and a View Order link built from `FRONTEND_URL` (`{FRONTEND_URL}/orders/{order_number}`, overridable with `FRONTEND_ORDER_URL`). It does not enroll the student; enrollment stays in `GrantEnrollmentOnOrderPaid`.
+**Order confirmation email and enrollment QR** (email is not a public endpoint):
+
+```text
+Purchase → Payment success → OrderPaid → Enrollment → Confirmation email → QR scan → Public verification
+```
+
+`GrantEnrollmentOnOrderPaid` still creates the enrollment. The confirmation email listener runs after that listener and only after the enrollment transaction can be seen. Creating an order, or failing a payment, does not send the email. `confirmation_email_sent_at` is set only after the mailer accepts the message, so an SMTP failure can be retried. A second `OrderPaid` does not send a second email.
+
+The mail includes the customer name, order number, date, payment status, items, quantities, unit prices, subtotal, discount, total, currency, and a View Order link built from `FRONTEND_URL` (`{FRONTEND_URL}/orders/{order_number}`, overridable with `FRONTEND_ORDER_URL`).
+
+Each purchased course enrollment also gets a QR code in the email. Non-course items do not. The QR opens the public page `{FRONTEND_URL}/verify/enrollment/{token}` (overridable with `FRONTEND_ENROLLMENT_VERIFICATION_URL`). The token is a random 64-character hex value stored on the enrollment. It is not the enrollment, user, order, or course id.
+
+| Method | Path | Auth | What it does |
+|--------|------|------|----------------|
+| GET | `/enrollment-verification/{token}` | Public | Authoritative enrollment check. Valid active enrollment returns `verified: true` with student name, course name, status, and enrolled date. Unknown, cancelled, expired, suspended, or refunded/cancelled-order tokens return `404` and `{ "data": { "verified": false } }`. |
 
 **Demo school course** (`DemoSchoolCourseSeeder`):
 

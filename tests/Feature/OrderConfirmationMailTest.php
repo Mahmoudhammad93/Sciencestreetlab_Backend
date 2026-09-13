@@ -21,6 +21,11 @@ use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Enrollment;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Symfony\Component\Mailer\Envelope;
+use Symfony\Component\Mailer\Exception\TransportException;
+use Symfony\Component\Mailer\SentMessage;
+use Symfony\Component\Mailer\Transport\TransportInterface;
+use Symfony\Component\Mime\RawMessage;
 use Tests\TestCase;
 
 final class OrderConfirmationMailTest extends TestCase
@@ -112,7 +117,16 @@ final class OrderConfirmationMailTest extends TestCase
 
         app(PaymentCompletionService::class)->complete($payment);
 
-        Mail::assertSent(OrderConfirmationMail::class, 1);
+        $enrollment = Enrollment::query()->where('user_id', $user->id)->where('course_id', $course->id)->firstOrFail();
+
+        Mail::assertSent(OrderConfirmationMail::class, function (OrderConfirmationMail $mail) use ($enrollment): bool {
+            $url = $mail->enrollmentQrs[0]['verification_url'] ?? '';
+
+            return count($mail->enrollmentQrs) === 1
+                && str_starts_with($mail->enrollmentQrs[0]['qr_png'], "\x89PNG")
+                && $url === $enrollment->verificationUrl()
+                && ! str_contains($url, '/enrollments/'.$enrollment->id);
+        });
         $this->assertDatabaseHas('enrollments', [
             'user_id' => $user->id,
             'course_id' => $course->id,
@@ -126,9 +140,61 @@ final class OrderConfirmationMailTest extends TestCase
         $order = $this->paidOrder();
 
         Mail::assertSent(OrderConfirmationMail::class, function (OrderConfirmationMail $mail) use ($order): bool {
-            return $mail->order->is($order) && $mail->order->items->contains('product_name', 'Lab notebook');
+            return $mail->order->is($order)
+                && $mail->order->items->contains('product_name', 'Lab notebook')
+                && $mail->enrollmentQrs === []
+                && ! str_contains($mail->render(), 'Scan this QR code to verify your course enrollment.');
         });
         $this->assertNull($order->items()->first()?->product?->course_id);
+    }
+
+    public function test_mail_failure_does_not_mark_confirmation_sent_and_retry_can_send(): void
+    {
+        [$user, $product] = $this->buyerAndProduct();
+        $order = $this->makeOrder($user, $product, OrderStatus::AwaitingPayment);
+        $payment = Payment::query()->create([
+            'order_id' => $order->id,
+            'gateway' => 'mock',
+            'amount' => $order->total,
+            'currency' => 'EGP',
+            'status' => PaymentStatus::Pending->value,
+        ]);
+
+        config([
+            'mail.default' => 'throwing',
+            'mail.mailers.throwing' => ['transport' => 'throwing'],
+        ]);
+        Mail::extend('throwing', function () {
+            return new class implements TransportInterface
+            {
+                public function send(RawMessage $message, ?Envelope $envelope = null): ?SentMessage
+                {
+                    throw new TransportException('smtp down');
+                }
+
+                public function __toString(): string
+                {
+                    return 'throwing';
+                }
+            };
+        });
+
+        try {
+            app(PaymentCompletionService::class)->complete($payment);
+            $this->fail('Expected the confirmation mailer to fail.');
+        } catch (\Throwable $exception) {
+            $this->assertStringContainsString('smtp down', $exception->getMessage());
+        }
+
+        $this->assertNull($order->fresh()->confirmation_email_sent_at);
+        $this->assertNull($order->fresh()->confirmation_email_claimed_at);
+
+        Mail::fake();
+
+        event(new OrderPaid($order->fresh(['items'])));
+
+        Mail::assertSent(OrderConfirmationMail::class, 1);
+        $this->assertNotNull($order->fresh()->confirmation_email_sent_at);
     }
 
     /**

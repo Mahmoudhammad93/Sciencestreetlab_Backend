@@ -35,4 +35,11 @@ return [
      */
     'order_url_template' => env('FRONTEND_ORDER_URL'),
 
+    /*
+     * Public page opened by the enrollment QR code.
+     * Placeholders: {frontend}, {token}.
+     * Defaults to {frontend}/verify/enrollment/{token}.
+     */
+    'enrollment_verification_url_template' => env('FRONTEND_ENROLLMENT_VERIFICATION_URL'),
+
 ];

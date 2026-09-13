@@ -5,9 +5,13 @@ declare(strict_types=1);
 use App\Modules\Learning\Http\Controllers\Api\CourseController;
 use App\Modules\Learning\Http\Controllers\Api\CourseLeaderboardController;
 use App\Modules\Learning\Http\Controllers\Api\EnrollmentController;
+use App\Modules\Learning\Http\Controllers\Api\EnrollmentVerificationController;
 use App\Modules\Learning\Http\Controllers\Api\LessonController;
 use App\Modules\Learning\Http\Controllers\Api\TopicProgressController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/enrollment-verification/{token}', [EnrollmentVerificationController::class, 'show'])
+    ->middleware('throttle:30,1');
 
 Route::prefix('courses')->group(function (): void {
     Route::get('/', [CourseController::class, 'index']);

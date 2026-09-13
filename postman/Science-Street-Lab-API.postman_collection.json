@@ -1461,7 +1461,7 @@
                     "complete"
                   ]
                 },
-                "description": "Dev helper to complete a mock payment. Successful completion marks the order paid, dispatches OrderPaid (enrollment stays in the existing listener), and queues one order confirmation email. A failed payment does not send that email. Completing the same payment again does not send a second email.",
+                "description": "Dev helper to complete a mock payment. Successful completion marks the order paid, dispatches OrderPaid, creates enrollments, then sends one confirmation email. Course enrollments include a QR to FRONTEND_URL/verify/enrollment/{token}. A failed payment does not send that email. Completing the same payment again does not send a second email.",
                 "auth": {
                   "type": "noauth"
                 }
@@ -1476,6 +1476,22 @@
       "name": "Learning",
       "description": "Courses, enrollment, lessons, progress (E-Learning PDF API gaps covered)",
       "item": [
+        {
+          "name": "Verify enrollment QR",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{baseUrl}}/api/v1/enrollment-verification/{{enrollment_verification_token}}",
+            "description": "Public. No login. The token comes from the course enrollment QR in the order confirmation email (FRONTEND_URL/verify/enrollment/{token}). Returns verified=true with student name, course name, status, and enrolled_at. Unknown, cancelled, expired, or refunded enrollments return 404 and verified=false. Does not expose email, phone, or internal IDs.",
+            "auth": { "type": "noauth" }
+          },
+          "response": []
+        },
         {
           "name": "List Courses",
           "request": {

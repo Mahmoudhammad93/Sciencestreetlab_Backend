@@ -15,7 +15,13 @@ final class OrderConfirmationMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public function __construct(public readonly Order $order) {}
+    /**
+     * @param  list<array{course_name: string, verification_url: string, qr_png: string, filename: string}>  $enrollmentQrs
+     */
+    public function __construct(
+        public readonly Order $order,
+        public readonly array $enrollmentQrs = [],
+    ) {}
 
     public function envelope(): Envelope
     {
@@ -33,6 +39,7 @@ final class OrderConfirmationMail extends Mailable
                 'customerName' => $this->order->user?->name ?? 'there',
                 'viewOrderUrl' => $this->viewOrderUrl(),
                 'paymentStatus' => $this->order->payment?->status ?? $this->order->status,
+                'enrollmentQrs' => $this->enrollmentQrs,
             ],
         );
     }
