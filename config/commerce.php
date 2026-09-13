@@ -3,6 +3,6 @@
 declare(strict_types=1);
 
 return [
-    /** Supported: myfatoorah, paymob */
-    'payment_gateway' => env('PAYMENT_GATEWAY', 'myfatoorah'),
+    /** Supported: fawaterak, myfatoorah, paymob */
+    'payment_gateway' => env('PAYMENT_GATEWAY', 'fawaterak'),
 ];

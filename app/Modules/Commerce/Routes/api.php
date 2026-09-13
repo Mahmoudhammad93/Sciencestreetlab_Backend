@@ -19,6 +19,10 @@ Route::prefix('cart')->middleware('auth.optional')->group(function (): void {
 });
 
 Route::post('/payments/paymob/callback', [PaymentController::class, 'paymobCallback']);
+Route::post('/payments/fawaterak/webhook', [PaymentController::class, 'fawaterakWebhook']);
+Route::get('/payments/fawaterak/callback', [PaymentController::class, 'fawaterakCallback']);
+Route::get('/payments/fawaterak/confirm', [PaymentController::class, 'fawaterakConfirm']);
+// Kept for rollback: only reachable while commerce.payment_gateway = myfatoorah.
 Route::get('/payments/myfatoorah/callback', [PaymentController::class, 'myfatoorahCallback']);
 Route::get('/payments/myfatoorah/confirm', [PaymentController::class, 'myfatoorahConfirm']);
 Route::post('/payments/mock/{payment}/complete', [PaymentController::class, 'completeMock']);
