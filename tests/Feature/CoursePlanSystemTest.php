@@ -333,6 +333,38 @@ final class CoursePlanSystemTest extends TestCase
         ]);
     }
 
+    public function test_paid_plan_without_product_returns_payment_required_not_not_found(): void
+    {
+        $this->seed();
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        $course = Course::query()->where('slug', 'microscope-course')->firstOrFail();
+        $plan = CoursePlan::query()->create([
+            'course_id' => $course->id,
+            'name' => ['ar' => 'بدون منتج', 'en' => 'No Product Plan'],
+            'price' => 100,
+            'currency' => 'EGP',
+            'is_active' => true,
+            'is_lifetime' => true,
+            'max_quiz_attempts' => 3,
+        ]);
+
+        $this->assertNull($plan->product);
+
+        $response = $this->postJson("/api/v1/courses/{$course->slug}/plans/{$plan->id}/enroll")
+            ->assertStatus(402)
+            ->assertJsonPath('code', 'PAYMENT_REQUIRED');
+
+        $this->assertNull($response->json('data.order.items.0.product_id'));
+        $this->assertSame($plan->id, $response->json('data.order.items.0.metadata.course_plan_id'));
+        $this->assertSame((int) $course->id, (int) $response->json('data.order.items.0.metadata.course_id'));
+        $this->assertDatabaseMissing('enrollments', [
+            'user_id' => $user->id,
+            'course_id' => $course->id,
+        ]);
+    }
+
     public function test_course_access_api_returns_plan_summary(): void
     {
         $this->seed();

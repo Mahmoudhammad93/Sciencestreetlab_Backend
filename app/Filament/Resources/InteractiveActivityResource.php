@@ -72,18 +72,24 @@ class InteractiveActivityResource extends Resource
                 ->columnSpanFull(),
             Forms\Components\FileUpload::make('package_zip')
                 ->label('Activity package (ZIP)')
-                ->acceptedFileTypes(['application/zip', 'application/x-zip-compressed'])
+                ->acceptedFileTypes(['application/zip', 'application/x-zip-compressed', 'application/octet-stream'])
+                ->maxSize(51200)
+                ->previewable(false)
                 ->disk('local')
+                ->visibility('private')
                 ->directory('tmp/interactive-activity-uploads')
                 ->dehydrated(false)
-                ->helperText('ZIP containing index.html + css/js/images/audio. Extracted to an isolated versioned folder.'),
+                ->helperText('Drag and drop a ZIP containing index.html + css/js/images/audio. Max 50 MB.'),
             Forms\Components\FileUpload::make('package_html')
                 ->label('Single HTML activity file')
-                ->acceptedFileTypes(['text/html', 'application/xhtml+xml'])
+                ->acceptedFileTypes(['text/html', 'application/xhtml+xml', 'application/octet-stream'])
+                ->maxSize(51200)
+                ->previewable(false)
                 ->disk('local')
+                ->visibility('private')
                 ->directory('tmp/interactive-activity-uploads')
                 ->dehydrated(false)
-                ->helperText('Upload one complete standalone HTML activity (stored as index.html). The platform does not parse game logic.'),
+                ->helperText('Drag and drop one complete standalone HTML activity (stored as index.html). Max 50 MB.'),
             Forms\Components\TextInput::make('activity_package_path')->disabled()->dehydrated(false),
             Forms\Components\TextInput::make('version')->disabled()->dehydrated(false),
         ]);

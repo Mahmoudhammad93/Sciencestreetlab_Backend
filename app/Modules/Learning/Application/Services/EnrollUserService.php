@@ -124,10 +124,55 @@ final class EnrollUserService
 
     private function createOrderForPlanProduct(User $user, CoursePlan $plan): Order
     {
-        $product = $plan->product ?? Product::query()->findOrFail($plan->product_id);
-        $label = $plan->course->getTranslation('title', app()->getLocale()).' - '.$plan->getTranslation('name', app()->getLocale());
+        $plan->loadMissing('course', 'product');
 
-        return $this->createAwaitingPaymentOrder($user, $product, $label);
+        // Older plans may still be sold as catalog products. New plans are billed
+        // directly and must not be added to the cart or require a product_id.
+        if ($plan->product) {
+            $label = $plan->course->getTranslation('title', app()->getLocale()).' - '.$plan->getTranslation('name', app()->getLocale());
+
+            return $this->createAwaitingPaymentOrder($user, $plan->product, $label);
+        }
+
+        return $this->createAwaitingPaymentOrderForPlan($user, $plan);
+    }
+
+    private function createAwaitingPaymentOrderForPlan(User $user, CoursePlan $plan): Order
+    {
+        $locale = app()->getLocale();
+        $label = $plan->course->getTranslation('title', $locale).' - '.$plan->getTranslation('name', $locale);
+
+        return DB::transaction(function () use ($user, $plan, $label): Order {
+            $order = Order::create([
+                'user_id' => $user->id,
+                'status' => 'awaiting_payment',
+                'order_type' => 'course',
+                'subtotal' => $plan->price,
+                'discount_amount' => 0,
+                'shipping_amount' => 0,
+                'tax_amount' => 0,
+                'total' => $plan->price,
+                'currency' => $plan->currency ?: 'EGP',
+                'billing_address' => [],
+                'shipping_address' => [],
+            ]);
+
+            $order->items()->create([
+                'product_id' => null,
+                'product_name' => $label,
+                'product_sku' => 'PLAN-'.$plan->id,
+                'quantity' => 1,
+                'unit_price' => $plan->price,
+                'total_price' => $plan->price,
+                'metadata' => [
+                    'product_type' => 'course_plan',
+                    'course_id' => $plan->course_id,
+                    'course_plan_id' => $plan->id,
+                ],
+            ]);
+
+            return $order->load('items');
+        });
     }
 
     private function createAwaitingPaymentOrder(User $user, Product $product, string $label): Order

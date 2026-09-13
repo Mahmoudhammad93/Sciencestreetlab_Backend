@@ -110,7 +110,9 @@ class QuestionResource extends Resource
                 ->visible(fn (Get $get) => $get('question_type') === QuestionType::InteractiveHtml->value),
             Forms\Components\FileUpload::make('interactive_html_upload')
                 ->label('Activity HTML')
-                ->acceptedFileTypes(['text/html', 'application/xhtml+xml'])
+                ->acceptedFileTypes(['text/html', 'application/xhtml+xml', 'application/octet-stream'])
+                ->maxSize(51200)
+                ->previewable(false)
                 ->disk('local')
                 ->directory('tmp/interactive-uploads')
                 ->visible(fn (Get $get) => $get('question_type') === QuestionType::InteractiveHtml->value)

@@ -30,6 +30,13 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('auth-password-reset', fn (Request $request) => Limit::perMinute(5)->by($request->ip()));
         RateLimiter::for('auth-verification-resend', fn (Request $request) => Limit::perMinute(3)->by($request->user()?->id ?: $request->ip()));
 
+        // Admin interactive HTML packages can be several MB. Keep Livewire's
+        // temporary upload limit in sync with docker/php/uploads.ini.
+        config([
+            'livewire.temporary_file_upload.rules' => ['required', 'file', 'max:51200'],
+            'livewire.temporary_file_upload.max_upload_time' => 5,
+        ]);
+
         // Bunny upload asset is only available after `npm run build` (or `npm run dev`).
         if (is_file(public_path('build/manifest.json'))) {
             FilamentAsset::register([
