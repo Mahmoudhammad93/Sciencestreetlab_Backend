@@ -688,14 +688,15 @@ Then run:
 
 1. **Health** → App Health, Public website settings  
 2. **Auth** → Login (demo student)  
-3. **Catalog** → Get microscope product  
-4. **Commerce** → Add to cart → Checkout → Pay → Mock complete  
-5. **Learning** → Physics lab curriculum (fills IDs)  
-6. **Assessment** → `GET /quizzes/22` → Interactive Activities workflow  
+3. **Catalog** → List/Get product (check educational specs) / Categories  
+4. **Learning** → Get Course Plans (entitlement IDs) → enroll or buy plan → Course Access → Lesson lock check  
+5. **Commerce** → Add to cart → Checkout → Pay → Mock complete (or Fawaterak/MyFatoorah confirm)  
+6. **Assessment** → Quiz official score + Interactive Activities workflow  
 7. **Competition** (after microscope course is complete)
 
 ---
 
 ## Locale
 
-Send `Accept-Language: ar` or `en`. Translatable fields (`title`, `name`) are returned in that locale.
+Send `Accept-Language: ar` or `en` (also accepts tags like `en-US`). Translatable fields (`title`, `name`) are returned in that locale.
+The Postman collection sets `Accept-Language: {{locale}}` (default `en`).
