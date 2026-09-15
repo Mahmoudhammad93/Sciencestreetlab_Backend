@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a73e08f0-1975-4c1d-9fb3-5a91721375db",
     "name": "Science Street Lab API",
-    "description": "REST API collection for Science Street Lab (Laravel `/api/v1`). **All endpoints live in this one file.**\n\n**Auth:** Laravel Sanctum Bearer token. Login/Register auto-save `token`.\n**Base URL:** `{{baseUrl}}` (default `http://localhost:8002`).\n**Environment:** import `Science-Street-Lab.local.postman_environment.json`.\n\n**Demo accounts**\n- Admin: `admin@sciencestreetlab.com` / `password`\n- Student: `demo@sciencestreetlab.com` / `password`\n- Plan demo: `plan-demo@sciencestreetlab.com` / `password` (Physics plan — run `CoursePlanDemoSeeder`)\n- School demo: `school-demo@sciencestreetlab.com` / `password` (`demo-school-physics` — run `DemoSchoolCourseSeeder` or full seed)\n\n**Suggested order**\n1. Health → App Health / Public website settings\n2. Auth → Login (or Login demo student)\n3. Learning → Enroll → Get Course Plans → Course Access → Curriculum → Leaderboard\n4. Catalog → Commerce (cart → checkout → mock pay) for paid course plans\n5. Assessment → Start quiz → Save answers → Submit (with `time_spent_seconds`) → Get result\n\nAssessment demo (`php artisan db:seed --class=AssessmentDemoCoursesSeeder`):\n- Courses: `intro-biology-lab`, `basic-physics-lab`, `basic-chemistry-lab`, `microscope-course`\n\n**Course plans & access**\n- `GET /courses/{slug}/plans` — list active plans for a published course (public, no auth)\n- `GET /courses/{slug}/access` — plan entitlements snapshot for enrolled user\n- `POST /courses/{slug}/plans/{planId}/enroll` — enroll via **free** plan only\n- Quiz pass/progress uses **official score only** (first submitted attempt)\n\n**Buying a paid plan**\nPlans expose `is_free` and `product_id`. Free plans enroll directly; paid plans return\n`402` with `code: PAYMENT_REQUIRED` and an `order` already created for checkout/pay.\nContinue with `POST /checkout/{order}/pay` (or the cart flow). See **Buy Paid Plan 1–6**.\n`OrderPaid` then grants the enrollment on that plan.\n\n**Not covered by this collection** (not client-callable): `GET /auth/email/verify/{id}/{hash}`\n(signed link from email) and the MyFatoorah callback/confirm redirects (called by the gateway).\n\n**Course leaderboard**\n- `GET /courses/{slug}/leaderboard` — ranks by average official quiz % (optional auth for `current_user`)\n\n**Auth email**\n- Register sends verification email (`email_verified: false` until link clicked)\n- `POST /auth/forgot-password`, `POST /auth/reset-password`, `POST /auth/email/verification-notification`\n\n**Quiz official score**\n- `GET /quizzes/{quiz}` (enrolled user) returns `official_score`, `official_attempt_number`, `official_attempt_id`, `official_passed`, `has_previous_attempt`\n- First **submitted** attempt = official (`is_official`, `official_score`, `official_attempt_number`, `official_passed`)\n- Retries never replace official score; `current_attempt_score` shows this attempt only\n- Submit body may include `time_spent_seconds` (client-measured active time)\n\n**Quiz result / post-review** (`POST /quiz-attempts/{id}/submit` and `GET /quiz-attempts/{id}/result`):\n- `attempt_number`, `time_taken`, `time_taken_seconds`, `quiz_id`\n- `is_official`, `official_score`, `official_attempt_number`, `official_attempt_id`, `official_passed`, `current_attempt_score`\n- `question_results[].user_answer`, `question_results[].correct_answer`\n\n**Start quiz when max attempts reached (422):**\n- `code`: `MAX_ATTEMPTS_REACHED`\n- `official_attempt_id`, `last_attempt_id` — use for GET result\n\nStudent question payloads never include `is_correct` or `answer_key`.\n",
+    "description": "REST API collection for Science Street Lab (Laravel `/api/v1`). **All endpoints live in this one file.**\n\n**Auth:** Laravel Sanctum Bearer token. Login/Register auto-save `token`.\n**Base URL:** `{{baseUrl}}` (default `http://localhost:8002`).\n**Locale:** send `Accept-Language: {{locale}}` (`ar` or `en`; `en-US` is accepted and normalized).\n**Environment:** import `Science-Street-Lab.local.postman_environment.json`.\n\n**Demo accounts**\n- Admin: `admin@sciencestreetlab.com` / `password`\n- Student: `demo@sciencestreetlab.com` / `password`\n- Plan demo: `plan-demo@sciencestreetlab.com` / `password` (Physics plan — run `CoursePlanDemoSeeder`)\n- School demo: `school-demo@sciencestreetlab.com` / `password` (`demo-school-physics` — run `DemoSchoolCourseSeeder` or full seed)\n\n**Suggested order**\n1. Health → App Health / Public website settings\n2. Auth → Login (or Login demo student)\n3. Learning → Get Course Plans (check entitlement IDs) → Enroll / Buy plan → Course Access → Curriculum → Lesson\n4. Catalog → Products (educational specs) / Categories\n5. Commerce → cart → checkout → mock pay (or Fawaterak/MyFatoorah confirm routes)\n6. Assessment → Quiz official score + interactive activities\n\n**Course plan access rule:** when `uses_plan=true`, plan entitlements are the source of truth — sequential lesson/topic gating does not apply.\n",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -227,6 +227,22 @@
     {
       "key": "plan_product_id",
       "value": "1"
+    },
+    {
+      "key": "locale",
+      "value": "en"
+    },
+    {
+      "key": "enrollment_verification_token",
+      "value": "replace-me"
+    },
+    {
+      "key": "payment_invoice_id",
+      "value": "mock_1"
+    },
+    {
+      "key": "category_slug",
+      "value": "lab-kits"
     }
   ],
   "item": [
@@ -671,6 +687,51 @@
           "response": []
         },
         {
+          "name": "Reset Password (storefront alias)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "{{locale}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reset-password"
+              ]
+            },
+            "description": "Alias of `/auth/reset-password` used by the storefront reset form. Same body as Reset Password.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"demo@sciencestreetlab.com\",\n  \"token\": \"reset-token\",\n  \"password\": \"password\",\n  \"password_confirmation\": \"password\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
           "name": "Resend Email Verification",
           "request": {
             "method": "POST",
@@ -900,6 +961,10 @@
               {
                 "key": "Accept",
                 "value": "application/json"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "{{locale}}"
               }
             ],
             "url": {
@@ -913,7 +978,39 @@
                 "products"
               ]
             },
-            "description": "",
+            "description": "Published products. Each item includes educational specification fields and camelCase aliases (same shape as Get Product).",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Products (Accept-Language ar)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "ar"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "products"
+              ]
+            },
+            "description": "Same as List Products with `Accept-Language: ar` to verify locale middleware.",
             "auth": {
               "type": "noauth"
             }
@@ -928,6 +1025,10 @@
               {
                 "key": "Accept",
                 "value": "application/json"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "{{locale}}"
               }
             ],
             "url": {
@@ -942,12 +1043,38 @@
                 "{{product_slug}}"
               ]
             },
-            "description": "Product detail. Includes category when the product belongs to one.",
+            "description": "Product detail. Includes category when present, plus educational specifications:\n- `difficulty_level` / `difficultyLevel`\n- `target_age` / `targetAge`\n- `key_benefits` / `keyBenefits`\n- `scientific_concepts` / `scientificConcepts`\n- `gallery`, `concept_images` / `conceptImages`\n- `curriculum_alignment` / `curriculumAlignment` (`grade_level`, `lesson_name`)\n- `design_lab_description` / `creative_lab_description`\n- `related_course` / `relatedCourse` (title, tagline, description, lab copy, course_url)\nExisting `image` field is unchanged.",
             "auth": {
               "type": "noauth"
             }
           },
-          "response": []
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
+                  "const d = pm.response.json().data;",
+                  "pm.test('product payload', () => {",
+                  "  pm.expect(d).to.have.property('slug');",
+                  "  pm.expect(d).to.have.property('difficulty_level');",
+                  "  pm.expect(d).to.have.property('difficultyLevel');",
+                  "  pm.expect(d).to.have.property('key_benefits');",
+                  "  pm.expect(d).to.have.property('scientific_concepts');",
+                  "  pm.expect(d).to.have.property('gallery');",
+                  "  pm.expect(d).to.have.property('concept_images');",
+                  "  pm.expect(d).to.have.property('curriculum_alignment');",
+                  "  pm.expect(d).to.have.property('curriculumAlignment');",
+                  "});",
+                  "if (d.id) pm.collectionVariables.set('product_id', String(d.id));",
+                  "if (d.slug) pm.collectionVariables.set('product_slug', String(d.slug));",
+                  ""
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "List Categories",
@@ -957,15 +1084,27 @@
               {
                 "key": "Accept",
                 "value": "application/json"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "{{locale}}"
               }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/categories",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "categories"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categories"
+              ]
             },
             "description": "Active categories only, ordered by sort_order. Inactive categories are omitted.",
-            "auth": { "type": "noauth" }
+            "auth": {
+              "type": "noauth"
+            }
           },
           "response": []
         },
@@ -977,15 +1116,28 @@
               {
                 "key": "Accept",
                 "value": "application/json"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "{{locale}}"
               }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/categories/{{category_slug}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "categories", "{{category_slug}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categories",
+                "{{category_slug}}"
+              ]
             },
             "description": "Active category by slug. Returns 404 when the slug is missing or the category is inactive.",
-            "auth": { "type": "noauth" }
+            "auth": {
+              "type": "noauth"
+            }
           },
           "response": []
         },
@@ -997,15 +1149,29 @@
               {
                 "key": "Accept",
                 "value": "application/json"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "{{locale}}"
               }
             ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/categories/{{category_slug}}/products",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "categories", "{{category_slug}}", "products"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "categories",
+                "{{category_slug}}",
+                "products"
+              ]
             },
             "description": "Published products in an active category. Each product includes its category.",
-            "auth": { "type": "noauth" }
+            "auth": {
+              "type": "noauth"
+            }
           },
           "response": []
         },
@@ -1438,6 +1604,225 @@
               "response": []
             },
             {
+              "name": "Fawaterak Webhook",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/payments/fawaterak/webhook",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "payments",
+                    "fawaterak",
+                    "webhook"
+                  ]
+                },
+                "description": "Public Fawaterak webhook. Body shape depends on gateway payload; used to mark payment paid.",
+                "auth": {
+                  "type": "noauth"
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"invoice_id\": \"{{payment_invoice_id}}\",\n  \"payment_status\": \"paid\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Fawaterak Callback",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept-Language",
+                    "value": "{{locale}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/payments/fawaterak/callback?invoice_id={{payment_invoice_id}}&payment_id={{payment_id}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "payments",
+                    "fawaterak",
+                    "callback"
+                  ],
+                  "query": [
+                    {
+                      "key": "invoice_id",
+                      "value": "{{payment_invoice_id}}"
+                    },
+                    {
+                      "key": "payment_id",
+                      "value": "{{payment_id}}"
+                    }
+                  ]
+                },
+                "description": "Browser return callback from Fawaterak (public). Query params vary by gateway.",
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Fawaterak Confirm",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept-Language",
+                    "value": "{{locale}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/payments/fawaterak/confirm?invoice_id={{payment_invoice_id}}&payment_id={{payment_id}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "payments",
+                    "fawaterak",
+                    "confirm"
+                  ],
+                  "query": [
+                    {
+                      "key": "invoice_id",
+                      "value": "{{payment_invoice_id}}"
+                    },
+                    {
+                      "key": "payment_id",
+                      "value": "{{payment_id}}"
+                    }
+                  ]
+                },
+                "description": "Frontend return confirmation for Fawaterak checkout. Safe to call after payment redirect.",
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "MyFatoorah Callback",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept-Language",
+                    "value": "{{locale}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/payments/myfatoorah/callback?paymentId={{payment_invoice_id}}&Id={{payment_id}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "payments",
+                    "myfatoorah",
+                    "callback"
+                  ],
+                  "query": [
+                    {
+                      "key": "paymentId",
+                      "value": "{{payment_invoice_id}}"
+                    },
+                    {
+                      "key": "Id",
+                      "value": "{{payment_id}}"
+                    }
+                  ]
+                },
+                "description": "Browser return callback from MyFatoorah (public). Kept for rollback when gateway is myfatoorah.",
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "MyFatoorah Confirm",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Accept-Language",
+                    "value": "{{locale}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/payments/myfatoorah/confirm?paymentId={{payment_invoice_id}}&Id={{payment_id}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "payments",
+                    "myfatoorah",
+                    "confirm"
+                  ],
+                  "query": [
+                    {
+                      "key": "paymentId",
+                      "value": "{{payment_invoice_id}}"
+                    },
+                    {
+                      "key": "Id",
+                      "value": "{{payment_id}}"
+                    }
+                  ]
+                },
+                "description": "Frontend return confirmation for MyFatoorah checkout.",
+                "auth": {
+                  "type": "noauth"
+                }
+              },
+              "response": []
+            },
+            {
               "name": "Complete Mock Payment",
               "request": {
                 "method": "POST",
@@ -1445,6 +1830,10 @@
                   {
                     "key": "Accept",
                     "value": "application/json"
+                  },
+                  {
+                    "key": "Accept-Language",
+                    "value": "{{locale}}"
                   }
                 ],
                 "url": {
@@ -1461,7 +1850,7 @@
                     "complete"
                   ]
                 },
-                "description": "Dev helper to complete a mock payment. Successful completion marks the order paid, dispatches OrderPaid, creates enrollments, then sends one confirmation email. Course enrollments include a QR to FRONTEND_URL/verify/enrollment/{token}. A failed payment does not send that email. Completing the same payment again does not send a second email.",
+                "description": "Dev helper to complete a mock payment. Successful completion marks the order paid, dispatches OrderPaid, creates enrollments (with plan entitlement snapshot when `course_plan_id` is present), then sends one confirmation email. Course enrollments include a QR to FRONTEND_URL/verify/enrollment/{token}. Completing the same payment again is idempotent (no duplicate enrollment / no second email).",
                 "auth": {
                   "type": "noauth"
                 }
@@ -1484,11 +1873,17 @@
               {
                 "key": "Accept",
                 "value": "application/json"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "{{locale}}"
               }
             ],
             "url": "{{baseUrl}}/api/v1/enrollment-verification/{{enrollment_verification_token}}",
             "description": "Public. No login. The token comes from the course enrollment QR in the order confirmation email (FRONTEND_URL/verify/enrollment/{token}). Returns verified=true with student name, course name, status, and enrolled_at. Unknown, cancelled, expired, or refunded enrollments return 404 and verified=false. Does not expose email, phone, or internal IDs.",
-            "auth": { "type": "noauth" }
+            "auth": {
+              "type": "noauth"
+            }
           },
           "response": []
         },
@@ -1500,6 +1895,10 @@
               {
                 "key": "Accept",
                 "value": "application/json"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "{{locale}}"
               }
             ],
             "url": {
@@ -1528,6 +1927,10 @@
               {
                 "key": "Accept",
                 "value": "application/json"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "{{locale}}"
               }
             ],
             "url": {
@@ -1668,10 +2071,14 @@
               {
                 "key": "Accept",
                 "value": "application/json"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "{{locale}}"
               }
             ],
             "url": "{{baseUrl}}/api/v1/courses/{{course_slug}}/access",
-            "description": "Plan-based access summary: enrolled, active, uses_plan, plan name, entitled lesson/topic/quiz IDs."
+            "description": "Authenticated plan-based access summary (top-level JSON, not wrapped in `data`):\n- `enrolled`, `active`, `uses_plan`\n- `enrollment` (`id`, `status`, `started_at`, `expires_at`)\n- `plan` (`id`, `course_id`, `name`, `price`, `currency`, `is_lifetime`, `duration_days`, `grant_certificate`, `max_quiz_attempts`)\n- `access` (`course`, `certificate`, `lesson_ids`, `topic_ids`, `quiz_ids`, `interactive_activity_ids`)\n\nWhen `uses_plan` is true, entitlement IDs are the source of truth and sequential gating is skipped."
           },
           "response": [],
           "event": [
@@ -1681,12 +2088,75 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test('HTTP 2xx', () => pm.expect(pm.response.code).to.be.within(200, 299));",
-                  "const d = pm.response.json().data;",
+                  "const d = pm.response.json();",
                   "pm.test('access payload', () => {",
                   "  pm.expect(d).to.have.property('enrolled');",
                   "  pm.expect(d).to.have.property('uses_plan');",
+                  "  pm.expect(d).to.have.property('access');",
+                  "  if (d.enrolled) {",
+                  "    pm.expect(d).to.have.property('active');",
+                  "    pm.expect(d.access).to.have.property('lesson_ids');",
+                  "    pm.expect(d.access).to.have.property('topic_ids');",
+                  "    pm.expect(d.access).to.have.property('quiz_ids');",
+                  "    pm.expect(d.access).to.have.property('interactive_activity_ids');",
+                  "  }",
                   "  if (d.plan && d.plan.id) pm.collectionVariables.set('course_plan_id', String(d.plan.id));",
                   "});",
+                  ""
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Plan Access — Get Lesson (expect unlock or 403)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "{{locale}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/lessons/{{lesson_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "lessons",
+                "{{lesson_id}}"
+              ]
+            },
+            "description": "After enrolling in a plan, call this with an entitled `lesson_id` (200) and a non-entitled one (`403 LESSON_LOCKED`). Entitled lesson topics should have `is_locked=false` even if earlier lessons were never completed."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 unlocked or 403 locked', () => {",
+                  "  pm.expect([200, 403]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "  const d = pm.response.json().data;",
+                  "  pm.test('topics expose is_locked', () => {",
+                  "    pm.expect(d.topics).to.be.an('array');",
+                  "    d.topics.forEach(t => pm.expect(t).to.have.property('is_locked'));",
+                  "  });",
+                  "}",
+                  "if (pm.response.code === 403) {",
+                  "  const d = pm.response.json();",
+                  "  pm.test('LESSON_LOCKED code', () => pm.expect(d.code).to.eql('LESSON_LOCKED'));",
+                  "}",
                   ""
                 ]
               }
@@ -1759,6 +2229,10 @@
               {
                 "key": "Accept",
                 "value": "application/json"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "{{locale}}"
               }
             ],
             "url": {
@@ -1774,7 +2248,7 @@
                 "plans"
               ]
             },
-            "description": "Public listing of active course plans for a published course. No auth required.\nReturns id, name, description, price, currency, is_lifetime, duration_days, max_quiz_attempts, grant_certificate, is_free, product_id.\n\n`is_free: true` → enroll directly with POST /courses/{slug}/plans/{planId}/enroll.\n`is_free: false` → that endpoint returns 402; buy `product_id` through cart → checkout → pay instead.",
+            "description": "Public listing of active course plans for a published course. No auth required.\n\nReturns:\n- `id`, `course_id`, `name`, `description`, `price`, `currency`\n- `is_lifetime`, `duration_days`, `max_quiz_attempts`, `grant_certificate`, `is_free`, `product_id`\n- Entitlements: `lesson_ids`, `topic_ids`, `quiz_ids`, `interactive_activity_ids`, and nested `entitlements`\n\n`is_free: true` → enroll with POST `/courses/{slug}/plans/{planId}/enroll`.\n`is_free: false` → that endpoint returns 402; buy `product_id` via cart → checkout → pay.\n\nAccess rule: entitled lessons unlock **all** topics in that lesson. Direct topic/quiz/activity IDs unlock only those resources. Sequential progression does **not** override plan entitlements.",
             "auth": {
               "type": "noauth"
             }
@@ -1795,12 +2269,18 @@
                   "if (body.data.length) {",
                   "  pm.collectionVariables.set('course_plan_id', String(body.data[0].id));",
                   "  const plan = body.data[0];",
-                  "  pm.test('plan fields', () => {",
+                  "  pm.test('plan fields + entitlements', () => {",
                   "    pm.expect(plan).to.have.property('price');",
                   "    pm.expect(plan).to.have.property('currency');",
                   "    pm.expect(plan).to.have.property('is_lifetime');",
                   "    pm.expect(plan).to.have.property('is_free');",
                   "    pm.expect(plan).to.have.property('product_id');",
+                  "    pm.expect(plan).to.have.property('course_id');",
+                  "    pm.expect(plan).to.have.property('lesson_ids');",
+                  "    pm.expect(plan).to.have.property('topic_ids');",
+                  "    pm.expect(plan).to.have.property('quiz_ids');",
+                  "    pm.expect(plan).to.have.property('interactive_activity_ids');",
+                  "    pm.expect(plan).to.have.property('entitlements');",
                   "  });",
                   "  pm.test('free plans carry no product, paid plans point at one', () => {",
                   "    body.data.forEach(p => {",
@@ -2029,7 +2509,6 @@
               }
             ],
             "url": "{{baseUrl}}/api/v1/payments/mock/{{school_payment_id}}/complete",
-            "description": "Completes the school-plan mock payment. On success the existing OrderPaid listener enrolls the student and a separate queued listener sends one order confirmation email. This is not a new public endpoint.",
             "description": "Local-only mock gateway. Fires `OrderPaid`, which runs `GrantEnrollmentOnOrderPaid` and creates the enrollment on the purchased plan.",
             "auth": {
               "type": "noauth"
@@ -2269,6 +2748,10 @@
               {
                 "key": "Accept",
                 "value": "application/json"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "{{locale}}"
               }
             ],
             "url": {
@@ -2617,6 +3100,10 @@
               {
                 "key": "Accept",
                 "value": "application/json"
+              },
+              {
+                "key": "Accept-Language",
+                "value": "{{locale}}"
               }
             ],
             "url": {
@@ -2631,7 +3118,7 @@
                 "{{lesson_id}}"
               ]
             },
-            "description": "Protected lesson content. Requires enrollment. Tracks last accessed lesson."
+            "description": "Protected lesson detail. Topics include `is_locked` per topic via backend access rules.\nFor plan enrollments: entitled lessons/topics unlock immediately; non-entitled resources return `403 LESSON_LOCKED` or locked topic flags — previous-lesson completion is not required."
           },
           "response": []
         },
