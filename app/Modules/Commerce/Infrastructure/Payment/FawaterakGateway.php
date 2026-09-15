@@ -229,6 +229,10 @@ final class FawaterakGateway implements PaymentGatewayInterface
     {
         $frontend = rtrim((string) config('sciencestreet.frontend_url', 'http://localhost:5173'), '/');
 
-        return $frontend.'/checkout/payment-return?local_payment_id='.$localPaymentId.'&stage='.$stage;
+        return $frontend.'/checkout/payment-return?'.http_build_query([
+            'local_payment_id' => $localPaymentId,
+            'gateway' => 'fawaterak',
+            'stage' => $stage,
+        ]);
     }
 }
