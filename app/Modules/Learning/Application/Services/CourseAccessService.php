@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Modules\Assessment\Application\Services\OfficialQuizScoreService;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\InteractiveActivity;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\Quiz;
+use App\Modules\Assessment\Infrastructure\Persistence\Models\QuizAttempt;
 use App\Modules\Learning\Domain\Enums\AccessType;
 use App\Modules\Learning\Domain\Enums\EnrollmentStatus;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
@@ -60,10 +61,9 @@ final class CourseAccessService
             return false;
         }
 
+        // Plan entitlements are the source of truth — no sequential gating.
         if ($this->planAccess->usesPlanEntitlements($enrollment)) {
-            if (! $this->planAccess->canAccessLesson($enrollment, $lesson)) {
-                return false;
-            }
+            return $this->planAccess->canAccessLesson($enrollment, $lesson);
         }
 
         $enrollment->loadMissing('course');
@@ -90,12 +90,16 @@ final class CourseAccessService
     {
         $lesson = $topic->lesson;
 
-        if (! $this->canAccessLesson($enrollment, $lesson)) {
+        if ($lesson === null || $lesson->course_id !== $enrollment->course_id) {
             return false;
         }
 
-        if ($this->planAccess->usesPlanEntitlements($enrollment)
-            && ! $this->planAccess->canAccessTopic($enrollment, $topic)) {
+        // Plan entitlements are the source of truth — no sequential gating.
+        if ($this->planAccess->usesPlanEntitlements($enrollment)) {
+            return $this->planAccess->canAccessTopic($enrollment, $topic);
+        }
+
+        if (! $this->canAccessLesson($enrollment, $lesson)) {
             return false;
         }
 
@@ -116,9 +120,9 @@ final class CourseAccessService
 
     public function canAccessQuiz(Enrollment $enrollment, Quiz $quiz): bool
     {
-        if ($this->planAccess->usesPlanEntitlements($enrollment)
-            && ! $this->planAccess->canAccessQuiz($enrollment, $quiz)) {
-            return false;
+        // Plan entitlements are the source of truth — no sequential gating.
+        if ($this->planAccess->usesPlanEntitlements($enrollment)) {
+            return $this->planAccess->canAccessQuiz($enrollment, $quiz);
         }
 
         $lesson = $quiz->quizable;
@@ -132,9 +136,9 @@ final class CourseAccessService
 
     public function canAccessInteractiveActivity(Enrollment $enrollment, InteractiveActivity $activity): bool
     {
-        if ($this->planAccess->usesPlanEntitlements($enrollment)
-            && ! $this->planAccess->canAccessInteractiveActivity($enrollment, $activity)) {
-            return false;
+        // Plan entitlements are the source of truth — no sequential gating.
+        if ($this->planAccess->usesPlanEntitlements($enrollment)) {
+            return $this->planAccess->canAccessInteractiveActivity($enrollment, $activity);
         }
 
         if ($activity->lesson_id === null) {
@@ -149,6 +153,13 @@ final class CourseAccessService
     public function isLessonComplete(Enrollment $enrollment, Lesson $lesson): bool
     {
         $topics = $lesson->topics()->where('is_published', true)->get();
+
+        if ($this->planAccess->usesPlanEntitlements($enrollment)) {
+            $topics = $topics->filter(
+                fn (Topic $topic): bool => $this->planAccess->canAccessTopic($enrollment, $topic)
+            )->values();
+        }
+
         $completedTopics = $enrollment->topicCompletions()
             ->whereIn('topic_id', $topics->pluck('id'))
             ->where('watch_progress_percent', '>=', 90)

@@ -12,15 +12,30 @@ class SetLocale
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $locale = $request->header('Accept-Language');
-
-        // Only allow supported locales
-        if (! in_array($locale, ['ar', 'en'], true)) {
-            $locale = config('app.locale', 'ar');
-        }
+        $raw = (string) $request->header('Accept-Language', '');
+        $locale = $this->resolveLocale($raw);
 
         app()->setLocale($locale);
 
         return $next($request);
+    }
+
+    private function resolveLocale(string $raw): string
+    {
+        if ($raw === '') {
+            return (string) config('app.locale', 'ar');
+        }
+
+        // Accept "en", "en-US", "ar,en;q=0.8" style headers.
+        $primary = strtolower(trim(explode(',', $raw)[0]));
+        $primary = trim(explode(';', $primary)[0]);
+        $tag = explode('-', $primary)[0];
+        $tag = explode('_', $tag)[0];
+
+        if (in_array($tag, ['ar', 'en'], true)) {
+            return $tag;
+        }
+
+        return (string) config('app.locale', 'ar');
     }
 }

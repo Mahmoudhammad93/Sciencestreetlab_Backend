@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Learning\Application\Services;
 
 use App\Models\User;
+use App\Modules\Assessment\Application\Services\InteractiveActivityPackageService;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\Product;
 use App\Modules\Learning\Domain\Enums\AccessType;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
@@ -107,7 +108,23 @@ final class CoursePresenter
             ];
 
             if ($enrollment !== null) {
-                $item['topics'] = $lesson->topics->map(function (Topic $topic) use ($locale, $canAccessLesson) {
+                $item['topics'] = $lesson->topics->map(function (Topic $topic) use ($locale, $enrollment) {
+                    $canAccessTopic = $this->access->canAccessTopic($enrollment, $topic);
+                    $fileUrl = null;
+
+                    if ($canAccessTopic) {
+                        if ($topic->content_type === 'pdf') {
+                            $fileUrl = $topic->video_url;
+                        } elseif ($topic->content_type === 'interactive') {
+                            $topic->loadMissing('interactiveActivity');
+                            $fileUrl = $topic->video_url
+                                ?: ($topic->interactiveActivity?->activity_package_path
+                                    ? app(InteractiveActivityPackageService::class)
+                                        ->signedLaunchUrl($topic->interactiveActivity)
+                                    : null);
+                        }
+                    }
+
                     return [
                         'id' => $topic->id,
                         'lesson_id' => $topic->lesson_id,
@@ -115,19 +132,18 @@ final class CoursePresenter
                         'sort_order' => (int) $topic->sort_order,
                         'content_type' => $topic->content_type,
                         'title' => $topic->getTranslation('title', $locale),
-                        'content' => $canAccessLesson
+                        'content' => $canAccessTopic
                             ? ($topic->getTranslation('content', $locale) ?: null)
                             : null,
-                        'file_url' => $canAccessLesson && $topic->content_type === 'pdf'
+                        'file_url' => $fileUrl,
+                        'video_url' => $canAccessTopic && $topic->content_type === 'video'
                             ? $topic->video_url
                             : null,
-                        'video_url' => $canAccessLesson && $topic->content_type === 'video'
-                            ? $topic->video_url
-                            : null,
-                        'video_provider' => $canAccessLesson && $topic->content_type === 'video'
+                        'video_provider' => $canAccessTopic && $topic->content_type === 'video'
                             ? $topic->video_provider
                             : null,
                         'is_published' => (bool) $topic->is_published,
+                        'is_locked' => ! $canAccessTopic,
                     ];
                 })->values()->all();
             }

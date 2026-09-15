@@ -37,7 +37,7 @@ final class EnrollUserService
             ->first();
 
         if ($existing !== null) {
-            return $existing;
+            return $this->handleExistingEnrollment($existing, $orderItemId, $plan);
         }
 
         return DB::transaction(function () use ($user, $course, $orderItemId, $plan): Enrollment {
@@ -207,6 +207,40 @@ final class EnrollUserService
             ]);
 
             return $order->load('items');
+        });
+    }
+
+    /**
+     * Existing enrollments keep their snapshot unless a paid purchase upgrades
+     * them to a different active plan. Progress and payment history are preserved.
+     */
+    private function handleExistingEnrollment(Enrollment $existing, ?int $orderItemId, ?CoursePlan $plan): Enrollment
+    {
+        if ($plan === null || $existing->course_plan_id === $plan->id) {
+            return $existing->loadMissing(['coursePlan', 'entitlements']);
+        }
+
+        // Free/direct enrollments must not silently replace an existing plan.
+        if ($orderItemId === null) {
+            return $existing->loadMissing(['coursePlan', 'entitlements']);
+        }
+
+        return DB::transaction(function () use ($existing, $orderItemId, $plan): Enrollment {
+            $startedAt = $existing->started_at ?? $existing->enrolled_at ?? now();
+            $expiresAt = $plan->calculateExpiresAt(now());
+
+            $existing->forceFill([
+                'course_plan_id' => $plan->id,
+                'order_item_id' => $orderItemId,
+                'status' => EnrollmentStatus::Active,
+                'started_at' => $startedAt,
+                'expires_at' => $expiresAt,
+                'grant_certificate' => (bool) $plan->grant_certificate,
+            ])->save();
+
+            $this->entitlementSync->snapshotEntitlementsForEnrollment($existing, $plan);
+
+            return $existing->fresh(['coursePlan', 'entitlements']);
         });
     }
 }

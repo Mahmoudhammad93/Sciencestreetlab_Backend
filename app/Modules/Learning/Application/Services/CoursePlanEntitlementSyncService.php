@@ -15,6 +15,7 @@ use App\Modules\Learning\Infrastructure\Persistence\Models\Lesson;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Topic;
 use DomainException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 final class CoursePlanEntitlementSyncService
 {
@@ -30,34 +31,45 @@ final class CoursePlanEntitlementSyncService
     {
         $course = $plan->course()->with(['lessons.topics', 'lessons.quizzes', 'lessons.interactiveActivities'])->firstOrFail();
 
+        $selection = $this->normalizeSelection($selection);
         $this->assertResourcesBelongToCourse($course, $selection);
 
-        $plan->entitlements()->delete();
+        $rows = $this->buildEntitlementRows($selection);
 
-        foreach ($this->buildEntitlementRows($selection) as $row) {
-            CoursePlanEntitlement::query()->create([
-                'course_plan_id' => $plan->id,
-                'entitleable_type' => $row['type'],
-                'entitleable_id' => $row['id'],
-            ]);
+        if ($plan->is_active && $rows === []) {
+            throw new DomainException('An active course plan must include at least one entitlement.');
         }
+
+        DB::transaction(function () use ($plan, $rows): void {
+            $plan->entitlements()->delete();
+
+            foreach ($rows as $row) {
+                CoursePlanEntitlement::query()->create([
+                    'course_plan_id' => $plan->id,
+                    'entitleable_type' => $row['type'],
+                    'entitleable_id' => $row['id'],
+                ]);
+            }
+        });
     }
 
     public function snapshotEntitlementsForEnrollment(Enrollment $enrollment, CoursePlan $plan): void
     {
         $plan->loadMissing('entitlements');
 
-        $enrollment->entitlements()->delete();
+        DB::transaction(function () use ($enrollment, $plan): void {
+            $enrollment->entitlements()->delete();
 
-        foreach ($plan->entitlements as $entitlement) {
-            EnrollmentEntitlement::query()->create([
-                'enrollment_id' => $enrollment->id,
-                'entitleable_type' => $entitlement->entitleable_type,
-                'entitleable_id' => $entitlement->entitleable_id,
-            ]);
-        }
+            foreach ($plan->entitlements as $entitlement) {
+                EnrollmentEntitlement::query()->create([
+                    'enrollment_id' => $enrollment->id,
+                    'entitleable_type' => $entitlement->entitleable_type,
+                    'entitleable_id' => $entitlement->entitleable_id,
+                ]);
+            }
 
-        $enrollment->update(['grant_certificate' => (bool) $plan->grant_certificate]);
+            $enrollment->update(['grant_certificate' => (bool) $plan->grant_certificate]);
+        });
     }
 
     /**
@@ -144,6 +156,42 @@ final class CoursePlanEntitlementSyncService
             'quiz_ids' => $this->idsForType($plan->entitlements, Quiz::class),
             'interactive_activity_ids' => $this->idsForType($plan->entitlements, InteractiveActivity::class),
         ];
+    }
+
+    /**
+     * @param  array{
+     *   lesson_ids?: list<int>,
+     *   topic_ids?: list<int>,
+     *   quiz_ids?: list<int>,
+     *   interactive_activity_ids?: list<int>
+     * }  $selection
+     * @return array{
+     *   lesson_ids: list<int>,
+     *   topic_ids: list<int>,
+     *   quiz_ids: list<int>,
+     *   interactive_activity_ids: list<int>
+     * }
+     */
+    private function normalizeSelection(array $selection): array
+    {
+        return [
+            'lesson_ids' => $this->uniquePositiveInts($selection['lesson_ids'] ?? []),
+            'topic_ids' => $this->uniquePositiveInts($selection['topic_ids'] ?? []),
+            'quiz_ids' => $this->uniquePositiveInts($selection['quiz_ids'] ?? []),
+            'interactive_activity_ids' => $this->uniquePositiveInts($selection['interactive_activity_ids'] ?? []),
+        ];
+    }
+
+    /**
+     * @param  list<mixed>  $ids
+     * @return list<int>
+     */
+    private function uniquePositiveInts(array $ids): array
+    {
+        return array_values(array_unique(array_map(
+            static fn ($id): int => (int) $id,
+            array_filter($ids, static fn ($id): bool => (int) $id > 0),
+        )));
     }
 
     /**

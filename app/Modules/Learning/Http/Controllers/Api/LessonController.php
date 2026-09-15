@@ -89,27 +89,32 @@ final class LessonController extends Controller
                 'is_completed' => $this->access->isLessonComplete($enrollment, $lesson),
                 'topics' => $lesson->topics->map(function ($topic) use ($locale, $enrollment) {
                     $completion = $enrollment->topicCompletions->firstWhere('topic_id', $topic->id);
+                    $canAccessTopic = $this->access->canAccessTopic($enrollment, $topic);
 
                     $fileUrl = null;
-                    if ($topic->content_type === 'pdf') {
-                        $fileUrl = $topic->video_url;
-                    } elseif ($topic->content_type === 'interactive') {
-                        $topic->loadMissing('interactiveActivity');
-                        $activity = $topic->interactiveActivity;
-                        $fileUrl = $activity
-                            ? app(InteractiveActivityPackageService::class)->signedLaunchUrl($activity)
-                            : $topic->video_url;
+                    if ($canAccessTopic) {
+                        if ($topic->content_type === 'pdf') {
+                            $fileUrl = $topic->video_url;
+                        } elseif ($topic->content_type === 'interactive') {
+                            $topic->loadMissing('interactiveActivity');
+                            $activity = $topic->interactiveActivity;
+                            $fileUrl = $activity
+                                ? app(InteractiveActivityPackageService::class)->signedLaunchUrl($activity)
+                                : $topic->video_url;
+                        }
                     }
 
                     return [
                         'id' => $topic->id,
                         'slug' => $topic->slug,
                         'title' => $topic->getTranslation('title', $locale),
-                        'content' => $topic->getTranslation('content', $locale) ?: null,
+                        'content' => $canAccessTopic
+                            ? ($topic->getTranslation('content', $locale) ?: null)
+                            : null,
                         'content_type' => $topic->content_type,
                         'file_url' => $fileUrl,
-                        'has_video' => $topic->content_type === 'video' && filled($topic->video_url),
-                        'is_locked' => ! $this->access->canAccessTopic($enrollment, $topic),
+                        'has_video' => $canAccessTopic && $topic->content_type === 'video' && filled($topic->video_url),
+                        'is_locked' => ! $canAccessTopic,
                         'is_completed' => $completion && (float) $completion->watch_progress_percent >= 90,
                         'watch_progress_percent' => $completion ? (float) $completion->watch_progress_percent : 0,
                         'watched_seconds' => $completion?->watched_seconds,

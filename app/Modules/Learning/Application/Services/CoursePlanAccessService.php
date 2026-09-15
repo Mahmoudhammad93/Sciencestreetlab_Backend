@@ -30,8 +30,9 @@ final class CoursePlanAccessService
 
     public function usesPlanEntitlements(Enrollment $enrollment): bool
     {
-        return $enrollment->course_plan_id !== null
-            && $enrollment->entitlements()->exists();
+        // A course_plan_id means the plan controls access, even when the
+        // entitlement snapshot is intentionally empty (deny-by-default).
+        return $enrollment->course_plan_id !== null;
     }
 
     public function canAccessCourse(Enrollment $enrollment, Course $course): bool
@@ -64,7 +65,12 @@ final class CoursePlanAccessService
             return true;
         }
 
-        return $this->hasEntitlement($enrollment, Lesson::class, $lesson->id);
+        if ($this->hasEntitlement($enrollment, Lesson::class, $lesson->id)) {
+            return true;
+        }
+
+        // Allow opening the lesson shell when a nested entitled resource is present.
+        return $this->hasNestedLessonEntitlement($enrollment, $lesson);
     }
 
     public function canAccessTopic(Enrollment $enrollment, Topic $topic): bool
@@ -167,7 +173,14 @@ final class CoursePlanAccessService
             ],
             'plan' => $enrollment->coursePlan ? [
                 'id' => $enrollment->coursePlan->id,
+                'course_id' => $enrollment->coursePlan->course_id,
                 'name' => $enrollment->coursePlan->getTranslation('name', app()->getLocale()),
+                'price' => $enrollment->coursePlan->price,
+                'currency' => $enrollment->coursePlan->currency,
+                'is_lifetime' => (bool) $enrollment->coursePlan->is_lifetime,
+                'duration_days' => $enrollment->coursePlan->duration_days,
+                'grant_certificate' => (bool) $enrollment->coursePlan->grant_certificate,
+                'max_quiz_attempts' => $enrollment->coursePlan->max_quiz_attempts,
             ] : null,
             'access' => [
                 'course' => $this->canAccessCourse($enrollment, $enrollment->course),
@@ -193,6 +206,45 @@ final class CoursePlanAccessService
         return $enrollment->entitlements()
             ->where('entitleable_type', $type)
             ->where('entitleable_id', $id)
+            ->exists();
+    }
+
+    private function hasNestedLessonEntitlement(Enrollment $enrollment, Lesson $lesson): bool
+    {
+        $topicIds = $lesson->topics()->pluck('id');
+        $quizIds = Quiz::query()
+            ->where('quizable_type', Lesson::class)
+            ->where('quizable_id', $lesson->id)
+            ->pluck('id');
+        $activityIds = InteractiveActivity::query()
+            ->where('lesson_id', $lesson->id)
+            ->pluck('id');
+
+        if ($topicIds->isEmpty() && $quizIds->isEmpty() && $activityIds->isEmpty()) {
+            return false;
+        }
+
+        return $enrollment->entitlements()
+            ->where(function ($query) use ($topicIds, $quizIds, $activityIds): void {
+                if ($topicIds->isNotEmpty()) {
+                    $query->orWhere(function ($inner) use ($topicIds): void {
+                        $inner->where('entitleable_type', Topic::class)
+                            ->whereIn('entitleable_id', $topicIds);
+                    });
+                }
+                if ($quizIds->isNotEmpty()) {
+                    $query->orWhere(function ($inner) use ($quizIds): void {
+                        $inner->where('entitleable_type', Quiz::class)
+                            ->whereIn('entitleable_id', $quizIds);
+                    });
+                }
+                if ($activityIds->isNotEmpty()) {
+                    $query->orWhere(function ($inner) use ($activityIds): void {
+                        $inner->where('entitleable_type', InteractiveActivity::class)
+                            ->whereIn('entitleable_id', $activityIds);
+                    });
+                }
+            })
             ->exists();
     }
 }

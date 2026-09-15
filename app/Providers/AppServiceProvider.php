@@ -92,6 +92,11 @@ class AppServiceProvider extends ServiceProvider
 
         config(['services.brevo.key' => $key]);
 
+        // Never force Brevo during automated tests — keep MAIL_MAILER=array.
+        if ($this->app->environment('testing')) {
+            return;
+        }
+
         $default = (string) config('mail.default');
 
         if (in_array($default, ['', 'log', 'array'], true)) {

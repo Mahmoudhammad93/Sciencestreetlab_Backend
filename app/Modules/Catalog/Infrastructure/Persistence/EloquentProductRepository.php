@@ -17,13 +17,16 @@ final class EloquentProductRepository extends BaseRepository implements ProductR
 
     public function findBySlug(string $slug): ?Product
     {
-        return $this->query()->with('category.media')->where('slug', $slug)->first();
+        return $this->query()
+            ->with(['category.media', 'curriculumAlignments', 'relatedCourse', 'media'])
+            ->where('slug', $slug)
+            ->first();
     }
 
     public function findPublished(): iterable
     {
         return $this->query()
-            ->with('category.media')
+            ->with(['category.media', 'curriculumAlignments', 'relatedCourse', 'media'])
             ->where('status', 'published')
             ->orderBy('sort_order')
             ->get();
@@ -32,7 +35,7 @@ final class EloquentProductRepository extends BaseRepository implements ProductR
     public function findPublishedByCategory(int $categoryId): iterable
     {
         return $this->query()
-            ->with('category.media')
+            ->with(['category.media', 'curriculumAlignments', 'relatedCourse', 'media'])
             ->where('category_id', $categoryId)
             ->where('status', 'published')
             ->orderBy('sort_order')

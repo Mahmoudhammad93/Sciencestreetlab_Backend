@@ -124,6 +124,85 @@ class ProductResource extends Resource
                     ->helperText('Drag and drop an image here, or click to browse. Shown in the shop catalog and product page.')
                     ->columnSpanFull(),
             ]),
+            Forms\Components\Section::make('Gallery & concept images')->schema([
+                SpatieMediaLibraryFileUpload::make('gallery')
+                    ->collection('gallery')
+                    ->label('Gallery')
+                    ->image()
+                    ->multiple()
+                    ->reorderable()
+                    ->panelLayout('grid')
+                    ->imagePreviewHeight('160')
+                    ->maxSize(5120)
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+                    ->helperText('Drag and drop product gallery images.')
+                    ->columnSpanFull(),
+                SpatieMediaLibraryFileUpload::make('concept_images')
+                    ->collection('concept_images')
+                    ->label('Concept images')
+                    ->image()
+                    ->multiple()
+                    ->reorderable()
+                    ->panelLayout('grid')
+                    ->imagePreviewHeight('160')
+                    ->maxSize(5120)
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+                    ->helperText('Drag and drop scientific concept illustrations.')
+                    ->columnSpanFull(),
+            ])->collapsed(),
+            Forms\Components\Section::make('Educational specifications')->schema([
+                Forms\Components\TextInput::make('difficulty_level')
+                    ->label('Difficulty level')
+                    ->maxLength(50)
+                    ->placeholder('Beginner / Intermediate / Advanced'),
+                Forms\Components\TextInput::make('target_age')
+                    ->label('Target age')
+                    ->maxLength(100)
+                    ->placeholder('e.g. 10-14'),
+                Forms\Components\Select::make('related_course_id')
+                    ->label('Related course')
+                    ->options(fn (): array => Course::query()
+                        ->orderBy('slug')
+                        ->get()
+                        ->mapWithKeys(fn (Course $course): array => [
+                            $course->id => trim(($course->getTranslation('title', 'en') ?: $course->slug).' / '.($course->getTranslation('title', 'ar') ?: '')),
+                        ])
+                        ->all())
+                    ->searchable()
+                    ->nullable(),
+                Forms\Components\TagsInput::make('key_benefits')
+                    ->label('Key benefits')
+                    ->placeholder('Add a benefit')
+                    ->columnSpanFull(),
+                Forms\Components\TagsInput::make('scientific_concepts')
+                    ->label('Scientific concepts')
+                    ->placeholder('Add a concept')
+                    ->columnSpanFull(),
+                Forms\Components\Textarea::make('design_lab_description')
+                    ->label('Design lab description')
+                    ->rows(3)
+                    ->columnSpanFull(),
+                Forms\Components\Textarea::make('creative_lab_description')
+                    ->label('Creative lab description')
+                    ->rows(3)
+                    ->columnSpanFull(),
+                Forms\Components\Repeater::make('curriculum_alignments')
+                    ->label('Curriculum alignment')
+                    ->schema([
+                        Forms\Components\TextInput::make('grade_level')
+                            ->label('Grade level')
+                            ->required()
+                            ->maxLength(100),
+                        Forms\Components\TextInput::make('lesson_name')
+                            ->label('Lesson name')
+                            ->required()
+                            ->maxLength(255),
+                    ])
+                    ->defaultItems(0)
+                    ->reorderable()
+                    ->collapsible()
+                    ->columnSpanFull(),
+            ])->columns(2)->collapsed(),
             Forms\Components\Section::make('Pricing & inventory')->schema([
                 Forms\Components\TextInput::make('price')
                     ->numeric()

@@ -32,5 +32,9 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="MYFATOORAH_API_KEY" value=""/>
+        <env name="FAWATERAK_API_KEY" value=""/>
+        <env name="BREVO_API_KEY" value=""/>
+        <env name="PAYMENT_GATEWAY" value="myfatoorah"/>
     </php>
 </phpunit>
