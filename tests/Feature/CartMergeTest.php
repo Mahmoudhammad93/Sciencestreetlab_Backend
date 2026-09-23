@@ -61,4 +61,37 @@ final class CartMergeTest extends TestCase
         $this->assertDatabaseMissing('carts', ['session_id' => 'guest-session-123']);
         $this->assertDatabaseHas('carts', ['user_id' => $user->id]);
     }
+
+    public function test_x_cart_session_header_merges_guest_cart_on_login(): void
+    {
+        $this->seed();
+
+        $product = Product::query()->where('sku', 'SS-MICRO-001')->firstOrFail();
+        $user = User::factory()->create([
+            'email' => 'cart-merge@example.com',
+            'password' => bcrypt('Password123!'),
+        ]);
+        $guestKey = 'guestcartsession99';
+
+        $this->postJson('/api/v1/cart/items', [
+            'product_id' => $product->id,
+            'quantity' => 2,
+        ], [
+            'X-Cart-Session' => $guestKey,
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('carts', ['session_id' => $guestKey, 'user_id' => null]);
+
+        $this->postJson('/api/v1/auth/login', [
+            'email' => 'cart-merge@example.com',
+            'password' => 'Password123!',
+        ], [
+            'X-Cart-Session' => $guestKey,
+        ])->assertOk();
+
+        $userCart = Cart::query()->where('user_id', $user->id)->firstOrFail();
+        $this->assertSame(1, $userCart->items()->count());
+        $this->assertSame(2, (int) $userCart->items()->firstOrFail()->quantity);
+        $this->assertDatabaseMissing('carts', ['session_id' => $guestKey]);
+    }
 }

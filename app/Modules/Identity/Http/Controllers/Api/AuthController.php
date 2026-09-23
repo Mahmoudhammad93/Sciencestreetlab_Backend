@@ -7,6 +7,7 @@ namespace App\Modules\Identity\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\Commerce\Application\Services\CartService;
+use App\Modules\Commerce\Http\Support\ResolvesCart;
 use App\Modules\Identity\Http\Resources\UserAuthResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,7 @@ final class AuthController extends Controller
 {
     public function __construct(
         private readonly CartService $cartService,
+        private readonly ResolvesCart $resolvesCart,
     ) {}
 
     public function register(Request $request): JsonResponse
@@ -39,9 +41,7 @@ final class AuthController extends Controller
 
         $user->sendEmailVerificationNotification();
 
-        if ($request->hasSession()) {
-            $this->cartService->mergeSessionCartIntoUserCart($user, $request->session()->getId());
-        }
+        $this->mergeGuestCart($request, $user);
 
         $token = $user->createToken('api')->plainTextToken;
 
@@ -69,9 +69,7 @@ final class AuthController extends Controller
             ], 401);
         }
 
-        if ($request->hasSession()) {
-            $this->cartService->mergeSessionCartIntoUserCart($user, $request->session()->getId());
-        }
+        $this->mergeGuestCart($request, $user);
 
         $token = $user->createToken('api')->plainTextToken;
 
@@ -81,6 +79,17 @@ final class AuthController extends Controller
                 'user' => new UserAuthResource($user),
             ],
         ]);
+    }
+
+    private function mergeGuestCart(Request $request, User $user): void
+    {
+        $guestSessionId = $this->resolvesCart->resolveGuestSessionId($request);
+
+        if ($guestSessionId === null) {
+            return;
+        }
+
+        $this->cartService->mergeSessionCartIntoUserCart($user, $guestSessionId);
     }
 
     public function logout(Request $request): JsonResponse

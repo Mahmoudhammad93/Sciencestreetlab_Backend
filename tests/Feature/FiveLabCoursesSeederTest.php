@@ -49,7 +49,7 @@ final class FiveLabCoursesSeederTest extends TestCase
             $this->assertCount(2, $topics);
             $this->assertSame(TopicContentType::Video->value, $topics[0]->content_type);
             $this->assertSame(TopicContentType::Interactive->value, $topics[1]->content_type);
-            $this->assertSame(FiveLabCoursesSeeder::INTERACTIVE_URL, $topics[1]->video_url);
+            $this->assertSame(FiveLabCoursesSeeder::interactiveUrl(), $topics[1]->video_url);
 
             $this->assertSame(1, Quiz::query()
                 ->where('quizable_type', $lesson::class)

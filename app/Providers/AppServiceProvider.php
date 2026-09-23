@@ -51,27 +51,63 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Queued mail reads FRONTEND_URL from the container environment. If that
-     * value is still the local Vite default but APP_URL is the public site,
-     * password-reset and order links must use the public site.
+     * Password-reset, payment return, and order links must never use loopback
+     * or bare-IP hosts when a proper public domain is available on APP_URL or
+     * FRONTEND_URL. Media/storage URLs follow the same public root.
      */
     private function configurePublicFrontendUrl(): void
     {
         $frontend = rtrim((string) config('sciencestreet.frontend_url'), '/');
         $appUrl = rtrim((string) config('app.url'), '/');
 
-        if (! $this->isLoopbackUrl($frontend) || $this->isLoopbackUrl($appUrl)) {
+        $public = $this->preferredPublicUrl($appUrl, $frontend);
+
+        if ($public === null) {
             return;
         }
 
-        config(['sciencestreet.frontend_url' => $appUrl]);
+        if ($this->isNonPublicHost($frontend) && $public !== $frontend) {
+            config(['sciencestreet.frontend_url' => $public]);
+        }
+
+        if ($this->isNonPublicHost($appUrl) && $public !== $appUrl) {
+            config([
+                'app.url' => $public,
+                'filesystems.disks.public.url' => $public.'/storage',
+            ]);
+            \Illuminate\Support\Facades\URL::forceRootUrl($public);
+        }
     }
 
-    private function isLoopbackUrl(string $url): bool
+    /**
+     * Prefer a hostname that is not loopback and not a raw IP.
+     */
+    private function preferredPublicUrl(string $appUrl, string $frontend): ?string
+    {
+        if (! $this->isNonPublicHost($frontend)) {
+            return $frontend;
+        }
+
+        if (! $this->isNonPublicHost($appUrl)) {
+            return $appUrl;
+        }
+
+        return null;
+    }
+
+    private function isNonPublicHost(string $url): bool
     {
         $host = parse_url($url, PHP_URL_HOST);
 
-        return ! is_string($host) || in_array($host, ['localhost', '127.0.0.1', '::1'], true);
+        if (! is_string($host) || $host === '') {
+            return true;
+        }
+
+        if (in_array($host, ['localhost', '127.0.0.1', '::1'], true)) {
+            return true;
+        }
+
+        return filter_var($host, FILTER_VALIDATE_IP) !== false;
     }
 
     /**

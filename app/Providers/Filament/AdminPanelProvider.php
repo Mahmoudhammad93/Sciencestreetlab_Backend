@@ -72,11 +72,13 @@ class AdminPanelProvider extends PanelProvider
                 RecentOrdersWidget::class,
                 LatestEnrollmentsWidget::class,
                 PendingReviewsWidget::class,
+                \App\Filament\Widgets\PendingWrittenReviewsWidget::class,
             ])
             ->navigationGroups([
                 'Catalog',
                 'Commerce',
                 'Learning',
+                'Assessment',
                 'Competition',
                 'Identity',
                 'Content',

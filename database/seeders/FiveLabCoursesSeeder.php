@@ -29,15 +29,18 @@ use Illuminate\Support\Facades\DB;
 /**
  * Five school courses: one lesson each with video + external interactive + quiz, plus plans.
  *
- * Interactive URL: http://13.39.47.202/storage/interactive/index.html
+ * Interactive URL: {APP_URL}/storage/interactive/index.html
  *
  * Idempotent: php artisan db:seed --class=FiveLabCoursesSeeder
  */
 class FiveLabCoursesSeeder extends Seeder
 {
-    public const INTERACTIVE_URL = 'http://13.39.47.202/storage/interactive/index.html';
-
     private const SAMPLE_VIDEO = 'https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4';
+
+    public static function interactiveUrl(): string
+    {
+        return rtrim((string) config('app.url'), '/').'/storage/interactive/index.html';
+    }
 
     /** @var list<string> */
     public const COURSE_SLUGS = [
@@ -212,7 +215,7 @@ class FiveLabCoursesSeeder extends Seeder
                     'en' => 'Predict → Try → Observe → Explain',
                 ],
                 // Lesson API exposes this as file_url for the interactive iframe.
-                'video_url' => self::INTERACTIVE_URL,
+                'video_url' => self::interactiveUrl(),
                 'video_provider' => 'external',
                 'sort_order' => 2,
                 'is_published' => true,
@@ -235,7 +238,7 @@ class FiveLabCoursesSeeder extends Seeder
                 'entry_file' => 'index.html',
                 'activity_config' => [
                     'lab_key' => $def['slug'],
-                    'external_url' => self::INTERACTIVE_URL,
+                    'external_url' => self::interactiveUrl(),
                 ],
                 'title' => [
                     'ar' => 'نشاط تفاعلي — الذرة',
