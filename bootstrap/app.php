@@ -40,10 +40,15 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
+            $errors = $e->errors();
+            $first = collect($errors)->flatten()->first();
+
             return response()->json([
-                'message' => 'Validation failed',
+                'message' => is_string($first) && $first !== ''
+                    ? $first
+                    : (string) __('The given data was invalid.'),
                 'code' => 'VALIDATION_ERROR',
-                'errors' => $e->errors(),
+                'errors' => $errors,
             ], 422);
         });
     })->create();
