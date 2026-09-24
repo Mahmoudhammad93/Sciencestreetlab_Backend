@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Modules\Commerce\Http\Controllers\Api\BostaWebhookController;
 use App\Modules\Commerce\Http\Controllers\Api\CartController;
 use App\Modules\Commerce\Http\Controllers\Api\CartCouponController;
 use App\Modules\Commerce\Http\Controllers\Api\CheckoutController;
@@ -17,6 +18,8 @@ Route::prefix('cart')->middleware('auth.optional')->group(function (): void {
     Route::post('/coupon', [CartCouponController::class, 'apply']);
     Route::delete('/coupon', [CartCouponController::class, 'remove']);
 });
+
+Route::post('/webhooks/bosta', BostaWebhookController::class);
 
 Route::post('/payments/paymob/callback', [PaymentController::class, 'paymobCallback']);
 Route::post('/payments/fawaterak/webhook', [PaymentController::class, 'fawaterakWebhook']);

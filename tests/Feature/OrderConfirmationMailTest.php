@@ -11,7 +11,7 @@ use App\Modules\Catalog\Infrastructure\Persistence\Models\Product;
 use App\Modules\Commerce\Application\Services\PaymentCompletionService;
 use App\Modules\Commerce\Domain\Enums\OrderStatus;
 use App\Modules\Commerce\Domain\Enums\PaymentStatus;
-use App\Modules\Commerce\Domain\Events\OrderPaid;
+use App\Modules\Commerce\Domain\Events\OrderFulfilled;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Order;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\OrderItem;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Payment;
@@ -85,7 +85,7 @@ final class OrderConfirmationMailTest extends TestCase
 
         $order = $this->paidOrder();
 
-        event(new OrderPaid($order->fresh(['items'])));
+        event(new OrderFulfilled($order->fresh(['items'])));
 
         Mail::assertSent(OrderConfirmationMail::class, 1);
     }
@@ -191,7 +191,7 @@ final class OrderConfirmationMailTest extends TestCase
 
         Mail::fake();
 
-        event(new OrderPaid($order->fresh(['items'])));
+        event(new OrderFulfilled($order->fresh(['items'])));
 
         Mail::assertSent(OrderConfirmationMail::class, 1);
         $this->assertNotNull($order->fresh()->confirmation_email_sent_at);

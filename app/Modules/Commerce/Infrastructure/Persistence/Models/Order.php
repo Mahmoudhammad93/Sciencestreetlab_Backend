@@ -23,7 +23,7 @@ class Order extends Model
         'shipping_amount', 'tax_amount', 'total', 'currency', 'coupon_id', 'coupon_code',
         'billing_address', 'shipping_address', 'notes', 'paid_at', 'confirmation_email_sent_at',
         'confirmation_email_claimed_at', 'shipped_at',
-        'delivered_at', 'cancelled_at',
+        'delivered_at', 'fulfilled_at', 'requires_delivery_fulfillment', 'cancelled_at',
     ];
 
     protected static function booted(): void
@@ -53,6 +53,8 @@ class Order extends Model
             'confirmation_email_claimed_at' => 'datetime',
             'shipped_at' => 'datetime',
             'delivered_at' => 'datetime',
+            'fulfilled_at' => 'datetime',
+            'requires_delivery_fulfillment' => 'boolean',
             'cancelled_at' => 'datetime',
         ];
     }
@@ -70,5 +72,15 @@ class Order extends Model
     public function payment(): HasOne
     {
         return $this->hasOne(Payment::class);
+    }
+
+    public function shipments(): HasMany
+    {
+        return $this->hasMany(Shipment::class);
+    }
+
+    public function bostaShipment(): HasOne
+    {
+        return $this->hasOne(Shipment::class)->where('provider', 'bosta');
     }
 }

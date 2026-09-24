@@ -14,6 +14,15 @@ final class CreateQuestion extends CreateRecord
 {
     protected static string $resource = QuestionResource::class;
 
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        return QuestionResource::collapseDragDropFormData($data);
+    }
+
     protected function afterCreate(): void
     {
         $this->storeInteractiveUpload();

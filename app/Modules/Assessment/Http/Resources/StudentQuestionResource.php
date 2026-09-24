@@ -48,7 +48,15 @@ final class StudentQuestionResource extends JsonResource
                 'sort_order' => $o->sort_order,
                 'meta' => $this->publicMeta($o->meta),
             ])->values(),
+            'image_url' => $question->imageUrl(),
         ];
+
+        if ($question->question_type === QuestionType::DragDrop) {
+            $config = is_array($question->answer_key) ? $question->answer_key : [];
+            $data['items'] = $this->localizeDragDropList($config['items'] ?? [], $locale);
+            $data['drop_zones'] = $this->localizeDragDropList($config['zones'] ?? $config['drop_zones'] ?? [], $locale);
+            // Never expose correct_mappings / answer_key.
+        }
 
         if ($this->includeExplanation) {
             $data['explanation'] = $question->getTranslation('explanation', $locale) ?: null;
@@ -96,8 +104,36 @@ final class StudentQuestionResource extends JsonResource
         }
 
         // Never expose grading keys
-        unset($meta['is_correct'], $meta['correct'], $meta['answer']);
+        unset($meta['is_correct'], $meta['correct'], $meta['answer'], $meta['match_key']);
 
         return $meta;
+    }
+
+    /**
+     * @param  mixed  $list
+     * @return list<array{key: string, label: string}>
+     */
+    private function localizeDragDropList(mixed $list, string $locale): array
+    {
+        if (! is_array($list)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($list as $row) {
+            if (! is_array($row) || ! isset($row['key'])) {
+                continue;
+            }
+            $label = $row['label'] ?? '';
+            if (is_array($label)) {
+                $label = $label[$locale] ?? $label['en'] ?? $label['ar'] ?? reset($label) ?: '';
+            }
+            $out[] = [
+                'key' => (string) $row['key'],
+                'label' => (string) $label,
+            ];
+        }
+
+        return $out;
     }
 }

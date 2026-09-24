@@ -14,6 +14,7 @@ enum QuestionType: string
     case FillBlank = 'fill_blank';
     case Matching = 'matching';
     case Ordering = 'ordering';
+    case DragDrop = 'drag_drop';
     case Numeric = 'numeric';
     /** @deprecated Interactive HTML is learning content, not a quiz question. Kept for legacy rows. */
     case InteractiveHtml = 'interactive_html';

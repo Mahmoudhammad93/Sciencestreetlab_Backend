@@ -10,6 +10,7 @@ use App\Modules\Assessment\Application\Services\InteractiveQuestionStorageServic
 use App\Modules\Assessment\Application\Services\QuestionDuplicationService;
 use App\Modules\Assessment\Application\Services\QuestionSelectionService;
 use App\Modules\Assessment\Application\Services\QuizAttemptService;
+use App\Modules\Assessment\Infrastructure\Grading\DragDropGrader;
 use App\Modules\Assessment\Infrastructure\Grading\FillBlankGrader;
 use App\Modules\Assessment\Infrastructure\Grading\InteractiveHtmlGrader;
 use App\Modules\Assessment\Infrastructure\Grading\LongAnswerGrader;
@@ -42,6 +43,7 @@ final class AssessmentServiceProvider extends ModuleServiceProvider
                 new FillBlankGrader,
                 new MatchingGrader,
                 new OrderingGrader,
+                new DragDropGrader,
                 new NumericGrader,
                 new InteractiveHtmlGrader,
             ]);

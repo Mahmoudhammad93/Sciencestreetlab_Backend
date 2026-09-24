@@ -12,11 +12,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\Translatable\HasTranslations;
 
-class Question extends Model
+class Question extends Model implements HasMedia
 {
     use HasTranslations;
+    use InteractsWithMedia;
 
     /** @var list<string> */
     public array $translatable = ['body', 'explanation'];
@@ -51,6 +54,20 @@ class Question extends Model
             'interactive_config' => 'array',
             'answer_key' => 'array',
         ];
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('question_image')
+            ->singleFile()
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+    }
+
+    public function imageUrl(): ?string
+    {
+        $url = $this->getFirstMediaUrl('question_image');
+
+        return $url !== '' ? $url : null;
     }
 
     public function quiz(): BelongsTo

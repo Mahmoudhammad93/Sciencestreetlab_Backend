@@ -5,8 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Commerce\Application\Listeners;
 
 use App\Modules\Commerce\Application\Services\EnrollmentQrCodeRenderer;
-use App\Modules\Commerce\Domain\Enums\OrderStatus;
-use App\Modules\Commerce\Domain\Events\OrderPaid;
+use App\Modules\Commerce\Domain\Events\OrderFulfilled;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Order;
 use App\Modules\Commerce\Mail\OrderConfirmationMail;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Enrollment;
@@ -25,7 +24,7 @@ final class SendOrderConfirmationEmail implements ShouldQueueAfterCommit
         private readonly EnrollmentQrCodeRenderer $qrCodes,
     ) {}
 
-    public function handle(OrderPaid $event): void
+    public function handle(OrderFulfilled $event): void
     {
         $orderId = $event->order->id;
 
@@ -60,7 +59,7 @@ final class SendOrderConfirmationEmail implements ShouldQueueAfterCommit
         return DB::transaction(function () use ($orderId): bool {
             $order = Order::query()->whereKey($orderId)->lockForUpdate()->first();
 
-            if (! $order || $order->status !== OrderStatus::Paid->value) {
+            if (! $order || $order->fulfilled_at === null) {
                 return false;
             }
 

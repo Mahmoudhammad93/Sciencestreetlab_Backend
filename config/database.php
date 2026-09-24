@@ -114,6 +114,32 @@ return [
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
 
+        /*
+        |--------------------------------------------------------------------------
+        | WordPress legacy (optional)
+        |--------------------------------------------------------------------------
+        |
+        | Used by migration:wordpress:* commands. Settings mirror config/wordpress.php
+        | (WORDPRESS_DB_*). Leave host/database empty until a dump is available;
+        | importers return BLOCKED_UNTIL_WORDPRESS_DB_DUMP when unset or unreachable.
+        |
+        */
+        'wordpress' => [
+            'driver' => 'mysql',
+            'host' => env('WORDPRESS_DB_HOST', '127.0.0.1'),
+            'port' => env('WORDPRESS_DB_PORT', '3306'),
+            'database' => env('WORDPRESS_DB_DATABASE', ''),
+            'username' => env('WORDPRESS_DB_USERNAME', ''),
+            'password' => env('WORDPRESS_DB_PASSWORD', ''),
+            'unix_socket' => env('WORDPRESS_DB_SOCKET', ''),
+            'charset' => env('WORDPRESS_DB_CHARSET', 'utf8mb4'),
+            'collation' => env('WORDPRESS_DB_COLLATION', 'utf8mb4_unicode_ci'),
+            'prefix' => env('WORDPRESS_DB_PREFIX', 'wp_'),
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+        ],
+
     ],
 
     /*

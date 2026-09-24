@@ -18,6 +18,7 @@ final class CheckoutService
     public function __construct(
         private readonly CartService $cartService,
         private readonly CouponService $couponService,
+        private readonly BostaShipmentService $bostaShipments,
     ) {}
 
     /**
@@ -83,7 +84,10 @@ final class CheckoutService
             $this->cartService->clear($cart);
             $cart->update(['coupon_id' => null, 'coupon_code' => null]);
 
-            return $order->load('items');
+            $order = $order->load('items');
+            $this->bostaShipments->ensureShipmentForOrder($order);
+
+            return $order->fresh(['items', 'bostaShipment']) ?? $order;
         });
     }
 }

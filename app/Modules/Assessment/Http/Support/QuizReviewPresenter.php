@@ -94,6 +94,9 @@ final class QuizReviewPresenter
             QuestionType::Matching => [
                 'matches' => $this->correctMatches($question),
             ],
+            QuestionType::DragDrop => [
+                'mappings' => $this->correctDragDropMappings($key),
+            ],
             QuestionType::Ordering => [
                 'order' => $question->options->sortBy('sort_order')->pluck('id')->map(fn ($id) => (int) $id)->values()->all(),
                 'labels' => $question->options->sortBy('sort_order')->map(fn ($o) => [
@@ -105,6 +108,25 @@ final class QuizReviewPresenter
                 'expected' => $key['expected'] ?? null,
             ],
         };
+    }
+
+    /**
+     * @param  array<string, mixed>  $key
+     * @return array<string, string>
+     */
+    private function correctDragDropMappings(array $key): array
+    {
+        $mappings = $key['correct_mappings'] ?? $key['answer_key'] ?? [];
+        if (! is_array($mappings)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($mappings as $item => $zone) {
+            $out[(string) $item] = (string) $zone;
+        }
+
+        return $out;
     }
 
     /**

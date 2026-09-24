@@ -14,6 +14,7 @@ use App\Modules\Gamification\Infrastructure\Providers\GamificationServiceProvide
 use App\Modules\Identity\Infrastructure\Providers\IdentityServiceProvider;
 use App\Modules\Learning\Infrastructure\Providers\LearningServiceProvider;
 use App\Modules\Media\Infrastructure\Providers\MediaServiceProvider;
+use App\Modules\Migration\Infrastructure\Providers\MigrationServiceProvider;
 use App\Modules\Mobile\Infrastructure\Providers\MobileServiceProvider;
 use App\Modules\Notification\Infrastructure\Providers\NotificationServiceProvider;
 use App\Modules\Search\Infrastructure\Providers\SearchServiceProvider;
@@ -34,6 +35,7 @@ final class ModuleAggregatorServiceProvider extends ServiceProvider
         ContentServiceProvider::class,
         NotificationServiceProvider::class,
         MediaServiceProvider::class,
+        MigrationServiceProvider::class,
         MobileServiceProvider::class,
         SearchServiceProvider::class,
     ];

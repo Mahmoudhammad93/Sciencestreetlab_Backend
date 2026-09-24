@@ -22,6 +22,24 @@ final class EditQuestion extends EditRecord
         ];
     }
 
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        return QuestionResource::expandDragDropFormData($data);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        return QuestionResource::collapseDragDropFormData($data);
+    }
+
     protected function afterSave(): void
     {
         $path = $this->data['interactive_html_upload'] ?? null;

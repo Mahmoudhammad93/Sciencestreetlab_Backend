@@ -323,6 +323,9 @@ final class QuizAttemptService
             if (isset($answer['matches']) && is_array($answer['matches'])) {
                 $out['matching_answer'] = $answer['matches'];
             }
+            if (isset($answer['mappings']) && is_array($answer['mappings'])) {
+                $out['matching_answer'] = $answer['mappings'];
+            }
             if (isset($answer['order']) && is_array($answer['order'])) {
                 $out['ordering_answer'] = array_map('intval', $answer['order']);
             }
