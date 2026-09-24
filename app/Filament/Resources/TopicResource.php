@@ -115,13 +115,13 @@ class TopicResource extends Resource
                             'application/xhtml+xml',
                             'application/octet-stream',
                         ])
-                        ->maxSize(51200)
+                        ->maxSize(65536)
                         ->previewable(false)
                         ->disk('local')
                         ->visibility('private')
                         ->directory('tmp/topic-interactive-uploads')
                         ->dehydrated(false)
-                        ->helperText('Drag and drop one complete HTML activity (stored as index.html). Max 50 MB.'),
+                        ->helperText('Drag and drop one complete HTML activity (stored as index.html). Max 64 MB.'),
                     Forms\Components\FileUpload::make('interactive_zip_upload')
                         ->label('ZIP package (optional)')
                         ->acceptedFileTypes([
@@ -129,13 +129,13 @@ class TopicResource extends Resource
                             'application/x-zip-compressed',
                             'application/octet-stream',
                         ])
-                        ->maxSize(51200)
+                        ->maxSize(65536)
                         ->previewable(false)
                         ->disk('local')
                         ->visibility('private')
                         ->directory('tmp/topic-interactive-uploads')
                         ->dehydrated(false)
-                        ->helperText('Drag and drop a ZIP containing index.html + css/js/images if needed. Max 50 MB.'),
+                        ->helperText('Drag and drop a ZIP containing index.html + css/js/images if needed. Max 64 MB.'),
                     Forms\Components\Placeholder::make('interactive_activity_info')
                         ->label('Linked activity')
                         ->content(function (?Topic $record): string {

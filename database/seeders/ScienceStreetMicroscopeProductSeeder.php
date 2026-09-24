@@ -72,8 +72,7 @@ HTML;
             'is_featured' => true,
             'average_rating' => 4.64,
             'review_count' => 28,
-            'course_id' => null,
-            'course_plan_id' => null,
+            // Preserve LearningCatalogSeeder course link (do not null these).
             'sort_order' => 1,
             'published_at' => now(),
             'name' => [
@@ -122,6 +121,16 @@ HTML;
             ->delete();
 
         $this->attachImage($product);
+
+        // Flagship kit unlocks the microscope course after payment.
+        if ($product->course_id === null) {
+            $courseId = \App\Modules\Learning\Infrastructure\Persistence\Models\Course::query()
+                ->where('slug', 'microscope-course')
+                ->value('id');
+            if ($courseId) {
+                $product->update(['course_id' => $courseId]);
+            }
+        }
 
         $this->command?->info("Science Street Microscope ready (#{$product->id}, slug={$product->slug}, price={$product->price} EGP).");
     }

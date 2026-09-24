@@ -10,6 +10,7 @@ use App\Modules\Assessment\Domain\Enums\InteractiveActivityType;
 use App\Modules\Assessment\Domain\Enums\QuestionDifficulty;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\InteractiveActivity;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Topic;
+use DomainException;
 use Filament\Notifications\Notification;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -27,6 +28,22 @@ trait HasInteractiveHtmlUpload
             return;
         }
 
+        try {
+            $this->performInteractivePackageSync($topic, $data);
+        } catch (DomainException $e) {
+            Notification::make()
+                ->title('Interactive HTML upload failed')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function performInteractivePackageSync(Topic $topic, array $data): void
+    {
         $htmlState = $data['interactive_html_upload'] ?? null;
         $zipState = $data['interactive_zip_upload'] ?? null;
 
