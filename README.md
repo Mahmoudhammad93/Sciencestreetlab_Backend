@@ -94,6 +94,9 @@ curl -X POST http://localhost:8000/api/v1/auth/register \
 
 Full API reference: [`docs/API.md`](docs/API.md).
 
+Egypt Bosta shipping & course activation: [`docs/EGYPT_BOSTA_SHIPPING.md`](docs/EGYPT_BOSTA_SHIPPING.md).  
+Frontend shipping tracker guide: [`docs/EGYPT_BOSTA_SHIPPING_FRONTEND.md`](docs/EGYPT_BOSTA_SHIPPING_FRONTEND.md).
+
 Postman: import `postman/Science-Street-Lab-API.postman_collection.json` (one file).
 
 ## Implemented Scaffold
@@ -152,8 +155,13 @@ Resources: Users, Products, Courses, Orders, Coupons, Certificate Templates, Ach
 # 2. Add product to cart
 # 3. POST /api/v1/checkout
 # 4. POST /api/v1/checkout/{order_id}/pay → get iframe_url (mock URL locally)
-# 5. POST /api/v1/payments/mock/{payment_id}/complete → marks paid + enrolls course
+# 5. POST /api/v1/payments/mock/{payment_id}/complete → marks paid
+#    - Digital / course (non-delivery-gated): also fulfills → enrolls course
+#    - Egypt Bosta kit/bundle (requires_delivery_fulfillment): course stays locked
+#      until Bosta DELIVERED webhook → OrderFulfilled → enrollment
 ```
+
+See [`docs/EGYPT_BOSTA_SHIPPING.md`](docs/EGYPT_BOSTA_SHIPPING.md).
 
 ## Phase 3 — LMS API
 
@@ -171,7 +179,9 @@ Resources: Users, Products, Courses, Orders, Coupons, Certificate Templates, Ach
 
 ### Learning flow
 
-1. Purchase course product → auto-enrollment on payment
+1. Purchase product → enrollment timing depends on product type:
+   - Digital / course products: enroll after successful payment (`OrderFulfilled`)
+   - Egypt physical kits (Bosta delivery-gated): enroll only after Bosta **DELIVERED**
 2. Fetch curriculum → first lesson unlocked
 3. Watch topic (POST progress ≥ 90%)
 4. Pass required lesson quiz
@@ -295,7 +305,18 @@ php artisan route:list --path=api
 
 ## WordPress Migration
 
-Migration commands will live under `app/Console/Commands/MigrateWordPress/` (to be implemented).
+Framework lives under `app/Console/Commands/MigrateWordPress/` and `app/Modules/Migration/`.
+
+```bash
+php artisan migration:wordpress:inspect
+php artisan migration:wordpress:users
+php artisan migration:wordpress:courses
+php artisan migration:wordpress:enrollments
+php artisan migration:wordpress:orders
+php artisan migration:wordpress:audit
+```
+
+Most import commands support `--dry-run`. Historical order imports set `paid_at` / `fulfilled_at` without replaying live Bosta webhooks. Live imports remain blocked until the WordPress dump schema is supplied — see command help text.
 
 See blueprint §21 for table mapping from WooCommerce + LearnDash + `al-arcade-100-quest`.
 

@@ -20,4 +20,31 @@ enum ShipmentStatus: string
     {
         return $this === self::Delivered;
     }
+
+    public function isTerminalFailure(): bool
+    {
+        return $this === self::Cancelled || $this === self::Failed;
+    }
+
+    /**
+     * Progress rank for the happy-path shipping journey (excludes activated / terminal failures).
+     * Unknown does not advance progress.
+     */
+    public function progressRank(): int
+    {
+        return match ($this) {
+            self::Pending => 0,
+            self::Created => 1,
+            self::PickedUp => 2,
+            self::InTransit => 3,
+            self::OutForDelivery => 4,
+            self::Delivered => 5,
+            self::Cancelled, self::Failed, self::Unknown => -1,
+        };
+    }
+
+    public function label(): string
+    {
+        return (string) __('shipping.status.'.$this->value);
+    }
 }
