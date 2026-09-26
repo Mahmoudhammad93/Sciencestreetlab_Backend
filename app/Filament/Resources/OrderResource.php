@@ -38,6 +38,29 @@ class OrderResource extends Resource
             ])->required(),
             Forms\Components\TextInput::make('total')->numeric()->prefix('EGP')->disabled(),
             Forms\Components\Textarea::make('notes'),
+            Forms\Components\Section::make('Bosta shipping')
+                ->description('Customer tracker follows this shipment status. Use “Update Bosta shipping” in the header to change it for testing.')
+                ->schema([
+                    Forms\Components\Placeholder::make('bosta_status')
+                        ->label('Shipment status')
+                        ->content(fn (?Order $record): string => $record?->bostaShipment?->status?->label()
+                            ?? ($record?->requires_delivery_fulfillment ? 'Pending (no shipment row)' : 'Not a Bosta-gated order')),
+                    Forms\Components\Placeholder::make('bosta_tracking')
+                        ->label('Tracking number')
+                        ->content(fn (?Order $record): string => $record?->bostaShipment?->tracking_number ?: '—'),
+                    Forms\Components\Placeholder::make('bosta_external')
+                        ->label('External shipment id')
+                        ->content(fn (?Order $record): string => $record?->bostaShipment?->external_shipment_id ?: '—'),
+                    Forms\Components\Placeholder::make('course_gate')
+                        ->label('Course unlock')
+                        ->content(fn (?Order $record): string => $record?->fulfilled_at
+                            ? 'Active (fulfilled_at set)'
+                            : ($record?->requires_delivery_fulfillment
+                                ? 'Locked until Bosta Delivered'
+                                : 'Not gated by delivery')),
+                ])
+                ->columns(2)
+                ->collapsed(false),
         ]);
     }
 
