@@ -83,8 +83,30 @@ class ManageSettings extends Page
                                             'logo_url',
                                             'brand',
                                             'Site logo',
-                                            'Drag and drop the site logo here, or click to browse.'
+                                            'Drag and drop the site logo here, or click to browse. External logos stay in use until you upload a new file.'
                                         ),
+                                        Forms\Components\Placeholder::make('logo_url_preview')
+                                            ->label('Current logo')
+                                            ->content(function (): \Illuminate\Support\HtmlString {
+                                                $logo = SiteSettings::get()['logo_url'] ?? null;
+                                                $url = ImageDropzone::publicUrl(is_string($logo) ? $logo : null);
+
+                                                if (blank($url)) {
+                                                    return new \Illuminate\Support\HtmlString(
+                                                        '<span class="text-sm text-gray-500">No logo set.</span>'
+                                                    );
+                                                }
+
+                                                $safe = e($url);
+
+                                                return new \Illuminate\Support\HtmlString(
+                                                    '<div class="flex items-center gap-3">'
+                                                    .'<img src="'.$safe.'" alt="Site logo" class="h-14 w-auto rounded-md border border-gray-200 bg-white object-contain p-1 dark:border-gray-700" />'
+                                                    .'<a href="'.$safe.'" target="_blank" rel="noopener" class="text-sm text-primary-600 hover:underline">Open current logo</a>'
+                                                    .'</div>'
+                                                );
+                                            })
+                                            ->columnSpanFull(),
                                     ]),
                                 Forms\Components\Section::make('Website colors')
                                     ->description('These colors apply to the public storefront.')

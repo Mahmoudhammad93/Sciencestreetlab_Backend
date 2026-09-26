@@ -6,6 +6,7 @@ namespace App\Filament\Forms\Components;
 
 use App\Support\PublicMediaUrl;
 use Filament\Forms\Components\FileUpload;
+use Illuminate\Support\Str;
 
 /**
  * Shared drag-and-drop image upload with preview (same UX as Product form).
@@ -41,12 +42,41 @@ final class ImageDropzone
             ->openable()
             ->columnSpanFull()
             ->afterStateHydrated(function (FileUpload $component, mixed $state): void {
-                $path = PublicMediaUrl::toDiskPath($state);
-                if ($path !== null) {
-                    $component->state($path);
-                }
+                $component->state(self::normalizeUploadState($state));
             })
             ->dehydrateStateUsing(fn (mixed $state): ?string => PublicMediaUrl::normalizeStoredValue($state));
+    }
+
+    /**
+     * Filament FileUpload iterates state with foreach — it must be an array of disk paths,
+     * never a bare string (e.g. an external https logo URL).
+     *
+     * @return array<string, string>
+     */
+    public static function normalizeUploadState(mixed $state): array
+    {
+        if (blank($state)) {
+            return [];
+        }
+
+        $items = is_array($state) ? $state : [$state];
+        $normalized = [];
+
+        foreach ($items as $key => $value) {
+            $path = PublicMediaUrl::toDiskPath($value);
+            if ($path === null) {
+                // External URLs / invalid values cannot be FileUpload disk entries.
+                continue;
+            }
+
+            $fileKey = is_string($key) && $key !== '' && ! is_numeric($key)
+                ? $key
+                : (string) Str::uuid();
+
+            $normalized[$fileKey] = $path;
+        }
+
+        return $normalized;
     }
 
     public static function publicUrl(?string $value): ?string
