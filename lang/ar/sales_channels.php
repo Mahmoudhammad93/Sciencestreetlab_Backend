@@ -6,9 +6,14 @@ return [
     'nav' => 'قنوات البيع',
     'title' => 'قنوات البيع',
     'subtitle' => 'اربط المتاجر وحدّث المنتجات بسهولة — بدون إعدادات تقنية معقدة.',
+    'empty_guide' => [
+        'title' => 'ابدأ بربط قناة بيع',
+        'body' => 'اختر Google Merchant أو YouTube Shopping بالأسفل. سنرشدك خطوة بخطوة.',
+    ],
+    'channels_heading' => 'قنواتك',
     'kpi' => [
-        'connected' => 'قنوات متصلة',
-        'synced' => 'منتجات متزامنة',
+        'connected' => 'متصلة',
+        'synced' => 'متزامنة',
         'needs_attention' => 'تحتاج متابعة',
     ],
     'platforms' => [

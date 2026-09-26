@@ -5,90 +5,457 @@
     $activity = $this->activity;
     $wizard = $this->wizardChannel;
     $manage = $this->managePanel;
+    $isRtl = app()->getLocale() === 'ar';
+    $noneConnected = (int) ($totals['connected'] ?? 0) === 0;
 @endphp
 
 <x-filament-panels::page>
-    <div class="sc-wrap space-y-8" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
-        <p class="text-sm text-gray-600 dark:text-gray-300 max-w-2xl">
-            {{ __('sales_channels.subtitle') }}
-        </p>
+    <style>
+        .sc-page {
+            --sc-ink: #1a1a2e;
+            --sc-muted: #64748b;
+            --sc-line: rgba(148, 163, 184, 0.28);
+            --sc-surface: #ffffff;
+            --sc-soft: #f8fafc;
+            --sc-navy: #2828a0;
+            --sc-navy-soft: rgba(40, 40, 160, 0.08);
+            --sc-amber: #b45309;
+            --sc-amber-soft: rgba(245, 158, 11, 0.12);
+            --sc-green: #047857;
+            --sc-green-soft: rgba(16, 185, 129, 0.12);
+        }
+        .dark .sc-page {
+            --sc-ink: #f8fafc;
+            --sc-muted: #94a3b8;
+            --sc-line: rgba(148, 163, 184, 0.18);
+            --sc-surface: rgba(15, 23, 42, 0.55);
+            --sc-soft: rgba(30, 41, 59, 0.65);
+            --sc-navy-soft: rgba(99, 102, 241, 0.16);
+            --sc-amber-soft: rgba(245, 158, 11, 0.16);
+            --sc-green-soft: rgba(16, 185, 129, 0.16);
+        }
+        .sc-page { color: var(--sc-ink); }
+        .sc-hero {
+            position: relative;
+            overflow: hidden;
+            border-radius: 1.25rem;
+            border: 1px solid var(--sc-line);
+            background:
+                radial-gradient(120% 80% at 100% 0%, rgba(252, 213, 0, 0.14), transparent 55%),
+                radial-gradient(90% 70% at 0% 100%, var(--sc-navy-soft), transparent 50%),
+                var(--sc-surface);
+            padding: 1.35rem 1.5rem;
+        }
+        .sc-hero h2 {
+            margin: 0;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+        .sc-hero p {
+            margin: 0.4rem 0 0;
+            max-width: 42rem;
+            color: var(--sc-muted);
+            font-size: 0.925rem;
+            line-height: 1.55;
+        }
+        .sc-kpis {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.85rem;
+        }
+        @media (max-width: 640px) {
+            .sc-kpis { grid-template-columns: 1fr; }
+        }
+        .sc-kpi {
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+            border-radius: 1rem;
+            border: 1px solid var(--sc-line);
+            background: var(--sc-surface);
+            padding: 1rem 1.1rem;
+            min-height: 5rem;
+        }
+        .sc-kpi__icon {
+            display: grid;
+            place-items: center;
+            width: 2.6rem;
+            height: 2.6rem;
+            border-radius: 0.85rem;
+            flex-shrink: 0;
+            font-size: 1.05rem;
+        }
+        .sc-kpi__icon.is-connected { background: var(--sc-green-soft); color: var(--sc-green); }
+        .sc-kpi__icon.is-synced { background: var(--sc-navy-soft); color: var(--sc-navy); }
+        .sc-kpi__icon.is-attention { background: var(--sc-amber-soft); color: var(--sc-amber); }
+        .dark .sc-kpi__icon.is-synced { color: #a5b4fc; }
+        .sc-kpi__label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--sc-muted);
+            letter-spacing: 0.01em;
+        }
+        .sc-kpi__value {
+            margin-top: 0.15rem;
+            font-size: 1.65rem;
+            font-weight: 750;
+            line-height: 1;
+            letter-spacing: -0.03em;
+        }
+        .sc-section-title {
+            margin: 0 0 0.85rem;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--sc-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .sc-guide {
+            display: flex;
+            gap: 0.9rem;
+            align-items: flex-start;
+            border-radius: 1rem;
+            border: 1px dashed rgba(40, 40, 160, 0.35);
+            background: var(--sc-navy-soft);
+            padding: 1rem 1.15rem;
+            margin-bottom: 1rem;
+        }
+        .sc-guide__mark {
+            display: grid;
+            place-items: center;
+            width: 2.25rem;
+            height: 2.25rem;
+            border-radius: 999px;
+            background: #fcd500;
+            color: #1a1a2e;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+        .sc-guide strong { display: block; font-size: 0.95rem; margin-bottom: 0.2rem; }
+        .sc-guide span { color: var(--sc-muted); font-size: 0.875rem; line-height: 1.5; }
+        .sc-channels { display: grid; gap: 0.85rem; }
+        .sc-channel {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 1rem;
+            align-items: center;
+            border-radius: 1.15rem;
+            border: 1px solid var(--sc-line);
+            background: var(--sc-surface);
+            padding: 1.1rem 1.2rem;
+            transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+        }
+        .sc-channel:hover {
+            border-color: rgba(40, 40, 160, 0.35);
+            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+        }
+        @media (max-width: 720px) {
+            .sc-channel {
+                grid-template-columns: auto 1fr;
+                grid-template-areas:
+                    "logo body"
+                    "actions actions";
+            }
+            .sc-channel__logo { grid-area: logo; }
+            .sc-channel__body { grid-area: body; }
+            .sc-channel__actions { grid-area: actions; justify-content: stretch; }
+            .sc-channel__actions > * { flex: 1; }
+        }
+        .sc-channel__logo {
+            width: 3.25rem;
+            height: 3.25rem;
+            border-radius: 1rem;
+            display: grid;
+            place-items: center;
+            background: var(--sc-soft);
+            border: 1px solid var(--sc-line);
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .sc-channel__logo svg { width: 1.55rem; height: 1.55rem; }
+        .sc-channel__logo.is-google { background: linear-gradient(145deg, #fff 40%, #e8f0fe); }
+        .sc-channel__logo.is-youtube { background: linear-gradient(145deg, #fff 35%, #ffe4e4); }
+        .dark .sc-channel__logo.is-google { background: linear-gradient(145deg, #1e293b, #172554); }
+        .dark .sc-channel__logo.is-youtube { background: linear-gradient(145deg, #1e293b, #450a0a); }
+        .sc-channel__name {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: -0.015em;
+        }
+        .sc-channel__meta {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.45rem;
+            margin-top: 0.35rem;
+        }
+        .sc-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            border-radius: 999px;
+            padding: 0.2rem 0.65rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            border: 1px solid transparent;
+            line-height: 1.3;
+        }
+        .sc-badge .dot {
+            width: 0.45rem;
+            height: 0.45rem;
+            border-radius: 999px;
+            background: currentColor;
+        }
+        .sc-badge.is-connected { background: var(--sc-green-soft); color: var(--sc-green); border-color: rgba(4, 120, 87, 0.18); }
+        .sc-badge.is-expired,
+        .sc-badge.is-attention { background: var(--sc-amber-soft); color: var(--sc-amber); border-color: rgba(180, 83, 9, 0.2); }
+        .sc-badge.is-idle { background: var(--sc-soft); color: var(--sc-muted); border-color: var(--sc-line); }
+        .sc-channel__summary {
+            margin: 0.55rem 0 0;
+            color: var(--sc-muted);
+            font-size: 0.875rem;
+            line-height: 1.45;
+        }
+        .sc-channel__sync {
+            margin: 0.35rem 0 0;
+            color: var(--sc-muted);
+            font-size: 0.75rem;
+        }
+        .sc-channel__issue {
+            margin-top: 0.7rem;
+            border-radius: 0.8rem;
+            border: 1px solid rgba(180, 83, 9, 0.25);
+            background: var(--sc-amber-soft);
+            padding: 0.7rem 0.85rem;
+            font-size: 0.84rem;
+        }
+        .sc-channel__issue strong { display: block; margin-bottom: 0.15rem; }
+        .sc-channel__actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+            justify-content: flex-end;
+        }
+        .sc-activity {
+            border-radius: 1.15rem;
+            border: 1px solid var(--sc-line);
+            background: var(--sc-surface);
+            padding: 1.15rem 1.25rem;
+        }
+        .sc-activity__title {
+            margin: 0;
+            font-size: 0.95rem;
+            font-weight: 700;
+        }
+        .sc-activity__group {
+            margin-top: 1rem;
+        }
+        .sc-activity__group-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--sc-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.55rem;
+        }
+        .sc-activity__item {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 0.7rem;
+            align-items: start;
+            padding: 0.65rem 0;
+            border-top: 1px solid var(--sc-line);
+            font-size: 0.875rem;
+        }
+        .sc-activity__item:first-child { border-top: 0; padding-top: 0; }
+        .sc-activity__icon {
+            width: 1.7rem;
+            height: 1.7rem;
+            border-radius: 999px;
+            display: grid;
+            place-items: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .sc-activity__icon.is-success { background: var(--sc-green-soft); color: var(--sc-green); }
+        .sc-activity__icon.is-warning { background: var(--sc-amber-soft); color: var(--sc-amber); }
+        .sc-activity__icon.is-error { background: rgba(239, 68, 68, 0.12); color: #b91c1c; }
+        .sc-activity__icon.is-info { background: var(--sc-navy-soft); color: var(--sc-navy); }
+        .dark .sc-activity__icon.is-info { color: #a5b4fc; }
+        .sc-activity__time { color: var(--sc-muted); font-size: 0.75rem; white-space: nowrap; }
+        .sc-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            background: rgba(2, 6, 23, 0.55);
+            backdrop-filter: blur(4px);
+        }
+        .sc-modal {
+            width: min(100%, 32rem);
+            border-radius: 1.25rem;
+            border: 1px solid var(--sc-line);
+            background: var(--sc-surface);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.28);
+            padding: 1.35rem 1.4rem;
+        }
+        .sc-modal h2 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 750;
+        }
+        .sc-steps { list-style: none; margin: 1.1rem 0 0; padding: 0; display: grid; gap: 0.45rem; }
+        .sc-steps li {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.875rem;
+            color: var(--sc-muted);
+            padding: 0.45rem 0.55rem;
+            border-radius: 0.7rem;
+        }
+        .sc-steps li.is-done { color: var(--sc-green); background: var(--sc-green-soft); }
+        .sc-steps li.is-current { color: var(--sc-ink); background: var(--sc-navy-soft); font-weight: 700; }
+        .sc-steps .mark {
+            width: 1.35rem;
+            height: 1.35rem;
+            border-radius: 999px;
+            display: grid;
+            place-items: center;
+            font-size: 0.7rem;
+            font-weight: 800;
+            border: 1px solid currentColor;
+            flex-shrink: 0;
+        }
+        .sc-modal-note {
+            margin-top: 0.9rem;
+            border-radius: 0.8rem;
+            border: 1px solid rgba(180, 83, 9, 0.25);
+            background: var(--sc-amber-soft);
+            color: var(--sc-amber);
+            padding: 0.75rem 0.85rem;
+            font-size: 0.85rem;
+            line-height: 1.45;
+        }
+        .sc-modal-body { margin-top: 0.85rem; color: var(--sc-muted); font-size: 0.9rem; line-height: 1.5; }
+        .sc-modal-actions {
+            margin-top: 1.25rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 0.5rem;
+        }
+    </style>
 
-        {{-- KPI summary --}}
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div class="sc-kpi rounded-xl border border-gray-200 bg-white px-5 py-4 dark:border-gray-700 dark:bg-gray-900">
-                <div class="text-xs font-medium uppercase tracking-wide text-gray-500">{{ __('sales_channels.kpi.connected') }}</div>
-                <div class="mt-1 text-3xl font-semibold text-gray-900 dark:text-white">{{ $totals['connected'] }}</div>
+    <div class="sc-page space-y-6" dir="{{ $isRtl ? 'rtl' : 'ltr' }}">
+        <div class="sc-hero">
+            <h2>{{ __('sales_channels.title') }}</h2>
+            <p>{{ __('sales_channels.subtitle') }}</p>
+        </div>
+
+        <div class="sc-kpis">
+            <div class="sc-kpi">
+                <div class="sc-kpi__icon is-connected" aria-hidden="true">✓</div>
+                <div>
+                    <div class="sc-kpi__label">{{ __('sales_channels.kpi.connected') }}</div>
+                    <div class="sc-kpi__value">{{ $totals['connected'] }}</div>
+                </div>
             </div>
-            <div class="sc-kpi rounded-xl border border-gray-200 bg-white px-5 py-4 dark:border-gray-700 dark:bg-gray-900">
-                <div class="text-xs font-medium uppercase tracking-wide text-gray-500">{{ __('sales_channels.kpi.synced') }}</div>
-                <div class="mt-1 text-3xl font-semibold text-gray-900 dark:text-white">{{ $totals['synced'] }}</div>
+            <div class="sc-kpi">
+                <div class="sc-kpi__icon is-synced" aria-hidden="true">↻</div>
+                <div>
+                    <div class="sc-kpi__label">{{ __('sales_channels.kpi.synced') }}</div>
+                    <div class="sc-kpi__value">{{ $totals['synced'] }}</div>
+                </div>
             </div>
-            <div class="sc-kpi rounded-xl border border-gray-200 bg-white px-5 py-4 dark:border-gray-700 dark:bg-gray-900">
-                <div class="text-xs font-medium uppercase tracking-wide text-gray-500">{{ __('sales_channels.kpi.needs_attention') }}</div>
-                <div class="mt-1 text-3xl font-semibold text-gray-900 dark:text-white">{{ $totals['needs_attention'] }}</div>
+            <div class="sc-kpi">
+                <div class="sc-kpi__icon is-attention" aria-hidden="true">!</div>
+                <div>
+                    <div class="sc-kpi__label">{{ __('sales_channels.kpi.needs_attention') }}</div>
+                    <div class="sc-kpi__value">{{ $totals['needs_attention'] }}</div>
+                </div>
             </div>
         </div>
 
-        {{-- Channel cards --}}
-        <div class="space-y-4">
-            @foreach ($channels as $channel)
-                <article class="sc-card rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-                    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                        <div class="space-y-2">
-                            <div class="flex flex-wrap items-center gap-3">
-                                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ $channel['name'] }}</h2>
-                                <span class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium
-                                    @if ($channel['connection_status'] === 'connected') border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-200
-                                    @elseif ($channel['connection_status'] === 'expired') border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100
-                                    @else border-gray-300 bg-gray-50 text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200
-                                    @endif">
-                                    <span aria-hidden="true">
-                                        @if ($channel['connection_status'] === 'connected') ●
-                                        @elseif ($channel['connection_status'] === 'expired') ⚠
-                                        @else ○
-                                        @endif
-                                    </span>
-                                    <span>{{ $channel['connection_label'] }}</span>
+        <section>
+            <h3 class="sc-section-title">{{ __('sales_channels.channels_heading') }}</h3>
+
+            @if ($noneConnected)
+                <div class="sc-guide">
+                    <div class="sc-guide__mark" aria-hidden="true">1</div>
+                    <div>
+                        <strong>{{ __('sales_channels.empty_guide.title') }}</strong>
+                        <span>{{ __('sales_channels.empty_guide.body') }}</span>
+                    </div>
+                </div>
+            @endif
+
+            <div class="sc-channels">
+                @foreach ($channels as $channel)
+                    @php
+                        $platform = $channel['platform'] ?? '';
+                        $statusClass = match ($channel['connection_status']) {
+                            'connected' => 'is-connected',
+                            'expired' => 'is-expired',
+                            default => 'is-idle',
+                        };
+                    @endphp
+                    <article class="sc-channel">
+                        <div class="sc-channel__logo {{ $platform === 'youtube_shopping' ? 'is-youtube' : 'is-google' }}" aria-hidden="true">
+                            @if ($platform === 'youtube_shopping')
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <rect x="2" y="5" width="20" height="14" rx="4" fill="#FF0000"/>
+                                    <path d="M10 9.5v5l5-2.5-5-2.5Z" fill="#fff"/>
+                                </svg>
+                            @else
+                                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 2l2.1 6.4H21l-5.2 3.8 2 6.3L12 14.9 6.2 18.5l2-6.3L3 8.4h6.9L12 2z" fill="#FBBC04"/>
+                                    <circle cx="12" cy="12" r="4.2" fill="#4285F4"/>
+                                    <circle cx="12" cy="12" r="2.1" fill="#fff"/>
+                                </svg>
+                            @endif
+                        </div>
+
+                        <div class="sc-channel__body">
+                            <h2 class="sc-channel__name">{{ $channel['name'] }}</h2>
+                            <div class="sc-channel__meta">
+                                <span class="sc-badge {{ $statusClass }}">
+                                    <span class="dot" aria-hidden="true"></span>
+                                    {{ $channel['connection_label'] }}
                                 </span>
-                                @if ($channel['health_status'] === 'needs_attention')
-                                    <span class="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
+                                @if ($channel['health_status'] === 'needs_attention' && $channel['connection_status'] === 'connected')
+                                    <span class="sc-badge is-attention">
                                         <span aria-hidden="true">⚠</span>
                                         {{ $channel['health_label'] }}
                                     </span>
                                 @endif
                             </div>
-
-                            <p class="text-sm text-gray-700 dark:text-gray-200">{{ $channel['summary'] }}</p>
-
+                            <p class="sc-channel__summary">{{ $channel['summary'] }}</p>
                             @if ($channel['connection_status'] === 'connected')
-                                <p class="text-xs text-gray-500">
-                                    {{ __('sales_channels.last_sync', ['time' => $channel['last_synced_human']]) }}
-                                </p>
+                                <p class="sc-channel__sync">{{ __('sales_channels.last_sync', ['time' => $channel['last_synced_human']]) }}</p>
                             @endif
-
-                            @if (! empty($channel['issue']) && in_array($channel['connection_status'], ['expired', 'not_connected'], true) === false && $channel['health_status'] === 'needs_attention')
-                                <div class="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-50">
-                                    <div class="font-medium">{{ $channel['issue']['title'] }}</div>
-                                    <div>{{ $channel['issue']['message'] }}</div>
+                            @if (! empty($channel['issue']) && $channel['connection_status'] === 'connected' && $channel['health_status'] === 'needs_attention')
+                                <div class="sc-channel__issue">
+                                    <strong>{{ $channel['issue']['title'] }}</strong>
+                                    {{ $channel['issue']['message'] }}
                                 </div>
                             @endif
                         </div>
 
-                        <div class="flex flex-wrap gap-2">
+                        <div class="sc-channel__actions">
                             @if ($channel['connection_status'] === 'not_connected' || $channel['connection_status'] === 'disconnected')
-                                <x-filament::button
-                                    color="primary"
-                                    wire:click="openWizard({{ $channel['id'] }})"
-                                    :disabled="! $this->canConnect()"
-                                >
+                                <x-filament::button color="primary" wire:click="openWizard({{ $channel['id'] }})" :disabled="! $this->canConnect()">
                                     {{ __('sales_channels.actions.connect') }}
                                 </x-filament::button>
                             @elseif ($channel['connection_status'] === 'expired')
-                                <x-filament::button
-                                    color="warning"
-                                    wire:click="reconnect({{ $channel['id'] }})"
-                                    :disabled="! $this->canConnect()"
-                                >
+                                <x-filament::button color="warning" wire:click="reconnect({{ $channel['id'] }})" :disabled="! $this->canConnect()">
                                     {{ __('sales_channels.actions.reconnect') }}
                                 </x-filament::button>
                             @else
@@ -100,202 +467,133 @@
                                 <x-filament::button color="gray" wire:click="openManage({{ $channel['id'] }})" :disabled="! $channel['can_manage']">
                                     {{ __('sales_channels.actions.manage') }}
                                 </x-filament::button>
-                                <span
-                                    @if ($channel['sync_disabled_reason'])
-                                        title="{{ $channel['sync_disabled_reason'] }}"
-                                    @endif
-                                >
-                                    <x-filament::button
-                                        color="primary"
-                                        wire:click="syncNow({{ $channel['id'] }})"
-                                        :disabled="! $channel['can_sync']"
-                                    >
+                                <span @if ($channel['sync_disabled_reason']) title="{{ $channel['sync_disabled_reason'] }}" @endif>
+                                    <x-filament::button color="primary" wire:click="syncNow({{ $channel['id'] }})" :disabled="! $channel['can_sync']">
                                         {{ __('sales_channels.actions.sync_now') }}
                                     </x-filament::button>
                                 </span>
                             @endif
                         </div>
-                    </div>
-                </article>
-            @endforeach
-        </div>
+                    </article>
+                @endforeach
+            </div>
+        </section>
 
-        {{-- Simplified activity --}}
-        <section class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-900">
-            <h2 class="text-base font-semibold text-gray-900 dark:text-white">{{ __('sales_channels.activity.title') }}</h2>
+        <section class="sc-activity">
+            <h3 class="sc-activity__title">{{ __('sales_channels.activity.title') }}</h3>
             @if ($activity->isEmpty())
-                <p class="mt-3 text-sm text-gray-500">{{ __('sales_channels.activity.empty') }}</p>
+                <p class="mt-3 text-sm" style="color: var(--sc-muted)">{{ __('sales_channels.activity.empty') }}</p>
             @else
-                @php $grouped = $activity->groupBy('group'); @endphp
-                <div class="mt-4 space-y-5">
-                    @foreach ($grouped as $group => $items)
-                        <div>
-                            <div class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{{ $group }}</div>
-                            <ul class="space-y-2">
-                                @foreach ($items as $item)
-                                    <li class="flex items-start justify-between gap-3 text-sm">
-                                        <span class="inline-flex items-start gap-2 text-gray-800 dark:text-gray-100">
-                                            <span aria-hidden="true">
-                                                @if ($item['level'] === 'success') ✓
-                                                @elseif ($item['level'] === 'warning') ⚠
-                                                @elseif ($item['level'] === 'error') ✕
-                                                @else ●
-                                                @endif
-                                            </span>
-                                            {{ $item['message'] }}
-                                        </span>
-                                        <span class="shrink-0 text-xs text-gray-500">{{ $item['when'] }}</span>
-                                    </li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    @endforeach
-                </div>
+                @foreach ($activity->groupBy('group') as $group => $items)
+                    <div class="sc-activity__group">
+                        <div class="sc-activity__group-label">{{ $group }}</div>
+                        @foreach ($items as $item)
+                            <div class="sc-activity__item">
+                                <div class="sc-activity__icon is-{{ $item['level'] === 'success' ? 'success' : ($item['level'] === 'warning' ? 'warning' : ($item['level'] === 'error' ? 'error' : 'info')) }}" aria-hidden="true">
+                                    @if ($item['level'] === 'success') ✓
+                                    @elseif ($item['level'] === 'warning') !
+                                    @elseif ($item['level'] === 'error') ✕
+                                    @else ●
+                                    @endif
+                                </div>
+                                <div>{{ $item['message'] }}</div>
+                                <div class="sc-activity__time">{{ $item['when'] }}</div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endforeach
             @endif
         </section>
 
-        {{-- Connect wizard --}}
         @if ($wizard)
-            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true">
-                <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
-                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-                        {{ __('sales_channels.wizard.title', ['channel' => $wizard['name']]) }}
-                    </h2>
-
-                    <ol class="mt-5 space-y-2">
+            <div class="sc-modal-backdrop" role="dialog" aria-modal="true">
+                <div class="sc-modal">
+                    <h2>{{ __('sales_channels.wizard.title', ['channel' => $wizard['name']]) }}</h2>
+                    <ol class="sc-steps">
                         @foreach ([1, 2, 3, 4] as $step)
-                            <li class="flex items-center gap-2 text-sm
-                                @if ($this->wizardStep === $step) font-semibold text-primary-600
-                                @elseif ($this->wizardStep > $step) text-emerald-700
-                                @else text-gray-400
-                                @endif">
-                                <span aria-hidden="true">
+                            <li class="{{ $this->wizardStep > $step ? 'is-done' : ($this->wizardStep === $step ? 'is-current' : '') }}">
+                                <span class="mark" aria-hidden="true">
                                     @if ($this->wizardStep > $step) ✓
-                                    @elseif ($this->wizardStep === $step) ●
-                                    @else ○
+                                    @else {{ $step }}
                                     @endif
                                 </span>
                                 {{ __('sales_channels.wizard.step'.$step) }}
                             </li>
                         @endforeach
                     </ol>
-
-                    <p class="mt-4 text-sm text-gray-700 dark:text-gray-200">
-                        {{ __('sales_channels.wizard.step'.$this->wizardStep.'_body') }}
-                    </p>
-
+                    <p class="sc-modal-body">{{ __('sales_channels.wizard.step'.$this->wizardStep.'_body') }}</p>
                     @unless ($wizard['configured'])
-                        <p class="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-50">
-                            {{ __('sales_channels.wizard.blocked_note') }}
-                        </p>
+                        <div class="sc-modal-note">{{ __('sales_channels.wizard.blocked_note') }}</div>
                     @endunless
-
-                    <div class="mt-6 flex flex-wrap justify-end gap-2">
-                        <x-filament::button color="gray" wire:click="closeWizard">
-                            {{ __('sales_channels.actions.close') }}
-                        </x-filament::button>
+                    <div class="sc-modal-actions">
+                        <x-filament::button color="gray" wire:click="closeWizard">{{ __('sales_channels.actions.close') }}</x-filament::button>
                         @if ($this->wizardStep > 1)
-                            <x-filament::button color="gray" wire:click="wizardBack">
-                                {{ __('sales_channels.actions.back') }}
-                            </x-filament::button>
+                            <x-filament::button color="gray" wire:click="wizardBack">{{ __('sales_channels.actions.back') }}</x-filament::button>
                         @endif
                         @if ($this->wizardStep < 4)
-                            <x-filament::button color="primary" wire:click="wizardNext">
-                                {{ __('sales_channels.actions.next') }}
-                            </x-filament::button>
+                            <x-filament::button color="primary" wire:click="wizardNext">{{ __('sales_channels.actions.next') }}</x-filament::button>
                         @else
-                            <x-filament::button color="primary" wire:click="activateChannel">
-                                {{ __('sales_channels.actions.activate') }}
-                            </x-filament::button>
+                            <x-filament::button color="primary" wire:click="activateChannel">{{ __('sales_channels.actions.activate') }}</x-filament::button>
                         @endif
                     </div>
                 </div>
             </div>
         @endif
 
-        {{-- Manage / fix issues panel --}}
         @if ($manage)
-            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true">
-                <div class="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
-                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-                        {{ __('sales_channels.manage.title', ['channel' => $manage['name']]) }}
-                    </h2>
-
-                    <h3 class="mt-4 text-sm font-semibold text-gray-800 dark:text-gray-100">
-                        {{ __('sales_channels.manage.products_heading') }}
-                    </h3>
-
+            <div class="sc-modal-backdrop" role="dialog" aria-modal="true">
+                <div class="sc-modal" style="width:min(100%,36rem)">
+                    <h2>{{ __('sales_channels.manage.title', ['channel' => $manage['name']]) }}</h2>
+                    <p class="sc-modal-body" style="font-weight:600;color:var(--sc-ink)">{{ __('sales_channels.manage.products_heading') }}</p>
                     @if (empty($manage['issues']))
-                        <p class="mt-2 text-sm text-gray-500">{{ __('sales_channels.manage.no_issues') }}</p>
+                        <p class="sc-modal-body">{{ __('sales_channels.manage.no_issues') }}</p>
                     @else
-                        <ul class="mt-3 space-y-3">
+                        <div class="mt-3 space-y-2">
                             @foreach ($manage['issues'] as $issue)
-                                <li class="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
-                                    <div class="font-medium text-gray-900 dark:text-white">{{ $issue['product_name'] }}</div>
-                                    <div class="mt-1 text-sm text-gray-600 dark:text-gray-300">{{ $issue['message'] }}</div>
+                                <div class="rounded-xl border p-3" style="border-color: var(--sc-line); background: var(--sc-soft)">
+                                    <div class="font-semibold">{{ $issue['product_name'] }}</div>
+                                    <div class="mt-1 text-sm" style="color: var(--sc-muted)">{{ $issue['message'] }}</div>
                                     @if ($issue['edit_url'])
-                                        <div class="mt-2">
-                                            <a href="{{ $issue['edit_url'] }}" class="text-sm font-medium text-primary-600 hover:underline">
-                                                {{ __('sales_channels.actions.fix_product') }}
-                                            </a>
-                                        </div>
+                                        <a href="{{ $issue['edit_url'] }}" class="mt-2 inline-block text-sm font-semibold text-primary-600 hover:underline">
+                                            {{ __('sales_channels.actions.fix_product') }}
+                                        </a>
                                     @endif
-                                </li>
+                                </div>
                             @endforeach
-                        </ul>
+                        </div>
                     @endif
-
-                    <div class="mt-6 flex flex-wrap justify-between gap-2">
+                    <div class="sc-modal-actions" style="justify-content:space-between">
                         @if ($manage['can_advanced'])
-                            <x-filament::button color="gray" wire:click="openAdvanced({{ $manage['id'] }})">
-                                {{ __('sales_channels.actions.advanced') }}
-                            </x-filament::button>
+                            <x-filament::button color="gray" wire:click="openAdvanced({{ $manage['id'] }})">{{ __('sales_channels.actions.advanced') }}</x-filament::button>
                         @else
                             <span></span>
                         @endif
-                        <x-filament::button color="gray" wire:click="closeManage">
-                            {{ __('sales_channels.actions.close') }}
-                        </x-filament::button>
+                        <x-filament::button color="gray" wire:click="closeManage">{{ __('sales_channels.actions.close') }}</x-filament::button>
                     </div>
                 </div>
             </div>
         @endif
 
-        {{-- Advanced settings (collapsed / secondary) --}}
         @if ($this->showAdvanced && $this->canViewTechnical())
-            <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true">
-                <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900">
-                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{{ __('sales_channels.advanced.title') }}</h2>
-                    <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">{{ __('sales_channels.advanced.hint') }}</p>
-                    <p class="mt-2 text-xs text-gray-500">{{ __('sales_channels.advanced.credentials_saved') }}</p>
-                    <p class="mt-1 text-xs text-gray-500">{{ __('sales_channels.advanced.client_id_hint') }}</p>
-
+            <div class="sc-modal-backdrop" style="z-index:60" role="dialog" aria-modal="true">
+                <div class="sc-modal">
+                    <h2>{{ __('sales_channels.advanced.title') }}</h2>
+                    <p class="sc-modal-body">{{ __('sales_channels.advanced.hint') }}</p>
+                    <p class="sc-modal-body" style="font-size:0.8rem">{{ __('sales_channels.advanced.credentials_saved') }}</p>
+                    <p class="sc-modal-body" style="font-size:0.8rem;margin-top:0.25rem">{{ __('sales_channels.advanced.client_id_hint') }}</p>
                     <div class="mt-4 space-y-3">
                         <div>
-                            <label class="text-xs font-medium text-gray-600 dark:text-gray-300">{{ __('sales_channels.advanced.external_account_id') }}</label>
-                            <input
-                                type="text"
-                                wire:model="advancedForm.external_account_id"
-                                class="mt-1 w-full rounded-lg border-gray-300 text-sm dark:border-gray-600 dark:bg-gray-800"
-                            >
+                            <label class="text-xs font-semibold" style="color: var(--sc-muted)">{{ __('sales_channels.advanced.external_account_id') }}</label>
+                            <input type="text" wire:model="advancedForm.external_account_id" class="mt-1 w-full rounded-lg border-gray-300 text-sm dark:border-gray-600 dark:bg-gray-800">
                         </div>
                         <div>
-                            <label class="text-xs font-medium text-gray-600 dark:text-gray-300">{{ __('sales_channels.advanced.external_account_name') }}</label>
-                            <input
-                                type="text"
-                                wire:model="advancedForm.external_account_name"
-                                class="mt-1 w-full rounded-lg border-gray-300 text-sm dark:border-gray-600 dark:bg-gray-800"
-                            >
+                            <label class="text-xs font-semibold" style="color: var(--sc-muted)">{{ __('sales_channels.advanced.external_account_name') }}</label>
+                            <input type="text" wire:model="advancedForm.external_account_name" class="mt-1 w-full rounded-lg border-gray-300 text-sm dark:border-gray-600 dark:bg-gray-800">
                         </div>
                     </div>
-
-                    <div class="mt-6 flex justify-end gap-2">
-                        <x-filament::button color="gray" wire:click="closeAdvanced">
-                            {{ __('sales_channels.actions.close') }}
-                        </x-filament::button>
-                        <x-filament::button color="primary" wire:click="saveAdvanced">
-                            {{ __('sales_channels.actions.save_advanced') }}
-                        </x-filament::button>
+                    <div class="sc-modal-actions">
+                        <x-filament::button color="gray" wire:click="closeAdvanced">{{ __('sales_channels.actions.close') }}</x-filament::button>
+                        <x-filament::button color="primary" wire:click="saveAdvanced">{{ __('sales_channels.actions.save_advanced') }}</x-filament::button>
                     </div>
                 </div>
             </div>

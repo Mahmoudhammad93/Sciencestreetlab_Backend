@@ -30,6 +30,7 @@
         }
 
         return [
+            'platform' => $integration->platform->value,
             'name' => $integration->platform->label(),
             'status' => $status,
             'label' => $status->label(),
@@ -42,37 +43,64 @@
         && $product->published_at !== null;
 @endphp
 
-<div class="space-y-3" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
-    <div class="flex items-center justify-between gap-3 rounded-lg border border-gray-200 px-3 py-2 dark:border-gray-700">
-        <span class="font-medium text-gray-900 dark:text-white">{{ __('sales_channels.website') }}</span>
-        <span class="inline-flex items-center gap-1.5 text-sm
-            {{ $websitePublished ? 'text-emerald-700 dark:text-emerald-300' : 'text-gray-500' }}">
+<style>
+    .psc-list { display: grid; gap: 0.65rem; }
+    .psc-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        border: 1px solid rgba(148,163,184,.25);
+        border-radius: .9rem;
+        padding: .85rem 1rem;
+        background: rgba(248,250,252,.7);
+    }
+    .dark .psc-row { background: rgba(15,23,42,.35); border-color: rgba(148,163,184,.18); }
+    .psc-name { font-weight: 700; font-size: .925rem; }
+    .psc-status {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        font-size: .8rem;
+        font-weight: 650;
+        white-space: nowrap;
+    }
+    .psc-status.is-ok { color: #047857; }
+    .psc-status.is-warn { color: #b45309; }
+    .psc-status.is-idle { color: #64748b; }
+    .psc-msg { margin-top: .35rem; font-size: .8rem; color: #b45309; }
+</style>
+
+<div class="psc-list" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
+    <div class="psc-row">
+        <div class="psc-name">{{ __('sales_channels.website') }}</div>
+        <div class="psc-status {{ $websitePublished ? 'is-ok' : 'is-idle' }}">
             <span aria-hidden="true">{{ $websitePublished ? '✓' : '○' }}</span>
             {{ $websitePublished ? __('sales_channels.product_website_published') : __('sales_channels.product_not_listed') }}
-        </span>
+        </div>
     </div>
 
     @foreach ($channelRows as $row)
-        <div class="rounded-lg border border-gray-200 px-3 py-2 dark:border-gray-700">
-            <div class="flex items-center justify-between gap-3">
-                <span class="font-medium text-gray-900 dark:text-white">{{ $row['name'] }}</span>
-                <span class="inline-flex items-center gap-1.5 text-sm
-                    @if ($row['status'] === PublicationStatus::Published) text-emerald-700 dark:text-emerald-300
-                    @elseif ($row['status'] === PublicationStatus::NeedsAttention) text-amber-800 dark:text-amber-200
-                    @else text-gray-500
-                    @endif">
-                    <span aria-hidden="true">
-                        @if ($row['status'] === PublicationStatus::Published) ✓
-                        @elseif ($row['status'] === PublicationStatus::NeedsAttention) ⚠
-                        @else ○
-                        @endif
-                    </span>
-                    {{ $row['label'] }}
-                </span>
+        <div class="psc-row">
+            <div>
+                <div class="psc-name">{{ $row['name'] }}</div>
+                @if ($row['issue'])
+                    <div class="psc-msg">{{ $row['issue']['message'] }}</div>
+                @endif
             </div>
-            @if ($row['issue'])
-                <p class="mt-1 text-sm text-amber-900 dark:text-amber-100">{{ $row['issue']['message'] }}</p>
-            @endif
+            <div class="psc-status
+                @if ($row['status'] === PublicationStatus::Published) is-ok
+                @elseif ($row['status'] === PublicationStatus::NeedsAttention) is-warn
+                @else is-idle
+                @endif">
+                <span aria-hidden="true">
+                    @if ($row['status'] === PublicationStatus::Published) ✓
+                    @elseif ($row['status'] === PublicationStatus::NeedsAttention) ⚠
+                    @else ○
+                    @endif
+                </span>
+                {{ $row['label'] }}
+            </div>
         </div>
     @endforeach
 </div>

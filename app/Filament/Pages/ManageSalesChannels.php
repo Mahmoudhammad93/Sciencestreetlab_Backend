@@ -108,7 +108,7 @@ class ManageSalesChannels extends Page
                     'last_synced_human' => $integration->last_synced_at
                         ? $integration->last_synced_at->diffForHumans()
                         : (string) __('sales_channels.never'),
-                    'can_connect' => $this->canManage()
+                    'can_connect' => $this->canConnect()
                         && in_array($integration->connection_status, [
                             ConnectionStatus::NotConnected,
                             ConnectionStatus::Disconnected,

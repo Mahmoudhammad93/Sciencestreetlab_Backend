@@ -6,10 +6,15 @@ return [
     'nav' => 'Sales Channels',
     'title' => 'Sales Channels',
     'subtitle' => 'Connect storefronts and keep product listings up to date — without technical setup.',
+    'empty_guide' => [
+        'title' => 'Start by connecting a channel',
+        'body' => 'Choose Google Merchant or YouTube Shopping below. We will guide you step by step.',
+    ],
+    'channels_heading' => 'Your channels',
     'kpi' => [
-        'connected' => 'Connected Channels',
-        'synced' => 'Products Synced',
-        'needs_attention' => 'Needs Attention',
+        'connected' => 'Connected',
+        'synced' => 'Synced',
+        'needs_attention' => 'Needs attention',
     ],
     'platforms' => [
         'google_merchant' => 'Google Merchant Center',
