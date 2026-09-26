@@ -16,7 +16,10 @@ class StuckCheckoutsWidget extends BaseWidget
 
     protected int|string|array $columnSpan = 1;
 
-    protected static ?string $heading = 'Stuck checkouts (awaiting payment)';
+    public function getHeading(): ?string
+    {
+        return __('admin.widgets.stuck_checkouts.heading');
+    }
 
     public function table(Table $table): Table
     {
@@ -29,23 +32,25 @@ class StuckCheckoutsWidget extends BaseWidget
             )
             ->defaultPaginationPageOption(5)
             ->paginated([5])
-            ->emptyStateHeading('No stuck checkouts')
-            ->emptyStateDescription('All orders have moved past awaiting payment.')
+            ->emptyStateHeading(__('admin.widgets.stuck_checkouts.empty_heading'))
+            ->emptyStateDescription(__('admin.widgets.stuck_checkouts.empty_description'))
             ->columns([
                 Tables\Columns\TextColumn::make('order_number')
-                    ->label('Order')
+                    ->label(__('admin.widgets.stuck_checkouts.table.order'))
                     ->url(fn (Order $record): string => OrderResource::getUrl('edit', ['record' => $record])),
                 Tables\Columns\TextColumn::make('user.name')
-                    ->label('Customer')
-                    ->placeholder('Guest'),
+                    ->label(__('admin.widgets.stuck_checkouts.table.customer'))
+                    ->placeholder(__('admin.widgets.stuck_checkouts.table.guest')),
                 Tables\Columns\TextColumn::make('order_type')
-                    ->label('Channel')
+                    ->label(__('admin.widgets.stuck_checkouts.table.channel'))
                     ->badge()
-                    ->formatStateUsing(fn (?string $state): string => $state === 'course' ? 'Course plan' : 'Catalog'),
+                    ->formatStateUsing(fn (?string $state): string => $state === 'course'
+                        ? (string) __('admin.widgets.stuck_checkouts.channels.course_plan')
+                        : (string) __('admin.widgets.stuck_checkouts.channels.catalog')),
                 Tables\Columns\TextColumn::make('total')
                     ->money('EGP'),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Waiting since')
+                    ->label(__('admin.widgets.stuck_checkouts.table.waiting_since'))
                     ->since(),
             ]);
     }

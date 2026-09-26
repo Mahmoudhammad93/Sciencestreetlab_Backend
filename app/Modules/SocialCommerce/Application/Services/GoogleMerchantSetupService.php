@@ -75,12 +75,23 @@ final class GoogleMerchantSetupService
         return $integration->fresh() ?? $integration;
     }
 
-    public function saveServiceAccountJson(SalesChannelIntegration $integration, string $rawJson): SalesChannelIntegration
+    /**
+     * Validate JSON, then replace encrypted credentials. Existing credentials stay
+     * untouched if validation fails (parse throws before update).
+     *
+     * Upload alone never marks the channel connected.
+     *
+     * @return array{integration: SalesChannelIntegration, replaced: bool, preview: array{configured: bool, client_email: ?string, project_id: ?string}}
+     */
+    public function saveServiceAccountJson(SalesChannelIntegration $integration, string $rawJson): array
     {
+        $hadCredentials = $this->provider->hasCredentials($integration);
+        // Validate first — do not touch stored credentials if this throws.
         $parsed = $this->parser->parse($rawJson);
 
         $settings = $integration->settings ?? [];
         $settings['service_account_email'] = $parsed['client_email'];
+        $settings['project_id'] = $parsed['project_id'];
         $settings['has_service_account'] = true;
 
         $integration->update([
@@ -93,7 +104,52 @@ final class GoogleMerchantSetupService
             'last_error_message' => null,
         ]);
 
-        return $integration->fresh() ?? $integration;
+        $fresh = $integration->fresh() ?? $integration;
+        $event = $hadCredentials ? 'credential_replaced' : 'credentials_configured';
+        $messageKey = $hadCredentials
+            ? 'sales_channels.activity.google_credential_replaced'
+            : 'sales_channels.activity.google_credentials_configured';
+
+        // Never put credential contents in activity metadata.
+        $this->manager->log($fresh, 'success', $event, $messageKey);
+
+        return [
+            'integration' => $fresh,
+            'replaced' => $hadCredentials,
+            'preview' => $this->parser->publicMetadata($fresh->credentials),
+        ];
+    }
+
+    /**
+     * Read a temporary uploaded JSON path, validate, encrypt at rest, then leave
+     * cleanup of the temp file to the caller (Livewire upload lifecycle).
+     *
+     * @return array{integration: SalesChannelIntegration, replaced: bool, preview: array{configured: bool, client_email: ?string, project_id: ?string}}
+     */
+    public function saveServiceAccountFromUploadedPath(SalesChannelIntegration $integration, string $absolutePath): array
+    {
+        if ($absolutePath === '' || ! is_file($absolutePath) || ! is_readable($absolutePath)) {
+            throw new InvalidArgumentException('invalid_service_account');
+        }
+
+        if (filesize($absolutePath) > 1024 * 1024) {
+            throw new InvalidArgumentException('invalid_service_account');
+        }
+
+        $raw = file_get_contents($absolutePath);
+        if (! is_string($raw) || trim($raw) === '') {
+            throw new InvalidArgumentException('invalid_service_account');
+        }
+
+        return $this->saveServiceAccountJson($integration, $raw);
+    }
+
+    /**
+     * @return array{configured: bool, client_email: ?string, project_id: ?string}
+     */
+    public function credentialPreview(SalesChannelIntegration $integration): array
+    {
+        return $this->parser->publicMetadata($integration->credentials);
     }
 
     /**
@@ -155,7 +211,7 @@ final class GoogleMerchantSetupService
             'last_error_at' => null,
         ]);
 
-        $this->manager->log($integration, 'success', 'connected', 'sales_channels.activity.google_connected');
+        $this->manager->log($integration, 'success', 'connection_verified', 'sales_channels.activity.google_connection_verified');
         $this->health->refresh($integration->fresh() ?? $integration);
 
         $merchantId = (string) $integration->external_account_id;

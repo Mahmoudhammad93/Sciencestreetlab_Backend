@@ -25,17 +25,22 @@ class LessonsRelationManager extends RelationManager
 {
     protected static string $relationship = 'lessons';
 
-    protected static ?string $title = 'Lessons';
-
     protected static ?string $recordTitleAttribute = 'slug';
+
+    public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
+    {
+        return (string) __('admin.courses.relations.lessons.title');
+    }
 
     public function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\Section::make('Lesson details')->schema([
+            Forms\Components\Section::make(__('admin.lessons.sections.details'))->schema([
                 Forms\Components\TextInput::make('slug')
+                    ->label(__('admin.common.fields.slug'))
                     ->required()
                     ->maxLength(255)
+                    ->extraInputAttributes(['dir' => 'ltr'])
                     ->unique(
                         table: Lesson::class,
                         column: 'slug',
@@ -45,28 +50,31 @@ class LessonsRelationManager extends RelationManager
                             $this->getOwnerRecord()->getKey(),
                         ),
                     )
-                    ->helperText('URL-safe identifier, unique within this course.'),
+                    ->helperText(__('admin.lessons.fields.slug_help')),
                 Forms\Components\Select::make('lesson_type')
+                    ->label(__('admin.common.fields.type'))
                     ->options(collect(LessonType::cases())->mapWithKeys(
                         fn (LessonType $type): array => [$type->value => Str::headline($type->name)],
                     ))
                     ->required()
                     ->default(LessonType::Theory->value),
                 Forms\Components\TextInput::make('sort_order')
+                    ->label(__('admin.common.fields.order'))
                     ->numeric()
                     ->minValue(1)
                     ->default(fn (): int => (int) $this->getOwnerRecord()->lessons()->max('sort_order') + 1)
-                    ->helperText('Display order inside the course.'),
+                    ->helperText(__('admin.lessons.fields.sort_order_help')),
                 Forms\Components\Toggle::make('is_published')
+                    ->label(__('admin.lessons.table.published'))
                     ->default(true),
                 Forms\Components\TextInput::make('video_duration_seconds')
                     ->numeric()
                     ->minValue(0)
-                    ->label('Video duration (seconds)'),
+                    ->label(__('admin.lessons.fields.video_duration')),
             ])->columns(2),
-            Forms\Components\Section::make('Content')->schema([
+            Forms\Components\Section::make(__('admin.lessons.sections.content'))->schema([
                 Forms\Components\TextInput::make('title.ar')
-                    ->label('Title (AR)')
+                    ->label(__('admin.lessons.fields.title_ar'))
                     ->required()
                     ->live(onBlur: true)
                     ->afterStateUpdated(function (Forms\Set $set, ?string $state, Forms\Get $get): void {
@@ -77,13 +85,13 @@ class LessonsRelationManager extends RelationManager
                         $set('slug', Str::slug($state ?? ''));
                     }),
                 Forms\Components\TextInput::make('title.en')
-                    ->label('Title (EN)'),
+                    ->label(__('admin.lessons.fields.title_en')),
                 Forms\Components\Textarea::make('content.ar')
-                    ->label('Content (AR)')
+                    ->label(__('admin.lessons.fields.content_ar'))
                     ->rows(4)
                     ->columnSpanFull(),
                 Forms\Components\Textarea::make('content.en')
-                    ->label('Content (EN)')
+                    ->label(__('admin.lessons.fields.content_en'))
                     ->rows(4)
                     ->columnSpanFull(),
             ])->columns(2),
@@ -98,26 +106,29 @@ class LessonsRelationManager extends RelationManager
             ->reorderable('sort_order')
             ->columns([
                 Tables\Columns\TextColumn::make('sort_order')
-                    ->label('#')
+                    ->label(__('admin.lessons.table.sort_order'))
                     ->sortable(),
                 Tables\Columns\TextColumn::make('title')
-                    ->label('Title')
+                    ->label(__('admin.lessons.table.title'))
                     ->searchable()
                     ->wrap(),
                 Tables\Columns\TextColumn::make('slug')
+                    ->label(__('admin.common.fields.slug'))
                     ->searchable()
-                    ->copyable(),
+                    ->copyable()
+                    ->extraAttributes(['dir' => 'ltr']),
                 Tables\Columns\TextColumn::make('lesson_type')
+                    ->label(__('admin.common.fields.type'))
                     ->badge(),
                 Tables\Columns\TextColumn::make('topics_count')
                     ->counts('topics')
-                    ->label('Topics'),
+                    ->label(__('admin.lessons.table.topics')),
                 Tables\Columns\TextColumn::make('quizzes_count')
                     ->counts('quizzes')
-                    ->label('Quizzes'),
+                    ->label(__('admin.lessons.table.quizzes')),
                 Tables\Columns\IconColumn::make('is_published')
                     ->boolean()
-                    ->label('Published'),
+                    ->label(__('admin.lessons.table.published')),
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make(),
@@ -126,7 +137,9 @@ class LessonsRelationManager extends RelationManager
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\Action::make('quiz')
-                    ->label(fn (Lesson $record): string => $record->quizzes()->exists() ? 'Edit quiz' : 'Assign quiz')
+                    ->label(fn (Lesson $record): string => $record->quizzes()->exists()
+                        ? __('admin.lessons.actions.edit_quiz')
+                        : __('admin.lessons.actions.assign_quiz'))
                     ->icon('heroicon-o-clipboard-document-check')
                     ->url(function (Lesson $record): string {
                         $quiz = $record->quizzes()->first();
@@ -137,7 +150,7 @@ class LessonsRelationManager extends RelationManager
                         return QuizResource::getUrl('create').'?lesson_id='.$record->id;
                     }),
                 Tables\Actions\Action::make('preview')
-                    ->label('Preview')
+                    ->label(__('admin.common.actions.preview'))
                     ->icon('heroicon-o-arrow-top-right-on-square')
                     ->url(fn (Lesson $record): string => self::lessonPreviewUrl($record))
                     ->openUrlInNewTab(),
@@ -153,48 +166,52 @@ class LessonsRelationManager extends RelationManager
     public function infolist(Infolist $infolist): Infolist
     {
         return $infolist->schema([
-            Section::make('Lesson')
+            Section::make(__('admin.lessons.infolist.sections.lesson'))
                 ->columns(2)
                 ->schema([
                     TextEntry::make('title')
-                        ->label('Title'),
-                    TextEntry::make('slug'),
+                        ->label(__('admin.lessons.infolist.fields.title')),
+                    TextEntry::make('slug')
+                        ->label(__('admin.common.fields.slug')),
                     TextEntry::make('lesson_type')
+                        ->label(__('admin.common.fields.type'))
                         ->badge(),
                     TextEntry::make('sort_order')
-                        ->label('Order'),
+                        ->label(__('admin.lessons.infolist.fields.order')),
                     IconEntry::make('is_published')
                         ->boolean()
-                        ->label('Published'),
+                        ->label(__('admin.lessons.infolist.fields.published')),
                     TextEntry::make('video_duration_seconds')
-                        ->label('Video duration (sec)')
+                        ->label(__('admin.lessons.infolist.fields.video_duration'))
                         ->placeholder('—'),
                     TextEntry::make('content')
-                        ->label('Content')
+                        ->label(__('admin.lessons.infolist.fields.content'))
                         ->columnSpanFull()
                         ->markdown()
                         ->placeholder('—'),
                 ]),
-            Section::make('Topics')
+            Section::make(__('admin.lessons.infolist.sections.topics'))
                 ->schema([
                     RepeatableEntry::make('topics')
                         ->label('')
                         ->schema([
                             TextEntry::make('sort_order')
-                                ->label('#'),
+                                ->label(__('admin.topics.table.sort_order')),
                             TextEntry::make('title')
-                                ->label('Title'),
-                            TextEntry::make('slug'),
+                                ->label(__('admin.lessons.infolist.fields.title')),
+                            TextEntry::make('slug')
+                                ->label(__('admin.common.fields.slug')),
                             TextEntry::make('content_type')
+                                ->label(__('admin.common.fields.type'))
                                 ->badge(),
                             TextEntry::make('video_url')
-                                ->label('Video URL')
+                                ->label(__('admin.lessons.infolist.fields.video_url'))
                                 ->placeholder('—')
                                 ->url(fn ($state) => filled($state) ? $state : null)
                                 ->openUrlInNewTab(),
                             IconEntry::make('is_published')
                                 ->boolean()
-                                ->label('Published'),
+                                ->label(__('admin.lessons.infolist.fields.published')),
                         ])
                         ->columns(3)
                         ->columnSpanFull(),

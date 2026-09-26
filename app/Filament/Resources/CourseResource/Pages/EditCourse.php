@@ -27,7 +27,7 @@ class EditCourse extends EditRecord
     {
         return [
             Actions\Action::make('previewCourse')
-                ->label('Preview course')
+                ->label(__('admin.courses.actions.preview'))
                 ->icon('heroicon-o-arrow-top-right-on-square')
                 ->url(fn (): string => LessonsRelationManager::coursePreviewUrl($this->getRecord()))
                 ->openUrlInNewTab(),

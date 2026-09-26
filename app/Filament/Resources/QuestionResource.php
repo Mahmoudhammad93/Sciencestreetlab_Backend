@@ -27,15 +27,33 @@ class QuestionResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-question-mark-circle';
 
-    protected static ?string $navigationGroup = 'Assessment';
-
     protected static ?int $navigationSort = 2;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('admin.nav.groups.assessment');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('admin.nav.questions');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('admin.nav.questions');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('admin.nav.questions');
+    }
 
     public static function form(Form $form): Form
     {
         return $form->schema([
             Forms\Components\Select::make('question_bank_id')
-                ->label('Question Bank')
+                ->label(__('admin.questions.fields.question_bank'))
                 ->options(fn () => QuestionBank::query()->get()->mapWithKeys(
                     fn (QuestionBank $b) => [$b->id => $b->getTranslation('title', app()->getLocale())]
                 ))
@@ -43,46 +61,49 @@ class QuestionResource extends Resource
                 ->nullable(),
             Forms\Components\Select::make('quiz_id')
                 ->relationship('quiz', 'id')
-                ->label('Fixed Quiz (optional)')
+                ->label(__('admin.questions.fields.fixed_quiz'))
                 ->nullable()
-                ->helperText('Leave empty for bank-only reusable questions.'),
+                ->helperText(__('admin.questions.fields.fixed_quiz_help')),
             Forms\Components\Select::make('question_type')
+                ->label(__('admin.common.fields.type'))
                 ->options(collect(QuestionType::assessmentCases())->mapWithKeys(fn ($c) => [$c->value => $c->name]))
                 ->required()
                 ->live(),
             Forms\Components\Select::make('difficulty')
+                ->label(__('admin.interactive_activities.fields.difficulty'))
                 ->options(collect(QuestionDifficulty::cases())->mapWithKeys(fn ($c) => [$c->value => $c->name]))
                 ->required()
                 ->default(QuestionDifficulty::Medium->value),
             Forms\Components\Select::make('status')
+                ->label(__('admin.common.fields.status'))
                 ->options(collect(QuestionStatus::cases())->mapWithKeys(fn ($c) => [$c->value => $c->name]))
                 ->required()
                 ->default(QuestionStatus::Published->value),
-            Forms\Components\TextInput::make('points')->numeric()->default(1)->required(),
-            Forms\Components\TextInput::make('sort_order')->numeric()->default(0),
+            Forms\Components\TextInput::make('points')->label(__('admin.questions.fields.points'))->numeric()->default(1)->required(),
+            Forms\Components\TextInput::make('sort_order')->label(__('admin.questions.fields.sort_order'))->numeric()->default(0),
             Forms\Components\Select::make('tags')
                 ->relationship('tags', 'slug')
                 ->multiple()
                 ->preload()
                 ->createOptionForm([
-                    Forms\Components\TextInput::make('slug')->required(),
-                    Forms\Components\TextInput::make('name.ar')->label('Name AR')->required(),
-                    Forms\Components\TextInput::make('name.en')->label('Name EN'),
+                    Forms\Components\TextInput::make('slug')->label(__('admin.questions.fields.tag_slug'))->required()->extraInputAttributes(['dir' => 'ltr']),
+                    Forms\Components\TextInput::make('name.ar')->label(__('admin.questions.fields.tag_name_ar'))->required(),
+                    Forms\Components\TextInput::make('name.en')->label(__('admin.questions.fields.tag_name_en')),
                 ])
-                ->helperText('Optional tags for filtering and generated quizzes'),
-            Forms\Components\Textarea::make('body.ar')->label('Body (AR)')->required()->columnSpanFull(),
-            Forms\Components\Textarea::make('body.en')->label('Body (EN)')->columnSpanFull(),
-            Forms\Components\Textarea::make('explanation.ar')->label('Explanation (AR)')->columnSpanFull(),
-            Forms\Components\Textarea::make('explanation.en')->label('Explanation (EN)')->columnSpanFull(),
+                ->helperText(__('admin.questions.fields.tags_help')),
+            Forms\Components\Textarea::make('body.ar')->label(__('admin.questions.fields.body_ar'))->required()->columnSpanFull(),
+            Forms\Components\Textarea::make('body.en')->label(__('admin.questions.fields.body_en'))->columnSpanFull(),
+            Forms\Components\Textarea::make('explanation.ar')->label(__('admin.questions.fields.explanation_ar'))->columnSpanFull(),
+            Forms\Components\Textarea::make('explanation.en')->label(__('admin.questions.fields.explanation_en'))->columnSpanFull(),
 
             SpatieMediaLibraryFileUpload::make('question_image')
-                ->label('Question image')
+                ->label(__('admin.questions.fields.image'))
                 ->collection('question_image')
                 ->image()
                 ->imagePreviewHeight('200')
                 ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
                 ->maxSize(5120)
-                ->helperText('Optional prompt image (JPEG/PNG/WebP/GIF, max 5MB). Used for written/long-answer questions.')
+                ->helperText(__('admin.questions.fields.image_help'))
                 ->visible(fn (Get $get) => in_array($get('question_type'), [
                     QuestionType::LongAnswer->value,
                     QuestionType::ShortAnswer->value,
@@ -93,8 +114,8 @@ class QuestionResource extends Resource
             Forms\Components\Repeater::make('options')
                 ->relationship()
                 ->schema([
-                    Forms\Components\TextInput::make('label.ar')->label('Label AR')->required(),
-                    Forms\Components\TextInput::make('label.en')->label('Label EN'),
+                    Forms\Components\TextInput::make('label.ar')->label(__('admin.questions.fields.option_label_ar'))->required(),
+                    Forms\Components\TextInput::make('label.en')->label(__('admin.questions.fields.option_label_en')),
                     Forms\Components\Toggle::make('is_correct')->default(false),
                     Forms\Components\TextInput::make('sort_order')->numeric()->default(0),
                     Forms\Components\KeyValue::make('meta')->nullable(),
@@ -108,41 +129,42 @@ class QuestionResource extends Resource
                 ], true))
                 ->columnSpanFull(),
 
-            Forms\Components\Section::make('Drag & drop configuration')
+            Forms\Components\Section::make(__('admin.questions.sections.drag_drop'))
                 ->visible(fn (Get $get) => $get('question_type') === QuestionType::DragDrop->value)
                 ->schema([
                     Forms\Components\Repeater::make('drag_items')
-                        ->label('Draggable items')
+                        ->label(__('admin.questions.fields.drag_items'))
                         ->schema([
-                            Forms\Components\TextInput::make('key')->required()->helperText('Stable unique key, e.g. item_1'),
-                            Forms\Components\TextInput::make('label_ar')->label('Label AR')->required(),
-                            Forms\Components\TextInput::make('label_en')->label('Label EN'),
+                            Forms\Components\TextInput::make('key')->required()->helperText(__('admin.questions.fields.drag_key_help'))->extraInputAttributes(['dir' => 'ltr']),
+                            Forms\Components\TextInput::make('label_ar')->label(__('admin.questions.fields.option_label_ar'))->required(),
+                            Forms\Components\TextInput::make('label_en')->label(__('admin.questions.fields.option_label_en')),
                         ])
                         ->defaultItems(2)
                         ->columnSpanFull(),
                     Forms\Components\Repeater::make('drag_zones')
-                        ->label('Drop zones')
+                        ->label(__('admin.questions.fields.drop_zones'))
                         ->schema([
-                            Forms\Components\TextInput::make('key')->required()->helperText('Stable unique key, e.g. zone_1'),
-                            Forms\Components\TextInput::make('label_ar')->label('Label AR')->required(),
-                            Forms\Components\TextInput::make('label_en')->label('Label EN'),
+                            Forms\Components\TextInput::make('key')->required()->helperText(__('admin.questions.fields.drag_key_help'))->extraInputAttributes(['dir' => 'ltr']),
+                            Forms\Components\TextInput::make('label_ar')->label(__('admin.questions.fields.option_label_ar'))->required(),
+                            Forms\Components\TextInput::make('label_en')->label(__('admin.questions.fields.option_label_en')),
                         ])
                         ->defaultItems(2)
                         ->columnSpanFull(),
                     Forms\Components\Repeater::make('drag_mappings')
-                        ->label('Correct mappings (item → zone)')
+                        ->label(__('admin.questions.fields.drag_mappings'))
                         ->schema([
-                            Forms\Components\TextInput::make('item_key')->required(),
-                            Forms\Components\TextInput::make('zone_key')->required(),
+                            Forms\Components\TextInput::make('item_key')->required()->extraInputAttributes(['dir' => 'ltr']),
+                            Forms\Components\TextInput::make('zone_key')->required()->extraInputAttributes(['dir' => 'ltr']),
                         ])
-                        ->helperText('Never exposed to students. Keys must exist in items/zones.')
+                        ->helperText(__('admin.questions.fields.drag_mappings_help'))
                         ->columnSpanFull(),
                 ])
                 ->columnSpanFull(),
 
             Forms\Components\KeyValue::make('answer_key')
-                ->label('Answer key')
-                ->helperText('short/fill: accepted JSON list via key "accepted". numeric: value + tolerance. interactive: expected payload.')
+                ->label(__('admin.questions.fields.answer_key'))
+                ->helperText(__('admin.questions.fields.answer_key_help'))
+                ->extraInputAttributes(['dir' => 'ltr'])
                 ->visible(fn (Get $get) => in_array($get('question_type'), [
                     QuestionType::ShortAnswer->value,
                     QuestionType::FillBlank->value,
@@ -152,12 +174,15 @@ class QuestionResource extends Resource
                 ->columnSpanFull(),
 
             Forms\Components\TextInput::make('interactive_type')
+                ->label(__('admin.questions.fields.interaction_type'))
                 ->visible(fn (Get $get) => $get('question_type') === QuestionType::InteractiveHtml->value)
-                ->helperText('e.g. drag_drop, hotspot, custom'),
+                ->helperText(__('admin.questions.fields.interaction_type_help'))
+                ->extraInputAttributes(['dir' => 'ltr']),
             Forms\Components\KeyValue::make('interactive_config')
-                ->visible(fn (Get $get) => $get('question_type') === QuestionType::InteractiveHtml->value),
+                ->visible(fn (Get $get) => $get('question_type') === QuestionType::InteractiveHtml->value)
+                ->extraInputAttributes(['dir' => 'ltr']),
             Forms\Components\FileUpload::make('interactive_html_upload')
-                ->label('Activity HTML')
+                ->label(__('admin.questions.fields.interactive_html'))
                 ->acceptedFileTypes(['text/html', 'application/xhtml+xml', 'application/octet-stream'])
                 ->maxSize(51200)
                 ->previewable(false)
@@ -166,7 +191,7 @@ class QuestionResource extends Resource
                 ->visible(fn (Get $get) => $get('question_type') === QuestionType::InteractiveHtml->value)
                 ->dehydrated(false),
             Forms\Components\Select::make('interactive_activity_id')
-                ->label('Linked Interactive Activity')
+                ->label(__('admin.questions.fields.linked_interactive_activity'))
                 ->relationship('interactiveActivity', 'id')
                 ->searchable()
                 ->nullable()
@@ -174,10 +199,12 @@ class QuestionResource extends Resource
                     QuestionType::InteractiveHtml->value,
                     QuestionType::InteractiveActivity->value,
                 ], true))
-                ->helperText('Prefer first-class Interactive Activities for full HTML packages.'),
+                ->helperText(__('admin.questions.fields.interactive_help')),
             Forms\Components\TextInput::make('interactive_path')
+                ->label(__('admin.interactive_activities.fields.package_path'))
                 ->disabled()
                 ->dehydrated(false)
+                ->extraInputAttributes(['dir' => 'ltr'])
                 ->visible(fn (Get $get) => $get('question_type') === QuestionType::InteractiveHtml->value),
         ]);
     }
@@ -187,12 +214,12 @@ class QuestionResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('id')->sortable(),
-                Tables\Columns\TextColumn::make('body')->limit(40)->searchable(),
-                Tables\Columns\TextColumn::make('question_type')->badge(),
-                Tables\Columns\TextColumn::make('difficulty')->badge(),
-                Tables\Columns\TextColumn::make('status')->badge(),
-                Tables\Columns\TextColumn::make('bank.title')->label('Bank'),
-                Tables\Columns\TextColumn::make('points'),
+                Tables\Columns\TextColumn::make('body')->label(__('admin.questions.fields.body_ar'))->limit(40)->searchable(),
+                Tables\Columns\TextColumn::make('question_type')->label(__('admin.common.fields.type'))->badge(),
+                Tables\Columns\TextColumn::make('difficulty')->label(__('admin.interactive_activities.fields.difficulty'))->badge(),
+                Tables\Columns\TextColumn::make('status')->label(__('admin.common.fields.status'))->badge(),
+                Tables\Columns\TextColumn::make('bank.title')->label(__('admin.questions.table.bank')),
+                Tables\Columns\TextColumn::make('points')->label(__('admin.questions.fields.points')),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('question_type')
@@ -206,10 +233,11 @@ class QuestionResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\Action::make('duplicate')
+                    ->label(__('admin.common.actions.duplicate'))
                     ->icon('heroicon-o-document-duplicate')
                     ->action(function (Question $record): void {
                         $copy = app(QuestionDuplicationService::class)->duplicate($record);
-                        Notification::make()->title('Question duplicated #'.$copy->id)->success()->send();
+                        Notification::make()->title(str_replace('…', (string) $copy->id, __('admin.questions.notifications.duplicated')))->success()->send();
                     }),
                 Tables\Actions\DeleteAction::make(),
             ]);

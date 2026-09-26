@@ -9,15 +9,21 @@ use Filament\Widgets\ChartWidget;
 
 class RevenueByChannelChart extends ChartWidget
 {
-    protected static ?string $heading = 'Revenue by channel';
-
-    protected static ?string $description = 'Paid course plans vs catalog / kit sales';
-
     protected static ?int $sort = 4;
 
     protected int|string|array $columnSpan = 1;
 
     protected static ?string $maxHeight = '280px';
+
+    public function getHeading(): ?string
+    {
+        return __('admin.widgets.charts.revenue_by_channel.heading');
+    }
+
+    public function getDescription(): ?string
+    {
+        return __('admin.widgets.charts.revenue_by_channel.description');
+    }
 
     protected function getData(): array
     {
@@ -39,9 +45,12 @@ class RevenueByChannelChart extends ChartWidget
                     'data' => [1],
                     'backgroundColor' => ['#e2e8f0'],
                 ]],
-                'labels' => ['No paid revenue yet'],
+                'labels' => [__('admin.widgets.charts.revenue_by_channel.empty')],
             ];
         }
+
+        $courseLabel = __('admin.widgets.charts.revenue_by_channel.labels.course_plans');
+        $catalogLabel = __('admin.widgets.charts.revenue_by_channel.labels.catalog_kits');
 
         return [
             'datasets' => [[
@@ -49,8 +58,8 @@ class RevenueByChannelChart extends ChartWidget
                 'backgroundColor' => ['#2828a0', '#fcd500'],
             ]],
             'labels' => [
-                'Course plans ('.number_format($course, 0).' EGP)',
-                'Catalog / kits ('.number_format($catalog, 0).' EGP)',
+                $courseLabel.' ('.number_format($course, 0).' EGP)',
+                $catalogLabel.' ('.number_format($catalog, 0).' EGP)',
             ],
         ];
     }

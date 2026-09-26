@@ -18,9 +18,27 @@ class OrderResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-shopping-cart';
 
-    protected static ?string $navigationGroup = 'Commerce';
-
     protected static ?int $navigationSort = 1;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('admin.nav.groups.commerce');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('admin.nav.orders');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('admin.nav.orders');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('admin.nav.orders');
+    }
 
     public static function form(Form $form): Form
     {
@@ -38,26 +56,28 @@ class OrderResource extends Resource
             ])->required(),
             Forms\Components\TextInput::make('total')->numeric()->prefix('EGP')->disabled(),
             Forms\Components\Textarea::make('notes'),
-            Forms\Components\Section::make('Bosta shipping')
-                ->description('Customer tracker follows this shipment status. Use “Update Bosta shipping” in the header to change it for testing.')
+            Forms\Components\Section::make(__('admin.orders.sections.bosta'))
+                ->description(__('admin.orders.sections.bosta_description'))
                 ->schema([
                     Forms\Components\Placeholder::make('bosta_status')
-                        ->label('Shipment status')
+                        ->label(__('admin.orders.fields.shipment_status'))
                         ->content(fn (?Order $record): string => $record?->bostaShipment?->status?->label()
-                            ?? ($record?->requires_delivery_fulfillment ? 'Pending (no shipment row)' : 'Not a Bosta-gated order')),
+                            ?? ($record?->requires_delivery_fulfillment
+                                ? __('admin.orders.placeholders.course_gate_pending')
+                                : __('admin.orders.placeholders.course_gate_not_bosta'))),
                     Forms\Components\Placeholder::make('bosta_tracking')
-                        ->label('Tracking number')
+                        ->label(__('admin.orders.fields.tracking_number'))
                         ->content(fn (?Order $record): string => $record?->bostaShipment?->tracking_number ?: '—'),
                     Forms\Components\Placeholder::make('bosta_external')
-                        ->label('External shipment id')
+                        ->label(__('admin.orders.fields.external_shipment_id'))
                         ->content(fn (?Order $record): string => $record?->bostaShipment?->external_shipment_id ?: '—'),
                     Forms\Components\Placeholder::make('course_gate')
-                        ->label('Course unlock')
+                        ->label(__('admin.orders.fields.course_unlock'))
                         ->content(fn (?Order $record): string => $record?->fulfilled_at
-                            ? 'Active (fulfilled_at set)'
+                            ? __('admin.orders.placeholders.course_gate_active')
                             : ($record?->requires_delivery_fulfillment
-                                ? 'Locked until Bosta Delivered'
-                                : 'Not gated by delivery')),
+                                ? __('admin.orders.placeholders.course_gate_locked')
+                                : __('admin.orders.placeholders.course_gate_not_gated'))),
                 ])
                 ->columns(2)
                 ->collapsed(false),
@@ -69,7 +89,7 @@ class OrderResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('order_number')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('user.name')->label('Customer'),
+                Tables\Columns\TextColumn::make('user.name')->label(__('admin.common.fields.customer')),
                 Tables\Columns\TextColumn::make('status')->badge(),
                 Tables\Columns\TextColumn::make('total')->money('EGP')->sortable(),
                 Tables\Columns\TextColumn::make('paid_at')->dateTime(),

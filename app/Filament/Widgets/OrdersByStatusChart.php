@@ -9,15 +9,21 @@ use Filament\Widgets\ChartWidget;
 
 class OrdersByStatusChart extends ChartWidget
 {
-    protected static ?string $heading = 'Orders by status';
-
-    protected static ?string $description = 'Current checkout pipeline';
-
     protected static ?int $sort = 6;
 
     protected int|string|array $columnSpan = 1;
 
     protected static ?string $maxHeight = '280px';
+
+    public function getHeading(): ?string
+    {
+        return __('admin.widgets.charts.orders_by_status.heading');
+    }
+
+    public function getDescription(): ?string
+    {
+        return __('admin.widgets.charts.orders_by_status.description');
+    }
 
     protected function getData(): array
     {
@@ -27,14 +33,14 @@ class OrdersByStatusChart extends ChartWidget
             ->pluck('total', 'status');
 
         $labels = [
-            'awaiting_payment' => 'Awaiting payment',
-            'paid' => 'Paid',
-            'processing' => 'Processing',
-            'shipped' => 'Shipped',
-            'delivered' => 'Delivered',
-            'pending' => 'Pending',
-            'cancelled' => 'Cancelled',
-            'refunded' => 'Refunded',
+            'awaiting_payment' => __('admin.widgets.charts.orders_by_status.labels.awaiting_payment'),
+            'paid' => __('admin.widgets.charts.orders_by_status.labels.paid'),
+            'processing' => __('admin.widgets.charts.orders_by_status.labels.processing'),
+            'shipped' => __('admin.widgets.charts.orders_by_status.labels.shipped'),
+            'delivered' => __('admin.widgets.charts.orders_by_status.labels.delivered'),
+            'pending' => __('admin.widgets.charts.orders_by_status.labels.pending'),
+            'cancelled' => __('admin.widgets.charts.orders_by_status.labels.cancelled'),
+            'refunded' => __('admin.widgets.charts.orders_by_status.labels.refunded'),
         ];
 
         $colors = [
@@ -65,7 +71,7 @@ class OrdersByStatusChart extends ChartWidget
         }
 
         if ($usedValues === []) {
-            $usedLabels = ['No orders yet'];
+            $usedLabels = [__('admin.widgets.charts.orders_by_status.labels.empty')];
             $usedValues = [1];
             $usedColors = ['#e2e8f0'];
         }

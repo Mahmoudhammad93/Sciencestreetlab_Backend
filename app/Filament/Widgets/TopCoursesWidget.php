@@ -18,7 +18,10 @@ class TopCoursesWidget extends BaseWidget
 
     protected int|string|array $columnSpan = 1;
 
-    protected static ?string $heading = 'Top courses by enrollment';
+    public function getHeading(): ?string
+    {
+        return __('admin.widgets.top_courses.heading');
+    }
 
     public function table(Table $table): Table
     {
@@ -36,21 +39,21 @@ class TopCoursesWidget extends BaseWidget
             ->paginated(false)
             ->columns([
                 Tables\Columns\TextColumn::make('title')
-                    ->label('Course')
+                    ->label(__('admin.widgets.top_courses.table.course'))
                     ->limit(36)
                     ->url(fn (Course $record): string => CourseResource::getUrl('edit', ['record' => $record])),
                 Tables\Columns\TextColumn::make('access_type')
-                    ->label('Type')
+                    ->label(__('admin.widgets.top_courses.table.type'))
                     ->badge()
                     ->formatStateUsing(fn ($state) => is_object($state) ? $state->value : (string) $state),
                 Tables\Columns\TextColumn::make('active_enrollments_count')
-                    ->label('Active')
+                    ->label(__('admin.widgets.top_courses.table.active'))
                     ->sortable(),
                 Tables\Columns\TextColumn::make('enrollments_count')
-                    ->label('Total')
+                    ->label(__('admin.widgets.top_courses.table.total'))
                     ->sortable(),
                 Tables\Columns\IconColumn::make('is_published')
-                    ->label('Live')
+                    ->label(__('admin.widgets.top_courses.table.live'))
                     ->boolean(),
             ]);
     }

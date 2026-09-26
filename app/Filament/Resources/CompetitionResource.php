@@ -18,29 +18,55 @@ class CompetitionResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-flag';
 
-    protected static ?string $navigationGroup = 'Competition';
-
     protected static ?int $navigationSort = 0;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('admin.nav.groups.competition');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('admin.nav.competitions');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('admin.nav.competitions');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('admin.nav.competitions');
+    }
 
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\TextInput::make('slug')->required()->unique(ignoreRecord: true),
-            Forms\Components\TextInput::make('title.ar')->label('Title (AR)')->required(),
-            Forms\Components\TextInput::make('title.en')->label('Title (EN)'),
+            Forms\Components\TextInput::make('slug')
+                ->label(__('admin.competitions.fields.slug'))
+                ->required()
+                ->unique(ignoreRecord: true)
+                ->extraInputAttributes(['dir' => 'ltr']),
+            Forms\Components\TextInput::make('title.ar')->label(__('admin.competitions.fields.title_ar'))->required(),
+            Forms\Components\TextInput::make('title.en')->label(__('admin.competitions.fields.title_en')),
             Forms\Components\Select::make('status')
+                ->label(__('admin.competitions.fields.status'))
                 ->options([
-                    'draft' => 'Draft',
-                    'active' => 'Active',
-                    'judging' => 'Judging',
-                    'completed' => 'Completed',
-                    'archived' => 'Archived',
+                    'draft' => __('admin.competitions.status.draft'),
+                    'active' => __('admin.competitions.status.active'),
+                    'judging' => __('admin.competitions.status.judging'),
+                    'completed' => __('admin.competitions.status.completed'),
+                    'archived' => __('admin.competitions.status.archived'),
                 ])
                 ->required(),
-            Forms\Components\TextInput::make('required_photos')->numeric()->default(100),
-            Forms\Components\DateTimePicker::make('starts_at')->required(),
-            Forms\Components\DateTimePicker::make('ends_at')->required(),
-            Forms\Components\TextInput::make('prize_amount')->numeric(),
+            Forms\Components\TextInput::make('required_photos')
+                ->label(__('admin.competitions.fields.required_photos'))
+                ->numeric()
+                ->default(100),
+            Forms\Components\DateTimePicker::make('starts_at')->label(__('admin.competitions.fields.starts_at'))->required(),
+            Forms\Components\DateTimePicker::make('ends_at')->label(__('admin.competitions.fields.ends_at'))->required(),
+            Forms\Components\TextInput::make('prize_amount')->label(__('admin.competitions.fields.prize_amount'))->numeric(),
         ]);
     }
 
@@ -48,11 +74,11 @@ class CompetitionResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('slug')->searchable(),
-                Tables\Columns\TextColumn::make('title')->formatStateUsing(fn ($record) => $record->getTranslation('title', 'ar')),
-                Tables\Columns\TextColumn::make('status')->badge(),
-                Tables\Columns\TextColumn::make('required_photos'),
-                Tables\Columns\TextColumn::make('ends_at')->dateTime(),
+                Tables\Columns\TextColumn::make('slug')->label(__('admin.common.fields.slug'))->searchable(),
+                Tables\Columns\TextColumn::make('title')->label(__('admin.common.fields.title'))->formatStateUsing(fn ($record) => $record->getTranslation('title', 'ar')),
+                Tables\Columns\TextColumn::make('status')->label(__('admin.common.fields.status'))->badge(),
+                Tables\Columns\TextColumn::make('required_photos')->label(__('admin.competitions.fields.required_photos')),
+                Tables\Columns\TextColumn::make('ends_at')->label(__('admin.competitions.fields.ends_at'))->dateTime(),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

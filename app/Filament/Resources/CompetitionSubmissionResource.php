@@ -23,24 +23,41 @@ class CompetitionSubmissionResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-camera';
 
-    protected static ?string $navigationGroup = 'Competition';
-
-    protected static ?string $navigationLabel = 'Review Queue';
-
     protected static ?int $navigationSort = 1;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('admin.nav.groups.competition');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('admin.competition_submissions.nav');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('admin.competition_submissions.nav');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('admin.competition_submissions.nav');
+    }
 
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\TextInput::make('uuid')->disabled(),
-            Forms\Components\TextInput::make('sample_number')->disabled(),
-            Forms\Components\TextInput::make('photo_index')->disabled(),
+            Forms\Components\TextInput::make('uuid')->label(__('admin.competition_submissions.fields.uuid'))->disabled()->extraInputAttributes(['dir' => 'ltr']),
+            Forms\Components\TextInput::make('sample_number')->label(__('admin.competition_submissions.fields.sample_number'))->disabled(),
+            Forms\Components\TextInput::make('photo_index')->label(__('admin.competition_submissions.fields.photo_index'))->disabled(),
             Forms\Components\Select::make('status')
+                ->label(__('admin.common.fields.status'))
                 ->options(collect(SubmissionStatus::cases())->mapWithKeys(fn ($s) => [$s->value => $s->name]))
                 ->disabled(),
-            Forms\Components\Textarea::make('description')->disabled(),
-            Forms\Components\Textarea::make('scientific_notes')->disabled(),
-            Forms\Components\Textarea::make('rejection_reason')->disabled(),
+            Forms\Components\Textarea::make('description')->label(__('admin.competition_submissions.fields.description'))->disabled(),
+            Forms\Components\Textarea::make('scientific_notes')->label(__('admin.competition_submissions.fields.scientific_notes'))->disabled(),
+            Forms\Components\Textarea::make('rejection_reason')->label(__('admin.competition_submissions.fields.rejection_reason'))->disabled(),
         ]);
     }
 
@@ -51,15 +68,15 @@ class CompetitionSubmissionResource extends Resource
             ->defaultSort('submitted_at')
             ->columns([
                 Tables\Columns\ImageColumn::make('photo')
-                    ->label('Photo')
+                    ->label(__('admin.competition_submissions.table.photo'))
                     ->getStateUsing(fn (CompetitionSubmission $record) => $record->getFirstMediaUrl('photo'))
                     ->square(),
-                Tables\Columns\TextColumn::make('participant.user.name')->label('Student')->searchable(),
-                Tables\Columns\TextColumn::make('participant.competition.slug')->label('Competition'),
-                Tables\Columns\TextColumn::make('sample_number'),
-                Tables\Columns\TextColumn::make('photo_index'),
-                Tables\Columns\TextColumn::make('status')->badge(),
-                Tables\Columns\TextColumn::make('submitted_at')->dateTime()->sortable(),
+                Tables\Columns\TextColumn::make('participant.user.name')->label(__('admin.competition_submissions.table.student'))->searchable(),
+                Tables\Columns\TextColumn::make('participant.competition.slug')->label(__('admin.competition_submissions.table.competition')),
+                Tables\Columns\TextColumn::make('sample_number')->label(__('admin.competition_submissions.table.sample_number')),
+                Tables\Columns\TextColumn::make('photo_index')->label(__('admin.competition_submissions.table.photo_index')),
+                Tables\Columns\TextColumn::make('status')->label(__('admin.common.fields.status'))->badge(),
+                Tables\Columns\TextColumn::make('submitted_at')->label(__('admin.common.fields.created_at'))->dateTime()->sortable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
@@ -68,6 +85,7 @@ class CompetitionSubmissionResource extends Resource
             ])
             ->actions([
                 Tables\Actions\Action::make('approve')
+                    ->label(__('admin.competition_submissions.actions.approve'))
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->requiresConfirmation()
@@ -77,15 +95,16 @@ class CompetitionSubmissionResource extends Resource
                         $reviewer = auth()->user();
                         app(SubmissionReviewService::class)->approve($reviewer, $record);
 
-                        Notification::make()->title('Submission approved')->success()->send();
+                        Notification::make()->title(__('admin.competition_submissions.notifications.approved'))->success()->send();
                     }),
                 Tables\Actions\Action::make('reject')
+                    ->label(__('admin.competition_submissions.actions.reject'))
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->visible(fn (CompetitionSubmission $record) => $record->status === SubmissionStatus::Pending)
                     ->form([
-                        Forms\Components\Textarea::make('rejection_reason')->required(),
-                        Forms\Components\Textarea::make('notes'),
+                        Forms\Components\Textarea::make('rejection_reason')->label(__('admin.competition_submissions.fields.rejection_reason'))->required(),
+                        Forms\Components\Textarea::make('notes')->label(__('admin.competition_submissions.fields.notes')),
                     ])
                     ->action(function (CompetitionSubmission $record, array $data): void {
                         /** @var User $reviewer */
@@ -97,21 +116,22 @@ class CompetitionSubmissionResource extends Resource
                             $data['notes'] ?? null
                         );
 
-                        Notification::make()->title('Submission rejected')->warning()->send();
+                        Notification::make()->title(__('admin.competition_submissions.notifications.rejected'))->warning()->send();
                     }),
                 Tables\Actions\Action::make('request_revision')
+                    ->label(__('admin.competition_submissions.actions.request_revision'))
                     ->icon('heroicon-o-arrow-path')
                     ->color('warning')
                     ->visible(fn (CompetitionSubmission $record) => $record->status === SubmissionStatus::Pending)
                     ->form([
-                        Forms\Components\Textarea::make('notes')->required(),
+                        Forms\Components\Textarea::make('notes')->label(__('admin.competition_submissions.fields.notes'))->required(),
                     ])
                     ->action(function (CompetitionSubmission $record, array $data): void {
                         /** @var User $reviewer */
                         $reviewer = auth()->user();
                         app(SubmissionReviewService::class)->requestRevision($reviewer, $record, $data['notes']);
 
-                        Notification::make()->title('Revision requested')->info()->send();
+                        Notification::make()->title(__('admin.competition_submissions.notifications.revision_requested'))->info()->send();
                     }),
                 Tables\Actions\ViewAction::make(),
             ]);

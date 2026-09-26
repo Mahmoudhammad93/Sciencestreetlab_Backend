@@ -13,12 +13,12 @@ final class ServiceAccountCredentialParser
     /**
      * @return array{
      *   type: string,
-     *   project_id: ?string,
-     *   private_key_id: ?string,
+     *   project_id: string,
+     *   private_key_id: string,
      *   private_key: string,
      *   client_email: string,
-     *   client_id: ?string,
-     *   token_uri: ?string
+     *   client_id: string,
+     *   token_uri: string
      * }
      */
     public function parse(string $rawJson): array
@@ -28,26 +28,38 @@ final class ServiceAccountCredentialParser
             throw new \InvalidArgumentException('invalid_service_account');
         }
 
-        $email = trim((string) ($decoded['client_email'] ?? ''));
-        $privateKey = (string) ($decoded['private_key'] ?? '');
         $type = (string) ($decoded['type'] ?? '');
+        $projectId = trim((string) ($decoded['project_id'] ?? ''));
+        $privateKeyId = trim((string) ($decoded['private_key_id'] ?? ''));
+        $privateKey = (string) ($decoded['private_key'] ?? '');
+        $email = trim((string) ($decoded['client_email'] ?? ''));
+        $clientId = trim((string) ($decoded['client_id'] ?? ''));
+        $tokenUri = trim((string) ($decoded['token_uri'] ?? ''));
 
-        if ($type !== 'service_account' || $email === '' || $privateKey === '') {
+        if ($type !== 'service_account') {
             throw new \InvalidArgumentException('invalid_service_account');
         }
 
-        if (! str_contains($privateKey, 'BEGIN PRIVATE KEY')) {
+        if ($projectId === '' || $privateKeyId === '' || $clientId === '' || $tokenUri === '') {
+            throw new \InvalidArgumentException('invalid_service_account');
+        }
+
+        if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new \InvalidArgumentException('invalid_service_account');
+        }
+
+        if ($privateKey === '' || ! str_contains($privateKey, 'BEGIN PRIVATE KEY')) {
             throw new \InvalidArgumentException('invalid_service_account');
         }
 
         return [
             'type' => 'service_account',
-            'project_id' => isset($decoded['project_id']) ? (string) $decoded['project_id'] : null,
-            'private_key_id' => isset($decoded['private_key_id']) ? (string) $decoded['private_key_id'] : null,
+            'project_id' => $projectId,
+            'private_key_id' => $privateKeyId,
             'private_key' => $privateKey,
             'client_email' => $email,
-            'client_id' => isset($decoded['client_id']) ? (string) $decoded['client_id'] : null,
-            'token_uri' => isset($decoded['token_uri']) ? (string) $decoded['token_uri'] : null,
+            'client_id' => $clientId,
+            'token_uri' => $tokenUri,
         ];
     }
 

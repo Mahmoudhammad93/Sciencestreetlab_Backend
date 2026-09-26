@@ -16,7 +16,10 @@ class RecentOrdersWidget extends BaseWidget
 
     protected int|string|array $columnSpan = 1;
 
-    protected static ?string $heading = 'Recent orders';
+    public function getHeading(): ?string
+    {
+        return __('admin.widgets.recent_orders.heading');
+    }
 
     public function table(Table $table): Table
     {
@@ -30,13 +33,14 @@ class RecentOrdersWidget extends BaseWidget
             ->paginated([5])
             ->columns([
                 Tables\Columns\TextColumn::make('order_number')
-                    ->label('Order')
+                    ->label(__('admin.widgets.recent_orders.table.order'))
                     ->searchable()
                     ->url(fn (Order $record): string => OrderResource::getUrl('edit', ['record' => $record])),
                 Tables\Columns\TextColumn::make('user.name')
-                    ->label('Customer')
-                    ->placeholder('Guest'),
+                    ->label(__('admin.widgets.recent_orders.table.customer'))
+                    ->placeholder(__('admin.widgets.recent_orders.table.guest')),
                 Tables\Columns\TextColumn::make('status')
+                    ->label(__('admin.common.fields.status'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'paid', 'delivered' => 'success',

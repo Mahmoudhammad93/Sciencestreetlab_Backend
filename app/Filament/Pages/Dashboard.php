@@ -22,6 +22,6 @@ class Dashboard extends BaseDashboard
             return $subheading;
         }
 
-        return 'CEO overview — commerce, learning, payments, and growth';
+        return __('admin.dashboard.default_subheading');
     }
 }

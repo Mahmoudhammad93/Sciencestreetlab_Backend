@@ -20,32 +20,61 @@ class AchievementResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-trophy';
 
-    protected static ?string $navigationGroup = 'Learning';
-
     protected static ?int $navigationSort = 4;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('admin.nav.groups.learning');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('admin.nav.achievements');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('admin.nav.achievements');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('admin.nav.achievements');
+    }
 
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\Section::make('Achievement')->schema([
-                Forms\Components\TextInput::make('slug')->required()->unique(ignoreRecord: true),
+            Forms\Components\Section::make(__('admin.achievements.sections.achievement'))->schema([
+                Forms\Components\TextInput::make('slug')
+                    ->label(__('admin.common.fields.slug'))
+                    ->required()
+                    ->unique(ignoreRecord: true)
+                    ->extraInputAttributes(['dir' => 'ltr']),
                 Forms\Components\Select::make('category')
+                    ->label(__('admin.common.fields.category'))
                     ->options(collect(AchievementCategory::cases())->mapWithKeys(fn ($c) => [$c->value => $c->name]))
                     ->required(),
-                Forms\Components\TextInput::make('points')->numeric()->default(0)->required(),
-                Forms\Components\TextInput::make('badge_color')->label('Badge color (#hex)'),
-                Forms\Components\TextInput::make('name.ar')->label('Name (AR)')->required(),
-                Forms\Components\TextInput::make('name.en')->label('Name (EN)'),
-                Forms\Components\Textarea::make('description.ar')->label('Description (AR)'),
-                Forms\Components\Textarea::make('description.en')->label('Description (EN)'),
-                Forms\Components\Toggle::make('is_active')->default(true),
+                Forms\Components\TextInput::make('points')
+                    ->label(__('admin.common.fields.value'))
+                    ->numeric()
+                    ->default(0)
+                    ->required(),
+                Forms\Components\TextInput::make('badge_color')
+                    ->label(__('admin.achievements.fields.badge_color'))
+                    ->extraInputAttributes(['dir' => 'ltr']),
+                Forms\Components\TextInput::make('name.ar')->label(__('admin.achievements.fields.name_ar'))->required(),
+                Forms\Components\TextInput::make('name.en')->label(__('admin.achievements.fields.name_en')),
+                Forms\Components\Textarea::make('description.ar')->label(__('admin.achievements.fields.description_ar')),
+                Forms\Components\Textarea::make('description.en')->label(__('admin.achievements.fields.description_en')),
+                Forms\Components\Toggle::make('is_active')->label(__('admin.common.fields.active'))->default(true),
             ])->columns(2),
-            Forms\Components\Section::make('Icon / badge image')->schema([
+            Forms\Components\Section::make(__('admin.achievements.sections.icon'))->schema([
                 ImageDropzone::make(
                     'icon_path',
                     'achievements',
-                    'Achievement icon',
-                    'Drag and drop an icon or badge image here, or click to browse.'
+                    __('admin.achievements.fields.icon'),
+                    __('admin.achievements.fields.icon_help')
                 ),
             ]),
         ]);
@@ -56,14 +85,20 @@ class AchievementResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\ImageColumn::make('icon_path')
-                    ->label('Icon')
+                    ->label(__('admin.achievements.table.icon'))
                     ->getStateUsing(fn (Achievement $record): ?string => ImageDropzone::publicUrl($record->icon_path))
                     ->circular(),
-                Tables\Columns\TextColumn::make('slug')->searchable(),
-                Tables\Columns\TextColumn::make('name')->formatStateUsing(fn ($record) => $record->getTranslation('name', 'ar')),
-                Tables\Columns\TextColumn::make('category')->badge(),
-                Tables\Columns\TextColumn::make('points'),
-                Tables\Columns\IconColumn::make('is_active')->boolean(),
+                Tables\Columns\TextColumn::make('slug')
+                    ->label(__('admin.common.fields.slug'))
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('name')
+                    ->label(__('admin.common.fields.name'))
+                    ->formatStateUsing(fn ($record) => $record->getTranslation('name', 'ar')),
+                Tables\Columns\TextColumn::make('category')
+                    ->label(__('admin.common.fields.category'))
+                    ->badge(),
+                Tables\Columns\TextColumn::make('points')->label(__('admin.common.fields.value')),
+                Tables\Columns\IconColumn::make('is_active')->label(__('admin.common.fields.active'))->boolean(),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

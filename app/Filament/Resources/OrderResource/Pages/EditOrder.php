@@ -24,19 +24,19 @@ class EditOrder extends EditRecord
     {
         return [
             Actions\Action::make('updateBostaShippingStatus')
-                ->label('Update Bosta shipping')
+                ->label(__('admin.orders.actions.update_bosta'))
                 ->icon('heroicon-o-truck')
                 ->color('warning')
                 ->visible(fn (): bool => $this->recordHasBostaShipment())
                 ->form([
                     Forms\Components\Placeholder::make('current_shipping')
-                        ->label('Current shipping status')
+                        ->label(__('admin.orders.fields.current_bosta_status'))
                         ->content(function (): string {
                             /** @var Order $order */
                             $order = $this->getRecord();
                             $shipment = $order->bostaShipment;
                             if ($shipment === null) {
-                                return 'No Bosta shipment';
+                                return __('admin.orders.messages.no_bosta_shipment');
                             }
 
                             $status = $shipment->status instanceof ShipmentStatus
@@ -51,16 +51,16 @@ class EditOrder extends EditRecord
                             );
                         }),
                     Forms\Components\Select::make('status')
-                        ->label('New Bosta status')
-                        ->helperText('Delivered unlocks course access. Delivered cannot be downgraded.')
+                        ->label(__('admin.orders.fields.new_bosta_status'))
+                        ->helperText(__('admin.orders.fields.new_bosta_status_help'))
                         ->options([
-                            'Created' => 'Shipment Created',
-                            'Picked Up' => 'Picked Up',
-                            'In Transit' => 'In Transit',
-                            'Out for Delivery' => 'Out for Delivery',
-                            'Delivered' => 'Delivered (unlocks course)',
-                            'Cancelled' => 'Cancelled',
-                            'Failed' => 'Failed',
+                            'Created' => __('admin.orders.bosta_status.created'),
+                            'Picked Up' => __('admin.orders.bosta_status.picked_up'),
+                            'In Transit' => __('admin.orders.bosta_status.in_transit'),
+                            'Out for Delivery' => __('admin.orders.bosta_status.out_for_delivery'),
+                            'Delivered' => __('admin.orders.bosta_status.delivered'),
+                            'Cancelled' => __('admin.orders.bosta_status.cancelled'),
+                            'Failed' => __('admin.orders.bosta_status.failed'),
                         ])
                         ->required()
                         ->native(false),
@@ -74,7 +74,7 @@ class EditOrder extends EditRecord
 
                     if ($shipment === null || blank($shipment->external_shipment_id)) {
                         Notification::make()
-                            ->title('No Bosta shipment on this order')
+                            ->title(__('admin.orders.notifications.no_bosta'))
                             ->danger()
                             ->send();
 
@@ -95,13 +95,13 @@ class EditOrder extends EditRecord
                             : (string) $updated->status;
 
                         Notification::make()
-                            ->title('Bosta shipping updated')
-                            ->body('Status is now: '.$label)
+                            ->title(__('admin.orders.notifications.bosta_updated'))
+                            ->body(__('admin.orders.notifications.bosta_updated_body').' '.$label)
                             ->success()
                             ->send();
                     } catch (Throwable $e) {
                         Notification::make()
-                            ->title('Failed to update Bosta shipping')
+                            ->title(__('admin.orders.notifications.bosta_failed'))
                             ->body($e->getMessage())
                             ->danger()
                             ->send();

@@ -23,15 +23,27 @@ class QuizAttemptResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-pencil-square';
 
-    protected static ?string $navigationGroup = 'Assessment';
-
-    protected static ?string $navigationLabel = 'Written reviews';
-
-    protected static ?string $modelLabel = 'Quiz attempt';
-
-    protected static ?string $pluralModelLabel = 'Written reviews';
-
     protected static ?int $navigationSort = 4;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('admin.nav.groups.assessment');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('admin.quiz_attempts.nav');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('admin.quiz_attempts.model_label');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('admin.quiz_attempts.nav');
+    }
 
     public static function getEloquentQuery(): Builder
     {
@@ -47,16 +59,16 @@ class QuizAttemptResource extends Resource
     {
         return $form->schema([
             Forms\Components\Placeholder::make('student')
-                ->label('Student')
+                ->label(__('admin.quiz_attempts.fields.student'))
                 ->content(fn (?QuizAttempt $record): string => $record?->user?->name ?? '—'),
             Forms\Components\Placeholder::make('quiz_title')
-                ->label('Quiz')
+                ->label(__('admin.quiz_attempts.fields.quiz'))
                 ->content(fn (?QuizAttempt $record): string => (string) ($record?->quiz?->getTranslation('title', app()->getLocale()) ?? '—')),
             Forms\Components\Placeholder::make('submitted')
-                ->label('Submitted')
+                ->label(__('admin.quiz_attempts.fields.submitted'))
                 ->content(fn (?QuizAttempt $record): string => $record?->submitted_at?->toDateTimeString() ?? '—'),
             Forms\Components\Placeholder::make('auto_score')
-                ->label('Score so far')
+                ->label(__('admin.quiz_attempts.fields.score_so_far'))
                 ->content(fn (?QuizAttempt $record): string => $record
                     ? ((string) $record->score).' / '.((string) $record->max_score)
                     : '—'),
@@ -68,25 +80,25 @@ class QuizAttemptResource extends Resource
         return $table
             ->defaultSort('submitted_at')
             ->columns([
-                Tables\Columns\TextColumn::make('id')->label('Attempt #')->sortable(),
-                Tables\Columns\TextColumn::make('user.name')->label('Student')->searchable(),
+                Tables\Columns\TextColumn::make('id')->label(__('admin.quiz_attempts.table.attempt_number'))->sortable(),
+                Tables\Columns\TextColumn::make('user.name')->label(__('admin.quiz_attempts.fields.student'))->searchable(),
                 Tables\Columns\TextColumn::make('quiz.title')
-                    ->label('Quiz')
+                    ->label(__('admin.quiz_attempts.fields.quiz'))
                     ->formatStateUsing(fn ($state, QuizAttempt $record): string => (string) (
                         $record->quiz?->getTranslation('title', app()->getLocale()) ?? '—'
                     )),
-                Tables\Columns\TextColumn::make('status')->badge(),
+                Tables\Columns\TextColumn::make('status')->label(__('admin.common.fields.status'))->badge(),
                 Tables\Columns\TextColumn::make('pending_count')
-                    ->label('Pending answers')
+                    ->label(__('admin.quiz_attempts.table.pending_answers'))
                     ->getStateUsing(fn (QuizAttempt $record): int => $record->answers
                         ->where('needs_manual_review', true)
                         ->count()),
-                Tables\Columns\TextColumn::make('submitted_at')->dateTime()->sortable(),
+                Tables\Columns\TextColumn::make('submitted_at')->label(__('admin.quiz_attempts.fields.submitted'))->dateTime()->sortable(),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\Action::make('grade')
-                    ->label('Grade')
+                    ->label(__('admin.quiz_attempts.actions.grade'))
                     ->icon('heroicon-m-check-badge')
                     ->visible(fn (QuizAttempt $record): bool => $record->answers
                         ->contains(fn (QuizAttemptAnswer $a) => (bool) $a->needs_manual_review))
@@ -96,22 +108,22 @@ class QuizAttemptResource extends Resource
                             $question = $answer->question;
                             $title = $question
                                 ? (string) $question->getTranslation('body', app()->getLocale())
-                                : 'Question #'.$answer->question_id;
+                                : str_replace('…', (string) $answer->question_id, __('admin.quiz_attempts.grade_form.question_fallback'));
                             $max = (float) ($question?->points ?? 0);
                             $fields[] = Forms\Components\Section::make($title)
                                 ->schema([
                                     Forms\Components\Placeholder::make('answer_text_'.$answer->id)
-                                        ->label('Student answer')
+                                        ->label(__('admin.quiz_attempts.grade_form.student_answer'))
                                         ->content((string) ($answer->text_answer ?: '—')),
                                     Forms\Components\TextInput::make('points_'.$answer->id)
-                                        ->label('Points (max '.$max.')')
+                                        ->label(__('admin.quiz_attempts.grade_form.points', ['max' => $max]))
                                         ->numeric()
                                         ->required()
                                         ->minValue(0)
                                         ->maxValue($max > 0 ? $max : 999)
                                         ->default((float) ($answer->points_awarded ?? 0)),
                                     Forms\Components\Toggle::make('correct_'.$answer->id)
-                                        ->label('Mark correct')
+                                        ->label(__('admin.quiz_attempts.grade_form.mark_correct'))
                                         ->default(false),
                                 ]);
                         }
@@ -136,7 +148,7 @@ class QuizAttemptResource extends Resource
                         }
 
                         Notification::make()
-                            ->title('Written answers graded')
+                            ->title(__('admin.quiz_attempts.notifications.graded'))
                             ->success()
                             ->send();
                     }),

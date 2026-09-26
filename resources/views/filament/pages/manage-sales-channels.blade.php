@@ -4,7 +4,7 @@
     $channels = $this->channels;
     $activity = $this->activity;
     $manage = $this->managePanel;
-    $isRtl = app()->getLocale() === 'ar';
+    $isRtl = \App\Support\AdminLocale::isRtl();
     $noneConnected = (int) ($totals['connected'] ?? 0) === 0;
 @endphp
 
@@ -236,7 +236,7 @@
             flex-wrap: wrap;
             gap: 0.5rem;
             align-items: center;
-            justify-content: flex-end;
+            justify-content: flex-end; /* flex-end follows writing mode (LTR right / RTL left) */
         }
         .sc-activity {
             border-radius: 1.15rem;
@@ -548,21 +548,67 @@
                     @if ($step === 1)
                         <div class="mt-4 space-y-2">
                             <label class="text-xs font-semibold" style="color: var(--sc-muted)">{{ __('sales_channels.setup.merchant_id_label') }}</label>
-                            <input type="text" wire:model="setupMerchantId" inputmode="numeric" autocomplete="off" class="mt-1 w-full rounded-lg border-gray-300 text-sm dark:border-gray-600 dark:bg-gray-800">
+                            <input type="text" wire:model="setupMerchantId" inputmode="numeric" autocomplete="off" dir="ltr" class="mt-1 w-full rounded-lg border-gray-300 text-sm dark:border-gray-600 dark:bg-gray-800">
                             <p class="text-sm" style="color: var(--sc-muted)">{{ __('sales_channels.setup.merchant_id_help') }}</p>
                         </div>
                     @elseif ($step === 2)
-                        <p class="sc-modal-body">{{ __('sales_channels.setup.service_account_steps') }}</p>
-                        <div class="mt-3 space-y-2">
-                            <label class="text-xs font-semibold" style="color: var(--sc-muted)">{{ __('sales_channels.setup.service_account_label') }}</label>
-                            <textarea wire:model="setupServiceAccountJson" rows="8" autocomplete="off" class="mt-1 w-full rounded-lg border-gray-300 font-mono text-xs dark:border-gray-600 dark:bg-gray-800" placeholder='{"type":"service_account",...}'></textarea>
-                            <p class="text-sm" style="color: var(--sc-muted)">{{ __('sales_channels.setup.service_account_help') }}</p>
-                            <p class="text-sm" style="color: var(--sc-muted)">{{ __('sales_channels.setup.service_account_saved') }}</p>
-                        </div>
+                        @php
+                            $preview = $this->setupCredentialPreview;
+                            $hasSavedCredential = (bool) ($preview['configured'] ?? false);
+                            $showUpload = $this->replacingCredential || ! $hasSavedCredential;
+                        @endphp
+                        @if ($hasSavedCredential && ! $this->replacingCredential)
+                            <div class="sc-modal-note" style="border-color: rgba(4,120,87,0.25); background: var(--sc-green-soft); color: var(--sc-green)">
+                                <strong>✓ {{ __('sales_channels.setup.credential_configured') }}</strong>
+                                <div class="mt-2 text-sm" style="color: var(--sc-ink)">
+                                    <div>{{ __('sales_channels.setup.preview_service_account') }}</div>
+                                    <div class="font-semibold" dir="ltr">{{ $preview['client_email'] }}</div>
+                                    @if (! empty($preview['project_id']))
+                                        <div class="mt-2">{{ __('sales_channels.setup.preview_project') }}</div>
+                                        <div class="font-semibold" dir="ltr">{{ $preview['project_id'] }}</div>
+                                    @endif
+                                    <div class="mt-2">{{ __('sales_channels.setup.preview_secure') }}</div>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <x-filament::button color="gray" wire:click="startReplaceCredential">
+                                    {{ __('sales_channels.actions.replace_credential') }}
+                                </x-filament::button>
+                            </div>
+                        @endif
+
+                        @if ($showUpload)
+                            <div class="mt-3 space-y-2">
+                                <label class="text-xs font-semibold" style="color: var(--sc-muted)">{{ __('sales_channels.setup.service_account_label') }}</label>
+                                <input
+                                    type="file"
+                                    accept=".json,application/json"
+                                    wire:model="setupServiceAccountFile"
+                                    class="mt-1 block w-full text-sm"
+                                >
+                                <p class="text-sm" style="color: var(--sc-muted)">{{ __('sales_channels.setup.service_account_help') }}</p>
+                                <div wire:loading wire:target="setupServiceAccountFile" class="text-sm" style="color: var(--sc-muted)">
+                                    {{ __('sales_channels.setup.credential_uploading') }}
+                                </div>
+                                @error('setupServiceAccountFile')
+                                    <p class="text-sm" style="color: var(--sc-amber)">{{ __('sales_channels.errors.invalid_credentials.message') }}</p>
+                                @enderror
+                            </div>
+                            @if ($this->replacingCredential)
+                                <div class="mt-3">
+                                    <x-filament::button color="gray" wire:click="cancelReplaceCredential">
+                                        {{ __('sales_channels.actions.cancel_replace') }}
+                                    </x-filament::button>
+                                </div>
+                            @endif
+                        @endif
                     @elseif ($step === 3)
+                        <ul class="mt-3 space-y-2 text-sm">
+                            <li>✓ {{ __('sales_channels.setup.checklist_merchant') }}</li>
+                            <li>✓ {{ __('sales_channels.setup.checklist_credential') }}</li>
+                        </ul>
                         @if ($this->setupTestResult === null)
-                            <p class="sc-modal-body">{{ __('sales_channels.setup.step3') }}</p>
-                            <div class="sc-modal-actions" style="justify-content:flex-start">
+                            <div class="sc-modal-actions" style="justify-content:flex-start;margin-top:1rem">
                                 <x-filament::button color="primary" wire:click="runGoogleConnectionTest" wire:loading.attr="disabled">
                                     {{ __('sales_channels.setup.test_button') }}
                                 </x-filament::button>
@@ -699,7 +745,7 @@
                     <div class="mt-4 space-y-3">
                         <div>
                             <label class="text-xs font-semibold" style="color: var(--sc-muted)">{{ __('sales_channels.advanced.external_account_id') }}</label>
-                            <input type="text" wire:model="advancedForm.external_account_id" class="mt-1 w-full rounded-lg border-gray-300 text-sm dark:border-gray-600 dark:bg-gray-800">
+                            <input type="text" wire:model="advancedForm.external_account_id" dir="ltr" class="mt-1 w-full rounded-lg border-gray-300 text-sm dark:border-gray-600 dark:bg-gray-800">
                         </div>
                         <div>
                             <label class="text-xs font-semibold" style="color: var(--sc-muted)">{{ __('sales_channels.advanced.external_account_name') }}</label>

@@ -83,37 +83,39 @@ class CeoBusinessStats extends BaseWidget
         $completedPayments = Payment::query()->where('status', 'completed')->count();
         $failedPayments = Payment::query()->whereIn('status', ['failed', 'cancelled'])->count();
 
+        $paidCourseOrders = Order::query()->where('order_type', 'course')->whereNotNull('paid_at')->count();
+
         return [
-            Stat::make('Checkout conversion', $conversion.'%')
-                ->description($paidOrders.' paid / '.($totalOrders).' orders · '.$awaiting.' still awaiting')
+            Stat::make(__('admin.widgets.ceo.checkout_conversion.title'), $conversion.'%')
+                ->description($paidOrders.' paid / '.$totalOrders.' '.__('admin.widgets.ceo.checkout_conversion.description').' · '.$awaiting)
                 ->descriptionIcon('heroicon-m-arrow-trending-up')
                 ->color($conversion >= 30 ? 'success' : ($conversion >= 15 ? 'warning' : 'danger')),
-            Stat::make('Revenue this month', number_format($revenueThisMonth, 0).' EGP')
-                ->description(($mom >= 0 ? '+' : '').$mom.'% vs last month ('.number_format($revenueLastMonth, 0).' EGP)')
+            Stat::make(__('admin.widgets.ceo.revenue_this_month.title'), number_format($revenueThisMonth, 0).' EGP')
+                ->description(($mom >= 0 ? '+' : '').$mom.'% '.__('admin.widgets.ceo.revenue_this_month.description').' ('.number_format($revenueLastMonth, 0).' EGP)')
                 ->descriptionIcon($mom >= 0 ? 'heroicon-m-arrow-up-right' : 'heroicon-m-arrow-down-right')
                 ->color($mom >= 0 ? 'success' : 'danger'),
-            Stat::make('Avg. paid order', number_format($aov, 0).' EGP')
-                ->description('Course sales '.number_format($courseRevenue, 0).' · Catalog '.number_format($productRevenue, 0).' EGP')
+            Stat::make(__('admin.widgets.ceo.avg_paid_order.title'), number_format($aov, 0).' EGP')
+                ->description(__('admin.widgets.ceo.avg_paid_order.description').' · '.number_format($courseRevenue, 0).' · '.number_format($productRevenue, 0).' EGP')
                 ->descriptionIcon('heroicon-m-calculator')
                 ->color('primary'),
-            Stat::make('Payment health', $paymentSuccessRate.'% success')
-                ->description($completedPayments.' completed · '.$failedPayments.' failed/cancelled')
+            Stat::make(__('admin.widgets.ceo.payment_health.title'), $paymentSuccessRate.'% success')
+                ->description($completedPayments.' '.__('admin.widgets.ceo.payment_health.description').' · '.$failedPayments)
                 ->descriptionIcon('heroicon-m-shield-check')
                 ->color($paymentSuccessRate >= 70 ? 'success' : 'warning'),
-            Stat::make('New enrollments (MTD)', $newEnrollmentsMonth)
-                ->description($activeEnrollments.' active learners total')
+            Stat::make(__('admin.widgets.ceo.new_enrollments_mtd.title'), $newEnrollmentsMonth)
+                ->description($activeEnrollments.' '.__('admin.widgets.ceo.new_enrollments_mtd.description'))
                 ->descriptionIcon('heroicon-m-user-plus')
                 ->color('info'),
-            Stat::make('Course plan revenue', number_format($courseRevenue, 0).' EGP')
-                ->description(Order::query()->where('order_type', 'course')->whereNotNull('paid_at')->count().' paid course orders')
+            Stat::make(__('admin.widgets.ceo.course_plan_revenue.title'), number_format($courseRevenue, 0).' EGP')
+                ->description($paidCourseOrders.' '.__('admin.widgets.ceo.course_plan_revenue.description'))
                 ->descriptionIcon('heroicon-m-academic-cap')
                 ->color('success'),
-            Stat::make('Learning engagement', $quizAttempts.' quiz attempts')
-                ->description($officialScores.' official scores recorded')
+            Stat::make(__('admin.widgets.ceo.learning_engagement.title'), $quizAttempts.' quiz attempts')
+                ->description($officialScores.' '.__('admin.widgets.ceo.learning_engagement.description'))
                 ->descriptionIcon('heroicon-m-clipboard-document-check')
                 ->color('primary'),
-            Stat::make('Stuck checkouts', $awaiting)
-                ->description('Orders awaiting payment — potential lost revenue')
+            Stat::make(__('admin.widgets.ceo.stuck_checkouts.title'), $awaiting)
+                ->description(__('admin.widgets.ceo.stuck_checkouts.description'))
                 ->descriptionIcon('heroicon-m-exclamation-triangle')
                 ->color($awaiting > 0 ? 'warning' : 'success'),
         ];

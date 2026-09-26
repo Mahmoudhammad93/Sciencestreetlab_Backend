@@ -19,55 +19,80 @@ class CouponResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-ticket';
 
-    protected static ?string $navigationGroup = 'Commerce';
-
     protected static ?int $navigationSort = 2;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('admin.nav.groups.commerce');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('admin.nav.coupons');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('admin.nav.coupons');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('admin.nav.coupons');
+    }
 
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\Section::make('Coupon details')
+            Forms\Components\Section::make(__('admin.coupons.sections.details'))
                 ->schema([
                     Forms\Components\TextInput::make('code')
+                        ->label(__('admin.coupons.fields.code'))
                         ->required()
                         ->unique(ignoreRecord: true)
                         ->dehydrateStateUsing(fn (?string $state) => strtoupper(trim((string) $state))),
                     Forms\Components\Select::make('type')
+                        ->label(__('admin.coupons.fields.type'))
                         ->options(collect(CouponType::cases())->mapWithKeys(fn ($c) => [$c->value => $c->name]))
                         ->required(),
                     Forms\Components\TextInput::make('value')
+                        ->label(__('admin.coupons.fields.value'))
                         ->numeric()
                         ->required()
-                        ->helperText('Fixed amount (EGP) or percentage depending on type.'),
+                        ->helperText(__('admin.coupons.fields.value_help')),
                     Forms\Components\TextInput::make('min_order_amount')
-                        ->label('Minimum order amount')
+                        ->label(__('admin.coupons.fields.min_order'))
                         ->numeric()
                         ->minValue(0),
-                    Forms\Components\Toggle::make('is_active')->default(true),
+                    Forms\Components\Toggle::make('is_active')
+                        ->label(__('admin.coupons.fields.is_active'))
+                        ->default(true),
                 ])
                 ->columns(2),
-            Forms\Components\Section::make('Usage limits')
+            Forms\Components\Section::make(__('admin.coupons.sections.usage_limits'))
                 ->schema([
                     Forms\Components\TextInput::make('max_uses')
-                        ->label('Maximum uses')
+                        ->label(__('admin.coupons.fields.max_uses'))
                         ->numeric()
                         ->minValue(1)
-                        ->helperText('Leave empty for unlimited redemptions.'),
+                        ->helperText(__('admin.coupons.fields.max_uses_help')),
                     Forms\Components\TextInput::make('used_count')
-                        ->label('Times used')
+                        ->label(__('admin.coupons.fields.used_count'))
                         ->numeric()
                         ->disabled()
                         ->dehydrated(false)
                         ->visibleOn('edit')
                         ->helperText(fn (?Coupon $record): ?string => $record && $record->max_uses
-                            ? sprintf('%d of %d uses consumed.', $record->used_count, $record->max_uses)
+                            ? sprintf(__('admin.coupons.fields.used_count_help'), $record->used_count, $record->max_uses)
                             : null),
                 ])
                 ->columns(2),
-            Forms\Components\Section::make('Schedule')
+            Forms\Components\Section::make(__('admin.coupons.sections.schedule'))
                 ->schema([
-                    Forms\Components\DateTimePicker::make('starts_at'),
-                    Forms\Components\DateTimePicker::make('expires_at'),
+                    Forms\Components\DateTimePicker::make('starts_at')
+                        ->label(__('admin.coupons.fields.starts_at')),
+                    Forms\Components\DateTimePicker::make('expires_at')
+                        ->label(__('admin.coupons.fields.expires_at')),
                 ])
                 ->columns(2),
         ]);
@@ -77,11 +102,16 @@ class CouponResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('code')->searchable(),
-                Tables\Columns\TextColumn::make('type')->badge(),
-                Tables\Columns\TextColumn::make('value'),
+                Tables\Columns\TextColumn::make('code')
+                    ->label(__('admin.coupons.fields.code'))
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('type')
+                    ->label(__('admin.coupons.fields.type'))
+                    ->badge(),
+                Tables\Columns\TextColumn::make('value')
+                    ->label(__('admin.coupons.fields.value')),
                 Tables\Columns\TextColumn::make('used_count')
-                    ->label('Uses')
+                    ->label(__('admin.coupons.table.uses'))
                     ->formatStateUsing(fn (Coupon $record): string => $record->max_uses
                         ? "{$record->used_count} / {$record->max_uses}"
                         : (string) $record->used_count),

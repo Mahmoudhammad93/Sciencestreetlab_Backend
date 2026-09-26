@@ -66,22 +66,29 @@ final class SalesChannelsTest extends TestCase
             ->assertSee(__('sales_channels.actions.setup_channel'));
     }
 
-    public function test_credentials_are_hidden_from_serialization_and_never_include_private_key_in_public_meta(): void
+    public function test_credentials_are_encrypted_hidden_and_never_expose_private_key(): void
     {
-        $parsed = app(ServiceAccountCredentialParser::class)->parse($this->fakeServiceAccountJson());
-
-        $integration = $this->makeIntegration([
-            'external_account_id' => '1234567890',
-            'credentials' => $parsed,
-        ]);
+        $setup = app(GoogleMerchantSetupService::class);
+        $integration = $setup->integration();
+        $setup->saveMerchantId($integration, '1234567890');
+        $result = $setup->saveServiceAccountJson($integration->fresh() ?? $integration, $this->fakeServiceAccountJson());
+        $integration = $result['integration'];
 
         $array = $integration->fresh()->toArray();
         $this->assertArrayNotHasKey('credentials', $array);
+        $this->assertArrayNotHasKey('private_key', $result['preview']);
+        $this->assertStringNotContainsString('BEGIN PRIVATE', json_encode($result['preview']));
+
+        $raw = \Illuminate\Support\Facades\DB::table('sales_channel_integrations')
+            ->where('id', $integration->id)
+            ->value('credentials');
+        $this->assertIsString($raw);
+        $this->assertStringNotContainsString('BEGIN PRIVATE KEY', $raw);
+        $this->assertStringNotContainsString('ssl@ssl-test.iam.gserviceaccount.com', $raw);
 
         $meta = app(ServiceAccountCredentialParser::class)->publicMetadata($integration->fresh()->credentials);
         $this->assertTrue($meta['configured']);
         $this->assertSame('ssl@ssl-test.iam.gserviceaccount.com', $meta['client_email']);
-        $this->assertArrayNotHasKey('private_key', $meta);
         $this->assertNotNull($integration->fresh()->credentials['private_key']);
     }
 
@@ -100,10 +107,15 @@ final class SalesChannelsTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_super_admin_can_configure_google_merchant(): void
+    public function test_super_admin_can_upload_valid_service_account_json(): void
     {
         $admin = User::factory()->create();
         $admin->assignRole('super_admin');
+
+        $file = UploadedFile::fake()->createWithContent(
+            'service-account.json',
+            $this->fakeServiceAccountJson()
+        );
 
         Livewire::actingAs($admin)
             ->test(ManageSalesChannels::class)
@@ -113,10 +125,13 @@ final class SalesChannelsTest extends TestCase
             ->set('setupMerchantId', '9876543210')
             ->call('googleSetupNext')
             ->assertSet('googleSetupStep', 2)
-            ->set('setupServiceAccountJson', $this->fakeServiceAccountJson())
+            ->set('setupServiceAccountFile', $file)
+            ->assertSet('setupServiceAccountFile', null)
+            ->assertSet('setupCredentialPreview.client_email', 'ssl@ssl-test.iam.gserviceaccount.com')
+            ->assertSee('ssl@ssl-test.iam.gserviceaccount.com')
+            ->assertDontSee('BEGIN PRIVATE KEY')
             ->call('googleSetupNext')
-            ->assertSet('googleSetupStep', 3)
-            ->assertSet('setupServiceAccountJson', '');
+            ->assertSet('googleSetupStep', 3);
 
         $integration = SalesChannelIntegration::query()
             ->where('platform', SalesChannelPlatform::GoogleMerchant->value)
@@ -124,24 +139,136 @@ final class SalesChannelsTest extends TestCase
 
         $this->assertSame('9876543210', $integration->external_account_id);
         $this->assertTrue(app(GoogleMerchantProvider::class)->hasCredentials($integration));
+        $this->assertSame(ConnectionStatus::NotConnected, $integration->connection_status);
         $this->assertArrayNotHasKey('credentials', $integration->toArray());
+
+        $activity = \App\Modules\SocialCommerce\Infrastructure\Persistence\Models\SalesChannelActivityLog::query()
+            ->where('event_code', 'credentials_configured')
+            ->latest('id')
+            ->first();
+        $this->assertNotNull($activity);
+        $this->assertStringNotContainsString('BEGIN PRIVATE', json_encode($activity->toArray()));
+        $this->assertNull($activity->technical_context);
     }
 
-    public function test_invalid_credential_returns_human_friendly_failure(): void
+    public function test_invalid_json_and_non_service_account_and_missing_private_key_are_rejected(): void
     {
         $setup = app(GoogleMerchantSetupService::class);
         $integration = $setup->integration();
         $setup->saveMerchantId($integration, '1234567890');
 
-        try {
-            $setup->saveServiceAccountJson($integration, '{"type":"service_account"}');
-            $this->fail('Expected invalid credential exception');
-        } catch (\InvalidArgumentException $e) {
-            $issue = app(HumanErrorMapper::class)->present($e->getMessage());
-            $this->assertSame(__('sales_channels.errors.invalid_credentials.title'), $issue['title']);
-            $this->assertStringNotContainsString('private_key', $issue['message']);
-            $this->assertStringNotContainsString('BEGIN PRIVATE', $issue['message']);
+        foreach ([
+            'not-json',
+            '{"type":"user","project_id":"x","private_key_id":"x","private_key":"-----BEGIN PRIVATE KEY-----\nX\n-----END PRIVATE KEY-----\n","client_email":"a@b.com","client_id":"1","token_uri":"https://oauth2.googleapis.com/token"}',
+            '{"type":"service_account","project_id":"x","private_key_id":"x","private_key":"","client_email":"a@b.com","client_id":"1","token_uri":"https://oauth2.googleapis.com/token"}',
+            '{"type":"service_account"}',
+        ] as $payload) {
+            try {
+                $setup->saveServiceAccountJson($integration->fresh() ?? $integration, $payload);
+                $this->fail('Expected invalid credential exception');
+            } catch (\InvalidArgumentException $e) {
+                $issue = app(HumanErrorMapper::class)->present($e->getMessage());
+                $this->assertSame(__('sales_channels.errors.invalid_credentials.message'), $issue['message']);
+                $this->assertStringNotContainsString('private_key', $issue['message']);
+                $this->assertStringNotContainsString('BEGIN PRIVATE', $issue['message']);
+            }
         }
+
+        $this->assertFalse(app(GoogleMerchantProvider::class)->hasCredentials($integration->fresh() ?? $integration));
+    }
+
+    public function test_invalid_replacement_preserves_existing_credential(): void
+    {
+        $setup = app(GoogleMerchantSetupService::class);
+        $integration = $setup->integration();
+        $setup->saveMerchantId($integration, '1234567890');
+        $saved = $setup->saveServiceAccountJson($integration, $this->fakeServiceAccountJson());
+        $email = $saved['integration']->credentials['client_email'];
+        $keySnippet = substr($saved['integration']->credentials['private_key'], 0, 40);
+
+        try {
+            $setup->saveServiceAccountJson($saved['integration'], '{"type":"service_account","client_email":"other@x.com"}');
+            $this->fail('Expected invalid replacement to throw');
+        } catch (\InvalidArgumentException) {
+            // expected
+        }
+
+        $fresh = $saved['integration']->fresh();
+        $this->assertSame($email, $fresh->credentials['client_email']);
+        $this->assertSame($keySnippet, substr($fresh->credentials['private_key'], 0, 40));
+        $this->assertTrue(app(GoogleMerchantProvider::class)->hasCredentials($fresh));
+    }
+
+    public function test_valid_replacement_works_and_does_not_auto_connect(): void
+    {
+        $setup = app(GoogleMerchantSetupService::class);
+        $integration = $setup->integration();
+        $setup->saveMerchantId($integration, '1234567890');
+        $setup->saveServiceAccountJson($integration, $this->fakeServiceAccountJson('ssl@ssl-test.iam.gserviceaccount.com'));
+
+        $replacement = $this->fakeServiceAccountJson('ssl-new@ssl-test.iam.gserviceaccount.com');
+        $result = $setup->saveServiceAccountJson($setup->integration(), $replacement);
+
+        $this->assertTrue($result['replaced']);
+        $this->assertSame('ssl-new@ssl-test.iam.gserviceaccount.com', $result['preview']['client_email']);
+        $this->assertSame(ConnectionStatus::NotConnected, $result['integration']->connection_status);
+        $this->assertArrayNotHasKey('private_key', $result['preview']);
+
+        $log = \App\Modules\SocialCommerce\Infrastructure\Persistence\Models\SalesChannelActivityLog::query()
+            ->where('event_code', 'credential_replaced')
+            ->latest('id')
+            ->first();
+        $this->assertNotNull($log);
+        $this->assertStringNotContainsString('BEGIN PRIVATE', json_encode($log->toArray()));
+    }
+
+    public function test_existing_credential_is_not_populated_into_upload_field(): void
+    {
+        $setup = app(GoogleMerchantSetupService::class);
+        $integration = $setup->integration();
+        $setup->saveMerchantId($integration, '1234567890');
+        $setup->saveServiceAccountJson($integration, $this->fakeServiceAccountJson());
+
+        $admin = User::factory()->create();
+        $admin->assignRole('super_admin');
+
+        Livewire::actingAs($admin)
+            ->test(ManageSalesChannels::class)
+            ->call('openGoogleSetup')
+            ->assertSet('googleSetupStep', 3)
+            ->assertSet('setupServiceAccountFile', null)
+            ->assertDontSee('BEGIN PRIVATE KEY')
+            ->call('googleSetupBack')
+            ->assertSet('googleSetupStep', 2)
+            ->assertSee(__('sales_channels.setup.credential_configured'))
+            ->assertSee('ssl@ssl-test.iam.gserviceaccount.com');
+    }
+
+    public function test_test_connection_reads_stored_credential_without_reupload(): void
+    {
+        $this->fakeGoogleHttp([
+            'token' => true,
+            'account_status' => 200,
+            'datasources' => true,
+        ]);
+
+        $setup = app(GoogleMerchantSetupService::class);
+        $integration = $setup->integration();
+        $setup->saveMerchantId($integration, '1234567890');
+        $setup->saveServiceAccountJson($integration, $this->fakeServiceAccountJson());
+
+        $admin = User::factory()->create();
+        $admin->assignRole('super_admin');
+
+        Livewire::actingAs($admin)
+            ->test(ManageSalesChannels::class)
+            ->call('openGoogleSetup')
+            ->assertSet('googleSetupStep', 3)
+            ->assertSet('setupServiceAccountFile', null)
+            ->call('runGoogleConnectionTest')
+            ->assertSet('setupTestResult.ok', true);
+
+        $this->assertSame(ConnectionStatus::Connected, $setup->integration()->connection_status);
     }
 
     public function test_merchant_access_denied_returns_human_friendly_failure(): void
@@ -154,9 +281,9 @@ final class SalesChannelsTest extends TestCase
         $setup = app(GoogleMerchantSetupService::class);
         $integration = $setup->integration();
         $setup->saveMerchantId($integration, '1234567890');
-        $integration = $setup->saveServiceAccountJson($integration, $this->fakeServiceAccountJson());
+        $saved = $setup->saveServiceAccountJson($integration, $this->fakeServiceAccountJson());
 
-        $result = $setup->testAndPrepare($integration);
+        $result = $setup->testAndPrepare($saved['integration']);
 
         $this->assertFalse($result['ok']);
         $this->assertSame('merchant_access_denied', $result['code']);
@@ -179,15 +306,15 @@ final class SalesChannelsTest extends TestCase
         $setup = app(GoogleMerchantSetupService::class);
         $integration = $setup->integration();
         $setup->saveMerchantId($integration, '1234567890');
-        $integration = $setup->saveServiceAccountJson($integration, $this->fakeServiceAccountJson());
+        $saved = $setup->saveServiceAccountJson($integration, $this->fakeServiceAccountJson());
 
-        $result = $setup->testAndPrepare($integration);
+        $result = $setup->testAndPrepare($saved['integration']);
 
         $this->assertTrue($result['ok']);
         $this->assertSame('ScienceStreetLab Store', $result['account_name']);
         $this->assertSame('******7890', $result['masked_merchant_id']);
 
-        $fresh = $integration->fresh();
+        $fresh = $saved['integration']->fresh();
         $this->assertSame(ConnectionStatus::Connected, $fresh->connection_status);
         $this->assertSame('connected', $setup->cardState($fresh));
     }
@@ -292,7 +419,7 @@ final class SalesChannelsTest extends TestCase
         $setup = app(GoogleMerchantSetupService::class);
         $google = $setup->integration();
         $setup->saveMerchantId($google, '1234567890');
-        $google = $setup->saveServiceAccountJson($google, $this->fakeServiceAccountJson());
+        $google = $setup->saveServiceAccountJson($google, $this->fakeServiceAccountJson())['integration'];
         $setup->testAndPrepare($google);
 
         $youtube = SalesChannelIntegration::query()
@@ -327,7 +454,7 @@ final class SalesChannelsTest extends TestCase
         $setup = app(GoogleMerchantSetupService::class);
         $google = $setup->integration();
         $setup->saveMerchantId($google, '1234567890');
-        $google = $setup->saveServiceAccountJson($google, $this->fakeServiceAccountJson());
+        $google = $setup->saveServiceAccountJson($google, $this->fakeServiceAccountJson())['integration'];
         $setup->testAndPrepare($google);
 
         Livewire::actingAs($admin)
@@ -492,7 +619,7 @@ final class SalesChannelsTest extends TestCase
         ]);
     }
 
-    private function fakeServiceAccountJson(): string
+    private function fakeServiceAccountJson(string $email = 'ssl@ssl-test.iam.gserviceaccount.com'): string
     {
         $key = openssl_pkey_new([
             'private_key_bits' => 2048,
@@ -506,7 +633,7 @@ final class SalesChannelsTest extends TestCase
             'project_id' => 'ssl-test',
             'private_key_id' => 'abc123',
             'private_key' => $privateKey,
-            'client_email' => 'ssl@ssl-test.iam.gserviceaccount.com',
+            'client_email' => $email,
             'client_id' => '123456789',
             'token_uri' => 'https://oauth2.googleapis.com/token',
         ], JSON_THROW_ON_ERROR);

@@ -32,7 +32,7 @@ trait HasInteractiveHtmlUpload
             $this->performInteractivePackageSync($topic, $data);
         } catch (DomainException $e) {
             Notification::make()
-                ->title('Interactive HTML upload failed')
+                ->title(__('admin.topics.notifications.html_upload_failed'))
                 ->body($e->getMessage())
                 ->danger()
                 ->send();
@@ -94,8 +94,8 @@ trait HasInteractiveHtmlUpload
 
         if ($uploaded) {
             Notification::make()
-                ->title('Interactive HTML saved')
-                ->body('Package stored and linked to this topic.')
+                ->title(__('admin.topics.notifications.html_saved'))
+                ->body(__('admin.topics.notifications.html_saved_body'))
                 ->success()
                 ->send();
         }

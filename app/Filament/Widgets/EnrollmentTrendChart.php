@@ -10,10 +10,6 @@ use Illuminate\Support\Facades\DB;
 
 class EnrollmentTrendChart extends ChartWidget
 {
-    protected static ?string $heading = 'New enrollments';
-
-    protected static ?string $description = 'Learners joining courses over time';
-
     protected static ?int $sort = 5;
 
     protected int|string|array $columnSpan = 1;
@@ -22,12 +18,22 @@ class EnrollmentTrendChart extends ChartWidget
 
     public ?string $filter = '14';
 
+    public function getHeading(): ?string
+    {
+        return __('admin.widgets.charts.enrollments.heading');
+    }
+
+    public function getDescription(): ?string
+    {
+        return __('admin.widgets.charts.enrollments.description');
+    }
+
     protected function getFilters(): ?array
     {
         return [
-            '7' => 'Last 7 days',
-            '14' => 'Last 14 days',
-            '30' => 'Last 30 days',
+            '7' => __('admin.widgets.charts.filters.last_7_days'),
+            '14' => __('admin.widgets.charts.filters.last_14_days'),
+            '30' => __('admin.widgets.charts.filters.last_30_days'),
         ];
     }
 
@@ -54,7 +60,7 @@ class EnrollmentTrendChart extends ChartWidget
 
         return [
             'datasets' => [[
-                'label' => 'Enrollments',
+                'label' => __('admin.widgets.charts.enrollments.dataset_label'),
                 'data' => $values,
                 'fill' => true,
                 'borderColor' => '#16a34a',

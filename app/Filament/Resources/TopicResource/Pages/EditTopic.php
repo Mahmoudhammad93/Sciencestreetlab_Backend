@@ -24,7 +24,7 @@ class EditTopic extends EditRecord
     {
         return [
             Actions\Action::make('refreshStatus')
-                ->label('Refresh video status')
+                ->label(__('admin.topics.actions.refresh_video_status'))
                 ->icon('heroicon-o-arrow-path')
                 ->visible(fn () => filled($this->record->bunny_video_id))
                 ->action(function () {
@@ -46,7 +46,7 @@ class EditTopic extends EditRecord
                     $this->fillForm();
 
                     Notification::make()
-                        ->title('Status updated: '.($statusMap[$video['status']] ?? 'unknown'))
+                        ->title(__('admin.topics.notifications.status_updated').' '.($statusMap[$video['status']] ?? 'unknown'))
                         ->success()
                         ->send();
                 }),

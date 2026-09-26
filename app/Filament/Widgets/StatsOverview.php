@@ -57,46 +57,55 @@ class StatsOverview extends BaseWidget
             ->where('status', SubmissionStatus::Pending)
             ->count();
 
+        $certificateCount = Certificate::query()->count();
+        $productPublished = Product::query()->where('status', 'published')->count();
+        $productTotal = Product::query()->count();
+        $coursePublished = Course::query()->where('is_published', true)->count();
+        $courseTotal = Course::query()->count();
+        $orderTotal = Order::query()->count();
+        $paidOrderCount = Order::query()->whereNotNull('paid_at')->count();
+        $userTotal = User::query()->count();
+
         return [
-            Stat::make('Revenue', number_format($paidRevenue, 0).' EGP')
-                ->description('Paid orders')
+            Stat::make(__('admin.widgets.stats.revenue.title'), number_format($paidRevenue, 0).' EGP')
+                ->description(__('admin.widgets.stats.revenue.description'))
                 ->descriptionIcon('heroicon-m-banknotes')
                 ->chart($this->dailyPaidTotals(7))
                 ->url(OrderResource::getUrl('index'))
                 ->color('success'),
-            Stat::make('Awaiting payment', $awaitingPayment)
-                ->description($ordersThisMonth.' orders this month')
+            Stat::make(__('admin.widgets.stats.awaiting_payment.title'), $awaitingPayment)
+                ->description($ordersThisMonth.' '.__('admin.widgets.stats.awaiting_payment.description'))
                 ->descriptionIcon('heroicon-m-clock')
                 ->url(OrderResource::getUrl('index'))
                 ->color('warning'),
-            Stat::make('Active enrollments', $activeEnrollments)
-                ->description(Certificate::query()->count().' certificates issued')
+            Stat::make(__('admin.widgets.stats.active_enrollments.title'), $activeEnrollments)
+                ->description($certificateCount.' '.__('admin.widgets.stats.active_enrollments.description'))
                 ->descriptionIcon('heroicon-m-academic-cap')
                 ->url(CourseResource::getUrl('index'))
                 ->color('primary'),
-            Stat::make('Pending reviews', $pendingReviews)
-                ->description('100 Photos Challenge queue')
+            Stat::make(__('admin.widgets.stats.pending_reviews.title'), $pendingReviews)
+                ->description(__('admin.widgets.stats.pending_reviews.description'))
                 ->descriptionIcon('heroicon-m-camera')
                 ->url(CompetitionSubmissionResource::getUrl('index'))
                 ->color($pendingReviews > 0 ? 'danger' : 'success'),
-            Stat::make('Products', Product::query()->where('status', 'published')->count())
-                ->description(Product::query()->count().' total in catalog')
+            Stat::make(__('admin.widgets.stats.products.title'), $productPublished)
+                ->description($productTotal.' '.__('admin.widgets.stats.products.description'))
                 ->icon('heroicon-o-shopping-bag')
                 ->url(ProductResource::getUrl('index'))
                 ->color('primary'),
-            Stat::make('Courses', Course::query()->where('is_published', true)->count())
-                ->description(Course::query()->count().' LMS courses')
+            Stat::make(__('admin.widgets.stats.courses.title'), $coursePublished)
+                ->description($courseTotal.' '.__('admin.widgets.stats.courses.description'))
                 ->icon('heroicon-o-academic-cap')
                 ->url(CourseResource::getUrl('index'))
                 ->color('success'),
-            Stat::make('Orders', Order::query()->count())
-                ->description(Order::query()->whereNotNull('paid_at')->count().' paid')
+            Stat::make(__('admin.widgets.stats.orders.title'), $orderTotal)
+                ->description($paidOrderCount.' '.__('admin.widgets.stats.orders.description'))
                 ->icon('heroicon-o-shopping-cart')
                 ->chart($this->dailyOrderCounts(7))
                 ->url(OrderResource::getUrl('index'))
                 ->color('warning'),
-            Stat::make('Users', User::query()->count())
-                ->description('+'.$usersThisMonth.' this month')
+            Stat::make(__('admin.widgets.stats.users.title'), $userTotal)
+                ->description('+'.$usersThisMonth.' '.__('admin.widgets.stats.users.description'))
                 ->descriptionIcon('heroicon-m-users')
                 ->url(UserResource::getUrl('index'))
                 ->color('info'),

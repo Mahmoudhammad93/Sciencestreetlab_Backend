@@ -14,12 +14,16 @@ use App\Filament\Widgets\RevenueChart;
 use App\Filament\Widgets\StatsOverview;
 use App\Filament\Widgets\StuckCheckoutsWidget;
 use App\Filament\Widgets\TopCoursesWidget;
+use App\Http\Middleware\SetAdminLocale;
 use App\Services\SiteSettings;
+use App\Support\AdminLocale;
 use Filament\Enums\ThemeMode;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\MenuItem;
+use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -75,14 +79,26 @@ class AdminPanelProvider extends PanelProvider
                 \App\Filament\Widgets\PendingWrittenReviewsWidget::class,
             ])
             ->navigationGroups([
-                'Catalog',
-                'Commerce',
-                'Learning',
-                'Assessment',
-                'Competition',
-                'Identity',
-                'Content',
-                'Settings',
+                NavigationGroup::make()->label(fn (): string => (string) __('admin.nav.groups.catalog')),
+                NavigationGroup::make()->label(fn (): string => (string) __('admin.nav.groups.commerce')),
+                NavigationGroup::make()->label(fn (): string => (string) __('admin.nav.groups.learning')),
+                NavigationGroup::make()->label(fn (): string => (string) __('admin.nav.groups.assessment')),
+                NavigationGroup::make()->label(fn (): string => (string) __('admin.nav.groups.competition')),
+                NavigationGroup::make()->label(fn (): string => (string) __('admin.nav.groups.identity')),
+                NavigationGroup::make()->label(fn (): string => (string) __('admin.nav.groups.content')),
+                NavigationGroup::make()->label(fn (): string => (string) __('admin.nav.groups.settings')),
+            ])
+            ->userMenuItems([
+                'locale_ar' => MenuItem::make()
+                    ->label(fn (): string => (string) __('admin.locale.switch_to_ar'))
+                    ->icon('heroicon-o-language')
+                    ->url(fn (): string => route('admin.locale.switch', ['locale' => 'ar']))
+                    ->visible(fn (): bool => AdminLocale::current() !== 'ar'),
+                'locale_en' => MenuItem::make()
+                    ->label(fn (): string => (string) __('admin.locale.switch_to_en'))
+                    ->icon('heroicon-o-language')
+                    ->url(fn (): string => route('admin.locale.switch', ['locale' => 'en']))
+                    ->visible(fn (): bool => AdminLocale::current() !== 'en'),
             ])
             ->middleware([
                 EncryptCookies::class,
@@ -94,6 +110,7 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                SetAdminLocale::class,
             ])
             ->authMiddleware([
                 Authenticate::class,

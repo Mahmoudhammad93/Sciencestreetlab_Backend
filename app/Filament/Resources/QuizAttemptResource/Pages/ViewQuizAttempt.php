@@ -25,33 +25,35 @@ final class ViewQuizAttempt extends ViewRecord
             /** @var QuizAttemptAnswer $answer */
             $stem = $answer->question
                 ? (string) $answer->question->getTranslation('body', app()->getLocale())
-                : 'Question #'.$answer->question_id;
+                : str_replace('…', (string) $answer->question_id, __('admin.quiz_attempts.grade_form.question_fallback'));
 
             $answerEntries[] = Infolists\Components\Section::make($stem)
                 ->schema([
                     Infolists\Components\TextEntry::make('text_'.$answer->id)
-                        ->label('Student answer')
+                        ->label(__('admin.quiz_attempts.infolist.fields.student_answer'))
                         ->state((string) ($answer->text_answer ?: '—')),
                     Infolists\Components\TextEntry::make('pending_'.$answer->id)
-                        ->label('Needs review')
-                        ->state($answer->needs_manual_review ? 'Yes' : 'No'),
+                        ->label(__('admin.quiz_attempts.infolist.fields.needs_review'))
+                        ->state($answer->needs_manual_review
+                            ? __('admin.quiz_attempts.infolist.fields.needs_review_yes')
+                            : __('admin.quiz_attempts.infolist.fields.needs_review_no')),
                     Infolists\Components\TextEntry::make('points_'.$answer->id)
-                        ->label('Points awarded')
+                        ->label(__('admin.quiz_attempts.infolist.fields.points_awarded'))
                         ->state($answer->points_awarded !== null ? (string) $answer->points_awarded : '—'),
                 ]);
         }
 
         return $infolist->schema([
-            Infolists\Components\Section::make('Attempt')
+            Infolists\Components\Section::make(__('admin.quiz_attempts.infolist.attempt'))
                 ->schema([
-                    Infolists\Components\TextEntry::make('user.name')->label('Student'),
+                    Infolists\Components\TextEntry::make('user.name')->label(__('admin.quiz_attempts.infolist.fields.student')),
                     Infolists\Components\TextEntry::make('quiz.title')
-                        ->label('Quiz')
+                        ->label(__('admin.quiz_attempts.infolist.fields.quiz'))
                         ->state(fn () => (string) ($record->quiz?->getTranslation('title', app()->getLocale()) ?? '—')),
-                    Infolists\Components\TextEntry::make('status')->badge(),
-                    Infolists\Components\TextEntry::make('score'),
-                    Infolists\Components\TextEntry::make('max_score'),
-                    Infolists\Components\TextEntry::make('submitted_at')->dateTime(),
+                    Infolists\Components\TextEntry::make('status')->label(__('admin.common.fields.status'))->badge(),
+                    Infolists\Components\TextEntry::make('score')->label(__('admin.quiz_attempts.infolist.fields.score')),
+                    Infolists\Components\TextEntry::make('max_score')->label(__('admin.quiz_attempts.infolist.fields.max_score')),
+                    Infolists\Components\TextEntry::make('submitted_at')->label(__('admin.quiz_attempts.fields.submitted'))->dateTime(),
                 ])
                 ->columns(2),
             ...$answerEntries,

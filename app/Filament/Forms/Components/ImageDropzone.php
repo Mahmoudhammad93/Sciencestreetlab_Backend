@@ -37,7 +37,7 @@ final class ImageDropzone
             ])
             ->maxSize(5120)
             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
-            ->helperText($helperText ?? 'Drag and drop an image here, or click to browse.')
+            ->helperText($helperText ?? (string) __('admin.common.fields.image_dropzone_help'))
             ->downloadable()
             ->openable()
             ->columnSpanFull()

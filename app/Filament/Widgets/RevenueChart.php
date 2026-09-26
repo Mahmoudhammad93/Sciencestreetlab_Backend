@@ -10,10 +10,6 @@ use Illuminate\Support\Facades\DB;
 
 class RevenueChart extends ChartWidget
 {
-    protected static ?string $heading = 'Paid revenue';
-
-    protected static ?string $description = 'Completed payments by day';
-
     protected static ?int $sort = 3;
 
     protected int|string|array $columnSpan = 1;
@@ -22,12 +18,22 @@ class RevenueChart extends ChartWidget
 
     public ?string $filter = '14';
 
+    public function getHeading(): ?string
+    {
+        return __('admin.widgets.charts.revenue.heading');
+    }
+
+    public function getDescription(): ?string
+    {
+        return __('admin.widgets.charts.revenue.description');
+    }
+
     protected function getFilters(): ?array
     {
         return [
-            '7' => 'Last 7 days',
-            '14' => 'Last 14 days',
-            '30' => 'Last 30 days',
+            '7' => __('admin.widgets.charts.filters.last_7_days'),
+            '14' => __('admin.widgets.charts.filters.last_14_days'),
+            '30' => __('admin.widgets.charts.filters.last_30_days'),
         ];
     }
 
@@ -55,7 +61,7 @@ class RevenueChart extends ChartWidget
         return [
             'datasets' => [
                 [
-                    'label' => 'EGP',
+                    'label' => __('admin.widgets.charts.dataset.egp'),
                     'data' => $values,
                     'fill' => true,
                     'borderColor' => '#2828a0',

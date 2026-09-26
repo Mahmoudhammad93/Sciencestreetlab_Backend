@@ -22,13 +22,32 @@ class TopicResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-play-circle';
 
-    protected static ?string $navigationGroup = 'Learning';
+    public static function getNavigationGroup(): ?string
+    {
+        return __('admin.nav.groups.learning');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('admin.nav.topics');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('admin.nav.topics');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('admin.nav.topics');
+    }
 
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\Section::make('Topic details')->schema([
+            Forms\Components\Section::make(__('admin.topics.sections.details'))->schema([
                 Forms\Components\Select::make('lesson_id')
+                    ->label(__('admin.common.fields.lesson'))
                     ->relationship('lesson', 'slug')
                     ->searchable()
                     ->preload()
@@ -36,8 +55,10 @@ class TopicResource extends Resource
                     ->default(fn () => request()->query('lesson_id')),
 
                 Forms\Components\TextInput::make('slug')
+                    ->label(__('admin.common.fields.slug'))
                     ->required()
                     ->maxLength(255)
+                    ->extraInputAttributes(['dir' => 'ltr'])
                     ->unique(
                         table: Topic::class,
                         column: 'slug',
@@ -49,6 +70,7 @@ class TopicResource extends Resource
                     ),
 
                 Forms\Components\TextInput::make('sort_order')
+                    ->label(__('admin.common.fields.order'))
                     ->numeric()
                     ->minValue(0)
                     ->default(fn (Forms\Get $get): int => (int) Topic::query()
@@ -56,23 +78,25 @@ class TopicResource extends Resource
                         ->max('sort_order') + 1),
 
                 Forms\Components\Select::make('content_type')
+                    ->label(__('admin.common.fields.type'))
                     ->options([
-                        'video' => 'Video',
-                        'text' => 'Text',
-                        'pdf' => 'PDF',
-                        'interactive' => 'Interactive',
+                        'video' => __('admin.topics.content_type.video'),
+                        'text' => __('admin.topics.content_type.text'),
+                        'pdf' => __('admin.topics.content_type.pdf'),
+                        'interactive' => __('admin.topics.content_type.interactive'),
                     ])
                     ->required()
                     ->default('video')
                     ->live(),
 
                 Forms\Components\Toggle::make('is_published')
+                    ->label(__('admin.common.status.published'))
                     ->default(true),
             ])->columns(2),
 
-            Forms\Components\Section::make('Title & content')->schema([
+            Forms\Components\Section::make(__('admin.topics.sections.title_content'))->schema([
                 Forms\Components\TextInput::make('title.ar')
-                    ->label('Title (AR)')
+                    ->label(__('admin.topics.fields.title_ar'))
                     ->required()
                     ->live(onBlur: true)
                     ->afterStateUpdated(function (Forms\Set $set, ?string $state, Forms\Get $get): void {
@@ -82,34 +106,34 @@ class TopicResource extends Resource
                         $set('slug', Str::slug($state ?? ''));
                     }),
                 Forms\Components\TextInput::make('title.en')
-                    ->label('Title (EN)'),
+                    ->label(__('admin.topics.fields.title_en')),
 
                 Forms\Components\Textarea::make('content.ar')
-                    ->label('Content (AR)')
+                    ->label(__('admin.topics.fields.content_ar'))
                     ->rows(4)
                     ->columnSpanFull()
                     ->visible(fn (Forms\Get $get): bool => $get('content_type') === 'text'),
                 Forms\Components\Textarea::make('content.en')
-                    ->label('Content (EN)')
+                    ->label(__('admin.topics.fields.content_en'))
                     ->rows(4)
                     ->columnSpanFull()
                     ->visible(fn (Forms\Get $get): bool => $get('content_type') === 'text'),
             ])->columns(2),
 
-            Forms\Components\Section::make('Video')
+            Forms\Components\Section::make(__('admin.topics.sections.video'))
                 ->visible(fn (Forms\Get $get): bool => $get('content_type') === 'video')
                 ->schema([
                     BunnyVideoUpload::make('bunny_video_id')
-                        ->label('Video file')
+                        ->label(__('admin.topics.fields.video_file'))
                         ->dehydrated(true),
                 ]),
 
-            Forms\Components\Section::make('Interactive HTML')
-                ->description('Upload a standalone .html file (or a ZIP with index.html). Saved as an Interactive Activity linked to this topic.')
+            Forms\Components\Section::make(__('admin.topics.sections.interactive_html'))
+                ->description(__('admin.topics.sections.interactive_description'))
                 ->visible(fn (Forms\Get $get): bool => $get('content_type') === 'interactive')
                 ->schema([
                     Forms\Components\FileUpload::make('interactive_html_upload')
-                        ->label('HTML file')
+                        ->label(__('admin.topics.fields.html_file'))
                         ->acceptedFileTypes([
                             'text/html',
                             'application/xhtml+xml',
@@ -121,9 +145,9 @@ class TopicResource extends Resource
                         ->visibility('private')
                         ->directory('tmp/topic-interactive-uploads')
                         ->dehydrated(false)
-                        ->helperText('Drag and drop one complete HTML activity (stored as index.html). Max 64 MB.'),
+                        ->helperText(__('admin.topics.fields.interactive_html_help')),
                     Forms\Components\FileUpload::make('interactive_zip_upload')
-                        ->label('ZIP package (optional)')
+                        ->label(__('admin.topics.fields.zip_package'))
                         ->acceptedFileTypes([
                             'application/zip',
                             'application/x-zip-compressed',
@@ -135,23 +159,22 @@ class TopicResource extends Resource
                         ->visibility('private')
                         ->directory('tmp/topic-interactive-uploads')
                         ->dehydrated(false)
-                        ->helperText('Drag and drop a ZIP containing index.html + css/js/images if needed. Max 64 MB.'),
+                        ->helperText(__('admin.topics.fields.interactive_html_help')),
                     Forms\Components\Placeholder::make('interactive_activity_info')
-                        ->label('Linked activity')
+                        ->label(__('admin.topics.fields.linked_activity'))
                         ->content(function (?Topic $record): string {
                             if (! $record) {
-                                return 'Will be created after save.';
+                                return __('admin.topics.placeholders.linked_activity_after_save');
                             }
                             $activity = $record->interactiveActivity;
                             if (! $activity) {
-                                return 'No package yet — upload HTML and save.';
+                                return __('admin.topics.placeholders.linked_activity_no_package');
                             }
 
                             $hasPackage = filled($activity->activity_package_path);
 
-                            return 'Activity #'.$activity->id
-                                .($hasPackage ? ' (package ready)' : ' (no package file)')
-                                .' — also editable under Assessment → Interactive Activities.';
+                            return '#'.$activity->id
+                                .($hasPackage ? ' — '.__('admin.topics.placeholders.linked_activity_ready') : '');
                         }),
                 ]),
         ]);
@@ -163,10 +186,10 @@ class TopicResource extends Resource
             ->modifyQueryUsing(fn ($query) => $query->with('lesson'))
             ->defaultSort('sort_order')
             ->columns([
-                Tables\Columns\TextColumn::make('sort_order')->label('#')->sortable(),
-                Tables\Columns\TextColumn::make('title')->searchable()->wrap(),
-                Tables\Columns\TextColumn::make('lesson.slug')->label('Lesson')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('content_type')->badge(),
+                Tables\Columns\TextColumn::make('sort_order')->label(__('admin.topics.table.sort_order'))->sortable(),
+                Tables\Columns\TextColumn::make('title')->label(__('admin.common.fields.title'))->searchable()->wrap(),
+                Tables\Columns\TextColumn::make('lesson.slug')->label(__('admin.topics.table.lesson'))->searchable()->sortable(),
+                Tables\Columns\TextColumn::make('content_type')->label(__('admin.common.fields.type'))->badge(),
                 Tables\Columns\TextColumn::make('video_status')
                     ->badge()
                     ->color(fn (?string $state) => match ($state) {
@@ -175,7 +198,7 @@ class TopicResource extends Resource
                         'error' => 'danger',
                         default => 'gray',
                     }),
-                Tables\Columns\IconColumn::make('is_published')->boolean(),
+                Tables\Columns\IconColumn::make('is_published')->label(__('admin.common.status.published'))->boolean(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('lesson_id')

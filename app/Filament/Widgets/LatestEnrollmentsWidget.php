@@ -16,7 +16,10 @@ class LatestEnrollmentsWidget extends BaseWidget
 
     protected int|string|array $columnSpan = 1;
 
-    protected static ?string $heading = 'Latest enrollments';
+    public function getHeading(): ?string
+    {
+        return __('admin.widgets.latest_enrollments.heading');
+    }
 
     public function table(Table $table): Table
     {
@@ -30,19 +33,20 @@ class LatestEnrollmentsWidget extends BaseWidget
             ->paginated([5])
             ->columns([
                 Tables\Columns\TextColumn::make('user.name')
-                    ->label('Student')
+                    ->label(__('admin.widgets.latest_enrollments.table.student'))
                     ->searchable(),
                 Tables\Columns\TextColumn::make('course.title')
-                    ->label('Course')
+                    ->label(__('admin.widgets.latest_enrollments.table.course'))
                     ->limit(28)
                     ->url(fn (Enrollment $record): ?string => $record->course
                         ? CourseResource::getUrl('edit', ['record' => $record->course])
                         : null),
                 Tables\Columns\TextColumn::make('status')
+                    ->label(__('admin.common.fields.status'))
                     ->badge()
                     ->formatStateUsing(fn ($state) => is_object($state) ? $state->name : (string) $state),
                 Tables\Columns\TextColumn::make('progress_percent')
-                    ->label('Progress')
+                    ->label(__('admin.widgets.latest_enrollments.table.progress'))
                     ->suffix('%')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('enrolled_at')

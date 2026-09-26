@@ -21,7 +21,10 @@ class CoursePlansRelationManager extends RelationManager
 {
     protected static string $relationship = 'plans';
 
-    protected static ?string $title = 'Course Plans';
+    public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
+    {
+        return (string) __('admin.course_plans.title');
+    }
 
     /** @var array<string, list<int>>|null */
     private ?array $pendingSelection = null;
@@ -31,37 +34,37 @@ class CoursePlansRelationManager extends RelationManager
         $course = $this->getOwnerRecord();
 
         return $form->schema([
-            Forms\Components\Section::make('Basic information')->schema([
-                Forms\Components\TextInput::make('name.ar')->label('Name (AR)')->required(),
-                Forms\Components\TextInput::make('name.en')->label('Name (EN)'),
-                Forms\Components\Textarea::make('description.ar')->label('Description (AR)')->rows(2),
-                Forms\Components\Textarea::make('description.en')->label('Description (EN)')->rows(2),
-                Forms\Components\Toggle::make('is_active')->default(true),
-                Forms\Components\TextInput::make('sort_order')->numeric()->default(0),
+            Forms\Components\Section::make(__('admin.course_plans.sections.basic'))->schema([
+                Forms\Components\TextInput::make('name.ar')->label(__('admin.course_plans.fields.name_ar'))->required(),
+                Forms\Components\TextInput::make('name.en')->label(__('admin.course_plans.fields.name_en')),
+                Forms\Components\Textarea::make('description.ar')->label(__('admin.course_plans.fields.description_ar'))->rows(2),
+                Forms\Components\Textarea::make('description.en')->label(__('admin.course_plans.fields.description_en'))->rows(2),
+                Forms\Components\Toggle::make('is_active')->label(__('admin.common.fields.active'))->default(true),
+                Forms\Components\TextInput::make('sort_order')->label(__('admin.common.fields.order'))->numeric()->default(0),
             ])->columns(2),
-            Forms\Components\Section::make('Pricing')->schema([
-                Forms\Components\TextInput::make('price')->numeric()->minValue(0)->default(0)->required(),
-                Forms\Components\TextInput::make('currency')->default('EGP')->maxLength(3)->required(),
+            Forms\Components\Section::make(__('admin.course_plans.sections.pricing'))->schema([
+                Forms\Components\TextInput::make('price')->label(__('admin.common.fields.price'))->numeric()->minValue(0)->default(0)->required(),
+                Forms\Components\TextInput::make('currency')->label(__('admin.common.fields.currency'))->default('EGP')->maxLength(3)->required()->extraInputAttributes(['dir' => 'ltr']),
             ])->columns(2),
-            Forms\Components\Section::make('Access duration')->schema([
-                Forms\Components\Toggle::make('is_lifetime')->label('Lifetime access')->default(true)->live(),
+            Forms\Components\Section::make(__('admin.course_plans.sections.access_duration'))->schema([
+                Forms\Components\Toggle::make('is_lifetime')->label(__('admin.course_plans.fields.lifetime'))->default(true)->live(),
                 Forms\Components\TextInput::make('duration_days')
                     ->numeric()
                     ->minValue(1)
-                    ->label('Duration (days)')
+                    ->label(__('admin.course_plans.fields.duration_days'))
                     ->visible(fn (Forms\Get $get): bool => ! $get('is_lifetime')),
             ])->columns(2),
-            Forms\Components\Section::make('Quiz settings')->schema([
+            Forms\Components\Section::make(__('admin.course_plans.sections.quiz_settings'))->schema([
                 Forms\Components\TextInput::make('max_quiz_attempts')
                     ->numeric()
                     ->minValue(1)
-                    ->label('Maximum quiz attempts')
-                    ->helperText('Leave empty for unlimited attempts (quiz-level limits may still apply).'),
-                Forms\Components\Toggle::make('grant_certificate')->label('Certificate access'),
+                    ->label(__('admin.course_plans.fields.max_quiz_attempts'))
+                    ->helperText(__('admin.course_plans.fields.max_quiz_attempts_help')),
+                Forms\Components\Toggle::make('grant_certificate')->label(__('admin.course_plans.fields.grant_certificate')),
             ])->columns(2),
-            Forms\Components\Section::make('Lessons')->schema([
+            Forms\Components\Section::make(__('admin.course_plans.sections.lessons'))->schema([
                 Forms\Components\CheckboxList::make('lesson_ids')
-                    ->label('Accessible lessons')
+                    ->label(__('admin.course_plans.fields.accessible_lessons'))
                     ->options(fn (): array => $course->lessons()->orderBy('sort_order')->get()
                         ->mapWithKeys(fn (Lesson $lesson): array => [
                             $lesson->id => ($lesson->getTranslation('title', 'en') ?: $lesson->slug).' ('.$lesson->slug.')',
@@ -69,16 +72,16 @@ class CoursePlansRelationManager extends RelationManager
                     ->columns(2)
                     ->bulkToggleable()
                     ->selectAllAction(
-                        fn (Action $action): Action => $action->label('Select all lessons'),
+                        fn (Action $action): Action => $action->label(__('admin.course_plans.actions.select_all_lessons')),
                     )
                     ->deselectAllAction(
-                        fn (Action $action): Action => $action->label('Deselect all lessons'),
+                        fn (Action $action): Action => $action->label(__('admin.course_plans.actions.deselect_all_lessons')),
                     )
                     ->dehydrated(true),
             ]),
-            Forms\Components\Section::make('Topics')->schema([
+            Forms\Components\Section::make(__('admin.course_plans.sections.topics'))->schema([
                 Forms\Components\CheckboxList::make('topic_ids')
-                    ->label('Accessible topics')
+                    ->label(__('admin.course_plans.fields.accessible_topics'))
                     ->options(fn (): array => Topic::query()
                         ->whereIn('lesson_id', $course->lessons()->pluck('id'))
                         ->orderBy('sort_order')
@@ -89,16 +92,16 @@ class CoursePlansRelationManager extends RelationManager
                     ->columns(2)
                     ->bulkToggleable()
                     ->selectAllAction(
-                        fn (Action $action): Action => $action->label('Select all topics'),
+                        fn (Action $action): Action => $action->label(__('admin.course_plans.actions.select_all_topics')),
                     )
                     ->deselectAllAction(
-                        fn (Action $action): Action => $action->label('Deselect all topics'),
+                        fn (Action $action): Action => $action->label(__('admin.course_plans.actions.deselect_all_topics')),
                     )
                     ->dehydrated(true),
             ]),
-            Forms\Components\Section::make('Quizzes')->schema([
+            Forms\Components\Section::make(__('admin.course_plans.sections.quizzes'))->schema([
                 Forms\Components\CheckboxList::make('quiz_ids')
-                    ->label('Accessible quizzes')
+                    ->label(__('admin.course_plans.fields.accessible_quizzes'))
                     ->options(fn (): array => Quiz::query()
                         ->where('quizable_type', Lesson::class)
                         ->whereIn('quizable_id', $course->lessons()->pluck('id'))
@@ -109,16 +112,16 @@ class CoursePlansRelationManager extends RelationManager
                     ->columns(2)
                     ->bulkToggleable()
                     ->selectAllAction(
-                        fn (Action $action): Action => $action->label('Select all quizzes'),
+                        fn (Action $action): Action => $action->label(__('admin.course_plans.actions.select_all_quizzes')),
                     )
                     ->deselectAllAction(
-                        fn (Action $action): Action => $action->label('Deselect all quizzes'),
+                        fn (Action $action): Action => $action->label(__('admin.course_plans.actions.deselect_all_quizzes')),
                     )
                     ->dehydrated(true),
             ]),
-            Forms\Components\Section::make('Interactive activities')->schema([
+            Forms\Components\Section::make(__('admin.course_plans.sections.interactive_activities'))->schema([
                 Forms\Components\CheckboxList::make('interactive_activity_ids')
-                    ->label('Accessible interactive activities')
+                    ->label(__('admin.course_plans.fields.accessible_interactive_activities'))
                     ->options(fn (): array => InteractiveActivity::query()
                         ->whereIn('lesson_id', $course->lessons()->pluck('id'))
                         ->get()
@@ -128,10 +131,10 @@ class CoursePlansRelationManager extends RelationManager
                     ->columns(2)
                     ->bulkToggleable()
                     ->selectAllAction(
-                        fn (Action $action): Action => $action->label('Select all interactive activities'),
+                        fn (Action $action): Action => $action->label(__('admin.course_plans.actions.select_all_interactive_activities')),
                     )
                     ->deselectAllAction(
-                        fn (Action $action): Action => $action->label('Deselect all interactive activities'),
+                        fn (Action $action): Action => $action->label(__('admin.course_plans.actions.deselect_all_interactive_activities')),
                     )
                     ->dehydrated(true),
             ]),
@@ -143,13 +146,21 @@ class CoursePlansRelationManager extends RelationManager
         return $table
             ->defaultSort('sort_order')
             ->columns([
-                Tables\Columns\TextColumn::make('name')->searchable(),
-                Tables\Columns\TextColumn::make('price')->money(fn (CoursePlan $record): string => $record->currency),
-                Tables\Columns\IconColumn::make('is_active')->boolean(),
-                Tables\Columns\IconColumn::make('is_lifetime')->boolean(),
-                Tables\Columns\TextColumn::make('duration_days')->label('Days'),
-                Tables\Columns\TextColumn::make('max_quiz_attempts')->label('Max attempts'),
-                Tables\Columns\TextColumn::make('entitlements_count')->counts('entitlements')->label('Rules'),
+                Tables\Columns\TextColumn::make('name')
+                    ->label(__('admin.common.fields.name'))
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('price')
+                    ->label(__('admin.common.fields.price'))
+                    ->money(fn (CoursePlan $record): string => $record->currency),
+                Tables\Columns\IconColumn::make('is_active')
+                    ->label(__('admin.common.fields.active'))
+                    ->boolean(),
+                Tables\Columns\IconColumn::make('is_lifetime')
+                    ->label(__('admin.course_plans.fields.lifetime'))
+                    ->boolean(),
+                Tables\Columns\TextColumn::make('duration_days')->label(__('admin.course_plans.table.days')),
+                Tables\Columns\TextColumn::make('max_quiz_attempts')->label(__('admin.course_plans.table.max_attempts')),
+                Tables\Columns\TextColumn::make('entitlements_count')->counts('entitlements')->label(__('admin.course_plans.table.rules')),
             ])
             ->headerActions([
                 Tables\Actions\CreateAction::make()

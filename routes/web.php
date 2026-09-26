@@ -40,6 +40,12 @@ foreach ($redirects as $from => $to) {
 
 Route::get('/', fn () => redirect()->away($frontend, 301));
 
+Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
+    Route::get('/locale/{locale}', \App\Http\Controllers\Admin\SwitchAdminLocaleController::class)
+        ->whereIn('locale', ['ar', 'en'])
+        ->name('admin.locale.switch');
+});
+
 /*
 |--------------------------------------------------------------------------
 | Sandboxed interactive question assets (no Sanctum session)

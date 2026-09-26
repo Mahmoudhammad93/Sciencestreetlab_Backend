@@ -17,7 +17,10 @@ class PendingReviewsWidget extends BaseWidget
 
     protected int|string|array $columnSpan = 'full';
 
-    protected static ?string $heading = 'Photos waiting for review';
+    public function getHeading(): ?string
+    {
+        return __('admin.widgets.pending_photos.heading');
+    }
 
     public function table(Table $table): Table
     {
@@ -30,29 +33,29 @@ class PendingReviewsWidget extends BaseWidget
             )
             ->defaultPaginationPageOption(5)
             ->paginated([5])
-            ->emptyStateHeading('No pending photos')
-            ->emptyStateDescription('The 100 Photos Challenge review queue is clear.')
+            ->emptyStateHeading(__('admin.widgets.pending_photos.empty_heading'))
+            ->emptyStateDescription(__('admin.widgets.pending_photos.empty_description'))
             ->columns([
                 Tables\Columns\ImageColumn::make('photo')
-                    ->label('Photo')
+                    ->label(__('admin.widgets.pending_photos.table.photo'))
                     ->getStateUsing(fn (CompetitionSubmission $record) => $record->getFirstMediaUrl('photo'))
                     ->square(),
                 Tables\Columns\TextColumn::make('participant.user.name')
-                    ->label('Student')
+                    ->label(__('admin.widgets.pending_photos.table.student'))
                     ->searchable(),
                 Tables\Columns\TextColumn::make('participant.competition.slug')
-                    ->label('Competition'),
+                    ->label(__('admin.widgets.pending_photos.table.competition')),
                 Tables\Columns\TextColumn::make('sample_number')
-                    ->label('Sample'),
+                    ->label(__('admin.widgets.pending_photos.table.sample')),
                 Tables\Columns\TextColumn::make('photo_index')
-                    ->label('Photo #'),
+                    ->label(__('admin.widgets.pending_photos.table.photo_number')),
                 Tables\Columns\TextColumn::make('submitted_at')
                     ->since()
                     ->sortable(),
             ])
             ->actions([
                 Tables\Actions\Action::make('review')
-                    ->label('Review')
+                    ->label(__('admin.widgets.pending_photos.table.review'))
                     ->icon('heroicon-m-eye')
                     ->url(fn (CompetitionSubmission $record): string => CompetitionSubmissionResource::getUrl('view', ['record' => $record])),
             ]);

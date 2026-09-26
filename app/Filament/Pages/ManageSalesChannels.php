@@ -22,14 +22,17 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Livewire\WithFileUploads;
 use RuntimeException;
 
 class ManageSalesChannels extends Page
 {
-    protected static ?string $navigationIcon = 'heroicon-o-share';
+    use WithFileUploads;
 
-    protected static ?string $navigationGroup = 'Commerce';
+    protected static ?string $navigationIcon = 'heroicon-o-share';
 
     protected static ?int $navigationSort = 20;
 
@@ -50,7 +53,13 @@ class ManageSalesChannels extends Page
 
     public string $setupMerchantId = '';
 
-    public string $setupServiceAccountJson = '';
+    /** Temporary Livewire upload only — never persisted to public disk. */
+    public mixed $setupServiceAccountFile = null;
+
+    public bool $replacingCredential = false;
+
+    /** @var array{configured: bool, client_email: ?string, project_id: ?string}|null */
+    public ?array $setupCredentialPreview = null;
 
     /** @var array<string, mixed>|null */
     public ?array $setupTestResult = null;
@@ -59,6 +68,11 @@ class ManageSalesChannels extends Page
     public ?array $setupReadiness = null;
 
     public bool $showYoutubeGuide = false;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('admin.nav.groups.commerce');
+    }
 
     public static function getNavigationLabel(): string
     {
@@ -248,12 +262,15 @@ class ManageSalesChannels extends Page
     {
         abort_unless($this->canConfigureGoogle(), 403);
 
-        $integration = app(GoogleMerchantSetupService::class)->integration();
+        $setup = app(GoogleMerchantSetupService::class);
+        $integration = $setup->integration();
         $this->showGoogleSetup = true;
         $hasCredentials = app(GoogleMerchantProvider::class)->hasCredentials($integration);
         $this->googleSetupStep = $hasCredentials ? 3 : 1;
         $this->setupMerchantId = (string) ($integration->external_account_id ?? '');
-        $this->setupServiceAccountJson = '';
+        $this->clearCredentialUploadState();
+        $this->setupCredentialPreview = $hasCredentials ? $setup->credentialPreview($integration) : null;
+        $this->replacingCredential = false;
         $this->setupTestResult = null;
         $this->setupReadiness = null;
         $this->manageIntegrationId = null;
@@ -264,8 +281,111 @@ class ManageSalesChannels extends Page
     {
         $this->showGoogleSetup = false;
         $this->googleSetupStep = 1;
-        $this->setupServiceAccountJson = '';
+        $this->clearCredentialUploadState();
+        $this->setupCredentialPreview = null;
+        $this->replacingCredential = false;
         $this->setupTestResult = null;
+    }
+
+    public function startReplaceCredential(): void
+    {
+        abort_unless($this->canConfigureGoogle(), 403);
+        $this->replacingCredential = true;
+        $this->clearCredentialUploadState();
+    }
+
+    public function cancelReplaceCredential(): void
+    {
+        abort_unless($this->canConfigureGoogle(), 403);
+        $this->replacingCredential = false;
+        $this->clearCredentialUploadState();
+        $setup = app(GoogleMerchantSetupService::class);
+        $this->setupCredentialPreview = $setup->credentialPreview($setup->integration());
+    }
+
+    public function updatedSetupServiceAccountFile(): void
+    {
+        abort_unless($this->canConfigureGoogle(), 403);
+
+        if ($this->setupServiceAccountFile === null) {
+            return;
+        }
+
+        $this->processServiceAccountUpload();
+    }
+
+    public function processServiceAccountUpload(): void
+    {
+        abort_unless($this->canConfigureGoogle(), 403);
+
+        try {
+            $this->validate([
+                'setupServiceAccountFile' => [
+                    'required',
+                    'file',
+                    'max:1024',
+                    'extensions:json',
+                ],
+            ], [
+                'setupServiceAccountFile.required' => __('sales_channels.setup.service_account_required'),
+                'setupServiceAccountFile.extensions' => __('sales_channels.errors.invalid_credentials.message'),
+                'setupServiceAccountFile.max' => __('sales_channels.errors.invalid_credentials.message'),
+            ]);
+        } catch (ValidationException) {
+            $this->clearCredentialUploadState();
+            Notification::make()
+                ->title(__('sales_channels.errors.invalid_credentials.title'))
+                ->body(__('sales_channels.errors.invalid_credentials.message'))
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        if (! $this->setupServiceAccountFile instanceof TemporaryUploadedFile) {
+            $this->clearCredentialUploadState();
+            Notification::make()
+                ->title(__('sales_channels.errors.invalid_credentials.title'))
+                ->body(__('sales_channels.errors.invalid_credentials.message'))
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        $setup = app(GoogleMerchantSetupService::class);
+        $integration = $setup->integration();
+        $path = $this->setupServiceAccountFile->getRealPath();
+
+        try {
+            if (! is_string($path) || $path === '') {
+                throw new InvalidArgumentException('invalid_service_account');
+            }
+
+            $result = $setup->saveServiceAccountFromUploadedPath($integration, $path);
+            $this->setupCredentialPreview = $result['preview'];
+            $this->replacingCredential = false;
+
+            Notification::make()
+                ->title(__('sales_channels.setup.credential_validated'))
+                ->success()
+                ->send();
+        } catch (InvalidArgumentException) {
+            // Existing encrypted credentials remain unchanged.
+            Notification::make()
+                ->title(__('sales_channels.errors.invalid_credentials.title'))
+                ->body(__('sales_channels.errors.invalid_credentials.message'))
+                ->warning()
+                ->send();
+        } finally {
+            // Remove Livewire temp upload; never keep JSON on disk.
+            try {
+                $this->setupServiceAccountFile->delete();
+            } catch (\Throwable) {
+                // ignore cleanup failures
+            }
+            $this->setupServiceAccountFile = null;
+        }
     }
 
     public function continueAfterGoogleTest(): void
@@ -290,15 +410,22 @@ class ManageSalesChannels extends Page
             if ($this->googleSetupStep === 1) {
                 $setup->saveMerchantId($integration, $this->setupMerchantId);
                 $this->googleSetupStep = 2;
+                $fresh = $setup->integration();
+                $this->setupCredentialPreview = app(GoogleMerchantProvider::class)->hasCredentials($fresh)
+                    ? $setup->credentialPreview($fresh)
+                    : $this->setupCredentialPreview;
+                $this->replacingCredential = ! app(GoogleMerchantProvider::class)->hasCredentials($fresh);
 
                 return;
             }
 
             if ($this->googleSetupStep === 2) {
-                if (trim($this->setupServiceAccountJson) !== '') {
-                    $setup->saveServiceAccountJson($integration, $this->setupServiceAccountJson);
-                    $this->setupServiceAccountJson = '';
-                } elseif (! app(GoogleMerchantProvider::class)->hasCredentials($integration)) {
+                if ($this->setupServiceAccountFile instanceof TemporaryUploadedFile) {
+                    $this->processServiceAccountUpload();
+                }
+
+                $fresh = $setup->integration();
+                if (! app(GoogleMerchantProvider::class)->hasCredentials($fresh)) {
                     Notification::make()
                         ->title(__('sales_channels.errors.invalid_credentials.title'))
                         ->body(__('sales_channels.setup.service_account_required'))
@@ -307,6 +434,8 @@ class ManageSalesChannels extends Page
 
                     return;
                 }
+
+                $this->setupCredentialPreview = $setup->credentialPreview($fresh);
                 $this->googleSetupStep = 3;
                 $this->setupTestResult = null;
 
@@ -338,16 +467,14 @@ class ManageSalesChannels extends Page
         $setup = app(GoogleMerchantSetupService::class);
         $integration = $setup->integration();
 
-        if (trim($this->setupServiceAccountJson) !== '') {
-            try {
-                $integration = $setup->saveServiceAccountJson($integration, $this->setupServiceAccountJson);
-                $this->setupServiceAccountJson = '';
-            } catch (InvalidArgumentException $e) {
-                $issue = app(HumanErrorMapper::class)->present($e->getMessage());
-                $this->setupTestResult = ['ok' => false, 'issue' => $issue];
+        // Test must use stored encrypted credentials — no re-upload required.
+        if (! app(GoogleMerchantProvider::class)->hasCredentials($integration)) {
+            $this->setupTestResult = [
+                'ok' => false,
+                'issue' => app(HumanErrorMapper::class)->present('provider_not_configured'),
+            ];
 
-                return;
-            }
+            return;
         }
 
         $this->setupTestResult = $setup->testAndPrepare($integration);
@@ -545,8 +672,31 @@ class ManageSalesChannels extends Page
 
     public function canConfigureGoogle(): bool
     {
-        // Credential paste + Merchant setup is technical/admin only.
-        return $this->canViewTechnical();
+        $user = Auth::user();
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        if ($user->hasRole('super_admin')) {
+            return true;
+        }
+
+        // Credential upload: connect + technical/advanced permission.
+        return $user->can('sales_channels.connect')
+            && $user->can('sales_channels.view_technical_logs');
+    }
+
+    private function clearCredentialUploadState(): void
+    {
+        if ($this->setupServiceAccountFile instanceof TemporaryUploadedFile) {
+            try {
+                $this->setupServiceAccountFile->delete();
+            } catch (\Throwable) {
+                // ignore
+            }
+        }
+
+        $this->setupServiceAccountFile = null;
     }
 
     private function syncDisabledReason(SalesChannelIntegration $integration): ?string
