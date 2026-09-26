@@ -50,7 +50,7 @@ final class OrderConfirmationMailTest extends TestCase
                 && str_contains($html, '90.00')
                 && str_contains($html, '10.00')
                 && str_contains($html, 'EGP')
-                && str_contains($html, rtrim((string) config('sciencestreet.frontend_url'), '/').'/orders/'.$order->order_number);
+                && str_contains($html, rtrim((string) config('sciencestreet.frontend_url'), '/').'/account/orders/'.$order->order_number);
         });
 
         $this->assertNotNull($order->fresh()->confirmation_email_sent_at);

@@ -11,7 +11,11 @@ use Illuminate\Support\Facades\DB;
 final class ProductEducationalSpecSyncService
 {
     /**
-     * @param  list<array{grade_level?: string, lesson_name?: string, sort_order?: int}>  $rows
+     * @param  list<array{
+     *     grade_level?: string|array{en?: string, ar?: string},
+     *     lesson_name?: string|array{en?: string, ar?: string},
+     *     sort_order?: int
+     * }>  $rows
      */
     public function syncCurriculumAlignments(Product $product, array $rows): void
     {
@@ -20,10 +24,10 @@ final class ProductEducationalSpecSyncService
 
             $sort = 0;
             foreach ($rows as $row) {
-                $grade = trim((string) ($row['grade_level'] ?? ''));
-                $lesson = trim((string) ($row['lesson_name'] ?? ''));
+                $grade = $this->normalizeLocalized($row['grade_level'] ?? null);
+                $lesson = $this->normalizeLocalized($row['lesson_name'] ?? null);
 
-                if ($grade === '' || $lesson === '') {
+                if ($grade === [] || $lesson === []) {
                     continue;
                 }
 
@@ -36,5 +40,34 @@ final class ProductEducationalSpecSyncService
                 $sort++;
             }
         });
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function normalizeLocalized(mixed $value): array
+    {
+        if (is_string($value)) {
+            $trimmed = trim($value);
+
+            return $trimmed === '' ? [] : ['en' => $trimmed];
+        }
+
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $out = [];
+        foreach (['en', 'ar'] as $locale) {
+            if (! array_key_exists($locale, $value)) {
+                continue;
+            }
+            $trimmed = trim((string) $value[$locale]);
+            if ($trimmed !== '') {
+                $out[$locale] = $trimmed;
+            }
+        }
+
+        return $out;
     }
 }

@@ -31,7 +31,7 @@ return [
 
     /*
      * Optional. Placeholders: {frontend}, {order_number}, {order_id}.
-     * Defaults to {frontend}/orders/{order_number}.
+     * Defaults to {frontend}/account/orders/{order_number}.
      */
     'order_url_template' => env('FRONTEND_ORDER_URL'),
 

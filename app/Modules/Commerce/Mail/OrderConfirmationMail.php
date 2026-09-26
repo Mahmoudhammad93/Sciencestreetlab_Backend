@@ -57,6 +57,6 @@ final class OrderConfirmationMail extends Mailable
             );
         }
 
-        return $frontend.'/orders/'.$this->order->order_number;
+        return $frontend.'/account/orders/'.$this->order->order_number;
     }
 }

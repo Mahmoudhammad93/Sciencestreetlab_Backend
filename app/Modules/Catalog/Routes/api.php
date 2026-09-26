@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Modules\Catalog\Http\Controllers\Api\CategoryController;
 use App\Modules\Catalog\Http\Controllers\Api\ProductController;
+use App\Modules\Catalog\Http\Controllers\Api\ProductReviewController;
 use App\Modules\Catalog\Http\Controllers\Api\WishlistController;
 use Illuminate\Support\Facades\Route;
 
@@ -16,6 +17,8 @@ Route::prefix('categories')->group(function (): void {
 Route::prefix('products')->group(function (): void {
     Route::get('/', [ProductController::class, 'index']);
     Route::get('/{slug}', [ProductController::class, 'show']);
+    Route::post('/{slug}/reviews', [ProductReviewController::class, 'store'])
+        ->middleware('auth:sanctum');
 });
 
 Route::middleware('auth:sanctum')->prefix('wishlist')->group(function (): void {

@@ -349,7 +349,7 @@ Purchase → Payment success → OrderPaid → Enrollment → Confirmation email
 
 `GrantEnrollmentOnOrderPaid` still creates the enrollment. The confirmation email listener runs after that listener and only after the enrollment transaction can be seen. Creating an order, or failing a payment, does not send the email. `confirmation_email_sent_at` is set only after the mailer accepts the message, so an SMTP failure can be retried. A second `OrderPaid` does not send a second email.
 
-The mail includes the customer name, order number, date, payment status, items, quantities, unit prices, subtotal, discount, total, currency, and a View Order link built from `FRONTEND_URL` (`{FRONTEND_URL}/orders/{order_number}`, overridable with `FRONTEND_ORDER_URL`).
+The mail includes the customer name, order number, date, payment status, items, quantities, unit prices, subtotal, discount, total, currency, and a View Order link built from `FRONTEND_URL` (`{FRONTEND_URL}/account/orders/{order_number}`, overridable with `FRONTEND_ORDER_URL`).
 
 Each purchased course enrollment also gets a QR code in the email. Non-course items do not. The QR opens the public page `{FRONTEND_URL}/verify/enrollment/{token}` (overridable with `FRONTEND_ENROLLMENT_VERIFICATION_URL`). The token is a random 64-character hex value stored on the enrollment. It is not the enrollment, user, order, or course id.
 

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Catalog\Infrastructure\Persistence\Models;
 
+use App\Modules\Catalog\Domain\Enums\ProductReviewStatus;
 use App\Modules\Catalog\Domain\Enums\ProductStatus;
 use App\Modules\Catalog\Domain\Enums\ProductType;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
 use App\Modules\Learning\Infrastructure\Persistence\Models\CoursePlan;
+use App\Modules\SocialCommerce\Infrastructure\Persistence\Models\SalesChannelProduct;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -22,7 +24,16 @@ class Product extends Model implements HasMedia
     use HasTranslations, InteractsWithMedia, SoftDeletes;
 
     /** @var list<string> */
-    public array $translatable = ['name', 'short_description', 'description', 'meta_title', 'meta_description'];
+    public array $translatable = [
+        'name',
+        'short_description',
+        'description',
+        'meta_title',
+        'meta_description',
+        'scientific_concepts',
+        'design_lab_description',
+        'creative_lab_description',
+    ];
 
     /** @var list<string> */
     protected $appends = ['image', 'gallery_urls', 'concept_image_urls'];
@@ -56,7 +67,6 @@ class Product extends Model implements HasMedia
             'is_featured' => 'boolean',
             'published_at' => 'datetime',
             'key_benefits' => 'array',
-            'scientific_concepts' => 'array',
         ];
     }
 
@@ -83,6 +93,21 @@ class Product extends Model implements HasMedia
     public function curriculumAlignments(): HasMany
     {
         return $this->hasMany(ProductCurriculumAlignment::class)->orderBy('sort_order');
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(ProductReview::class);
+    }
+
+    public function approvedReviews(): HasMany
+    {
+        return $this->reviews()->where('status', ProductReviewStatus::Approved->value);
+    }
+
+    public function salesChannelProducts(): HasMany
+    {
+        return $this->hasMany(SalesChannelProduct::class);
     }
 
     public function registerMediaCollections(): void

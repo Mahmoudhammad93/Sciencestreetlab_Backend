@@ -174,28 +174,44 @@ class ProductResource extends Resource
                     ->label('Key benefits')
                     ->placeholder('Add a benefit')
                     ->columnSpanFull(),
-                Forms\Components\TagsInput::make('scientific_concepts')
-                    ->label('Scientific concepts')
+                Forms\Components\TagsInput::make('scientific_concepts.en')
+                    ->label('Scientific concepts (EN)')
                     ->placeholder('Add a concept')
                     ->columnSpanFull(),
-                Forms\Components\Textarea::make('design_lab_description')
-                    ->label('Design lab description')
+                Forms\Components\TagsInput::make('scientific_concepts.ar')
+                    ->label('Scientific concepts (AR)')
+                    ->placeholder('أضف مفهوماً')
+                    ->columnSpanFull(),
+                Forms\Components\Textarea::make('design_lab_description.en')
+                    ->label('Design lab description (EN)')
                     ->rows(3)
                     ->columnSpanFull(),
-                Forms\Components\Textarea::make('creative_lab_description')
-                    ->label('Creative lab description')
+                Forms\Components\Textarea::make('design_lab_description.ar')
+                    ->label('Design lab description (AR)')
+                    ->rows(3)
+                    ->columnSpanFull(),
+                Forms\Components\Textarea::make('creative_lab_description.en')
+                    ->label('Creative lab description (EN)')
+                    ->rows(3)
+                    ->columnSpanFull(),
+                Forms\Components\Textarea::make('creative_lab_description.ar')
+                    ->label('Creative lab description (AR)')
                     ->rows(3)
                     ->columnSpanFull(),
                 Forms\Components\Repeater::make('curriculum_alignments')
                     ->label('Curriculum alignment')
                     ->schema([
-                        Forms\Components\TextInput::make('grade_level')
-                            ->label('Grade level')
-                            ->required()
+                        Forms\Components\TextInput::make('grade_level.en')
+                            ->label('Grade level (EN)')
                             ->maxLength(100),
-                        Forms\Components\TextInput::make('lesson_name')
-                            ->label('Lesson name')
-                            ->required()
+                        Forms\Components\TextInput::make('grade_level.ar')
+                            ->label('Grade level (AR)')
+                            ->maxLength(100),
+                        Forms\Components\TextInput::make('lesson_name.en')
+                            ->label('Lesson name (EN)')
+                            ->maxLength(255),
+                        Forms\Components\TextInput::make('lesson_name.ar')
+                            ->label('Lesson name (AR)')
                             ->maxLength(255),
                     ])
                     ->defaultItems(0)
@@ -262,6 +278,16 @@ class ProductResource extends Resource
                 Forms\Components\Textarea::make('meta_description.ar')->label('Meta description (AR)')->rows(2),
                 Forms\Components\Textarea::make('meta_description.en')->label('Meta description (EN)')->rows(2),
             ])->columns(2)->collapsed(),
+            Forms\Components\Section::make(fn (): string => (string) __('sales_channels.product_section'))
+                ->schema([
+                    Forms\Components\ViewField::make('sales_channels_status')
+                        ->label('')
+                        ->view('filament.forms.components.product-sales-channels')
+                        ->dehydrated(false)
+                        ->columnSpanFull(),
+                ])
+                ->visibleOn('edit')
+                ->collapsed(false),
         ]);
     }
 

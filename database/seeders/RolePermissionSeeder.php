@@ -20,6 +20,11 @@ final class RolePermissionSeeder extends Seeder
             'orders.view', 'orders.edit',
             'courses.view', 'courses.create', 'courses.edit', 'courses.delete',
             'competition.review', 'competition.manage',
+            'sales_channels.view',
+            'sales_channels.manage',
+            'sales_channels.connect',
+            'sales_channels.sync',
+            'sales_channels.view_technical_logs',
         ];
 
         foreach ($permissions as $permission) {
@@ -30,7 +35,11 @@ final class RolePermissionSeeder extends Seeder
         $superAdmin->syncPermissions(Permission::all());
 
         Role::findOrCreate('content_manager')
-            ->syncPermissions(['products.view', 'products.create', 'products.edit', 'courses.view', 'courses.create', 'courses.edit']);
+            ->syncPermissions([
+                'products.view', 'products.create', 'products.edit',
+                'courses.view', 'courses.create', 'courses.edit',
+                'sales_channels.view', 'sales_channels.sync',
+            ]);
 
         Role::findOrCreate('order_manager')
             ->syncPermissions(['orders.view', 'orders.edit', 'products.view']);

@@ -18,6 +18,7 @@ use App\Modules\Migration\Infrastructure\Providers\MigrationServiceProvider;
 use App\Modules\Mobile\Infrastructure\Providers\MobileServiceProvider;
 use App\Modules\Notification\Infrastructure\Providers\NotificationServiceProvider;
 use App\Modules\Search\Infrastructure\Providers\SearchServiceProvider;
+use App\Modules\SocialCommerce\Infrastructure\Providers\SocialCommerceServiceProvider;
 use Illuminate\Support\ServiceProvider;
 
 final class ModuleAggregatorServiceProvider extends ServiceProvider
@@ -38,6 +39,7 @@ final class ModuleAggregatorServiceProvider extends ServiceProvider
         MigrationServiceProvider::class,
         MobileServiceProvider::class,
         SearchServiceProvider::class,
+        SocialCommerceServiceProvider::class,
     ];
 
     public function register(): void

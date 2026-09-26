@@ -37,15 +37,27 @@ final class ProductEducationalSpecsTest extends TestCase
             'difficulty_level' => 'Intermediate',
             'target_age' => '10-14',
             'key_benefits' => ['Hands-on labs', 'Curriculum aligned'],
-            'scientific_concepts' => ['Magnification', 'Cells'],
-            'design_lab_description' => 'Design a lens experiment.',
-            'creative_lab_description' => 'Create a micro-world story.',
+            'scientific_concepts' => ['en' => ['Magnification', 'Cells'], 'ar' => ['التكبير', 'الخلايا']],
+            'design_lab_description' => [
+                'en' => 'Design a lens experiment.',
+                'ar' => 'صمم تجربة عدسة.',
+            ],
+            'creative_lab_description' => [
+                'en' => 'Create a micro-world story.',
+                'ar' => 'ابتكر قصة عالم مصغر.',
+            ],
             'related_course_id' => $related->id,
         ]);
 
         app(ProductEducationalSpecSyncService::class)->syncCurriculumAlignments($product, [
-            ['grade_level' => 'Grade 6', 'lesson_name' => 'Cells'],
-            ['grade_level' => 'Grade 7', 'lesson_name' => 'Microscopy'],
+            [
+                'grade_level' => ['en' => 'Grade 6', 'ar' => 'الصف السادس'],
+                'lesson_name' => ['en' => 'Cells', 'ar' => 'الخلايا'],
+            ],
+            [
+                'grade_level' => ['en' => 'Grade 7', 'ar' => 'الصف السابع'],
+                'lesson_name' => ['en' => 'Microscopy', 'ar' => 'الميكروسكوب'],
+            ],
         ]);
 
         $product->addMedia(UploadedFile::fake()->image('gallery-1.jpg'))
@@ -53,7 +65,9 @@ final class ProductEducationalSpecsTest extends TestCase
         $product->addMedia(UploadedFile::fake()->image('concept-1.jpg'))
             ->toMediaCollection('concept_images');
 
-        $response = $this->getJson('/api/v1/products/edu-spec-kit')->assertOk();
+        $response = $this->getJson('/api/v1/products/edu-spec-kit', [
+            'Accept-Language' => 'en',
+        ])->assertOk();
 
         $response->assertJsonPath('data.difficulty_level', 'Intermediate')
             ->assertJsonPath('data.target_age', '10-14')
@@ -64,7 +78,7 @@ final class ProductEducationalSpecsTest extends TestCase
             ->assertJsonPath('data.curriculum_alignment.0.grade_level', 'Grade 6')
             ->assertJsonPath('data.curriculumAlignment.1.lesson_name', 'Microscopy')
             ->assertJsonPath('data.related_course.slug', 'intro-to-science')
-            ->assertJsonPath('data.relatedCourse.title', $related->getTranslation('title', app()->getLocale()))
+            ->assertJsonPath('data.relatedCourse.title', $related->getTranslation('title', 'en'))
             ->assertJsonPath('data.design_lab_description', 'Design a lens experiment.')
             ->assertJsonPath('data.type', 'bundle');
 
@@ -75,6 +89,38 @@ final class ProductEducationalSpecsTest extends TestCase
             'Design a lens experiment.',
             $response->json('data.related_course.design_lab_description')
         );
+
+        $ar = $this->getJson('/api/v1/products/edu-spec-kit', [
+            'Accept-Language' => 'ar',
+        ])->assertOk();
+
+        $ar->assertJsonPath('data.scientific_concepts.0', 'التكبير')
+            ->assertJsonPath('data.design_lab_description', 'صمم تجربة عدسة.')
+            ->assertJsonPath('data.creative_lab_description', 'ابتكر قصة عالم مصغر.')
+            ->assertJsonPath('data.curriculum_alignment.0.grade_level', 'الصف السادس')
+            ->assertJsonPath('data.curriculum_alignment.0.lesson_name', 'الخلايا')
+            ->assertJsonPath('data.related_course.design_lab_description', 'صمم تجربة عدسة.');
+    }
+
+    public function test_missing_translation_falls_back_to_available_locale(): void
+    {
+        $product = Product::query()->create([
+            'sku' => 'EDU-FALLBACK-1',
+            'slug' => 'edu-fallback',
+            'type' => ProductType::Kit,
+            'status' => ProductStatus::Published,
+            'price' => 100,
+            'currency' => 'EGP',
+            'published_at' => now(),
+            'name' => ['en' => 'Fallback Kit', 'ar' => 'حقيبة'],
+            'scientific_concepts' => ['en' => ['Only English']],
+            'design_lab_description' => ['en' => 'English only design lab'],
+        ]);
+
+        $this->getJson('/api/v1/products/edu-fallback', ['Accept-Language' => 'ar'])
+            ->assertOk()
+            ->assertJsonPath('data.scientific_concepts.0', 'Only English')
+            ->assertJsonPath('data.design_lab_description', 'English only design lab');
     }
 
     public function test_existing_product_image_collection_still_works(): void

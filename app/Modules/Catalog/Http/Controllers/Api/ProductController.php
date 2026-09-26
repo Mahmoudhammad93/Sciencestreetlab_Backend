@@ -20,7 +20,7 @@ final class ProductController extends Controller
     public function index(): JsonResponse
     {
         $items = collect($this->products->findPublished())
-            ->map(fn (Product $product) => $this->presenter->present($product))
+            ->map(fn (Product $product) => $this->presenter->present($product, ['with_reviews' => false]))
             ->values();
 
         return response()->json([

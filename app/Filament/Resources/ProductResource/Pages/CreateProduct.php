@@ -13,7 +13,7 @@ class CreateProduct extends CreateRecord
 {
     protected static string $resource = ProductResource::class;
 
-    /** @var list<array{grade_level?: string, lesson_name?: string}>|null */
+    /** @var list<array{grade_level?: array{en?: string, ar?: string}|string, lesson_name?: array{en?: string, ar?: string}|string}>|null */
     private ?array $pendingAlignments = null;
 
     /**

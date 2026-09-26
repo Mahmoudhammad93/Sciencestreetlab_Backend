@@ -277,13 +277,13 @@ $product = Product::query()->create([
     'difficulty_level' => 'Intermediate',
     'target_age' => '10-14',
     'key_benefits' => ['Hands-on', 'Aligned'],
-    'scientific_concepts' => ['Cells'],
-    'design_lab_description' => 'Design lab copy',
-    'creative_lab_description' => 'Creative lab copy',
+    'scientific_concepts' => ['en' => ['Cells']],
+    'design_lab_description' => ['en' => 'Design lab copy'],
+    'creative_lab_description' => ['en' => 'Creative lab copy'],
     'related_course_id' => $related->id,
 ]);
 app(ProductEducationalSpecSyncService::class)->syncCurriculumAlignments($product, [
-    ['grade_level' => 'Grade 6', 'lesson_name' => 'Cells'],
+    ['grade_level' => ['en' => 'Grade 6'], 'lesson_name' => ['en' => 'Cells']],
 ]);
 
 $prodHttp = Http::acceptJson()->get("{$base}/api/v1/products/{$product->slug}");
