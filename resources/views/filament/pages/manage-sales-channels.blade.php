@@ -3,7 +3,6 @@
     $totals = $this->totals;
     $channels = $this->channels;
     $activity = $this->activity;
-    $wizard = $this->wizardChannel;
     $manage = $this->managePanel;
     $isRtl = app()->getLocale() === 'ar';
     $noneConnected = (int) ($totals['connected'] ?? 0) === 0;
@@ -401,15 +400,14 @@
                 @foreach ($channels as $channel)
                     @php
                         $platform = $channel['platform'] ?? '';
-                        $statusClass = match ($channel['connection_status']) {
-                            'connected' => 'is-connected',
-                            'expired' => 'is-expired',
-                            default => 'is-idle',
-                        };
+                        $cardState = $channel['card_state'] ?? '';
+                        $statusClass = $channel['badge_class'] ?? 'is-idle';
+                        $isGoogle = $platform === 'google_merchant';
+                        $isYoutube = $platform === 'youtube_shopping';
                     @endphp
                     <article class="sc-channel">
-                        <div class="sc-channel__logo {{ $platform === 'youtube_shopping' ? 'is-youtube' : 'is-google' }}" aria-hidden="true">
-                            @if ($platform === 'youtube_shopping')
+                        <div class="sc-channel__logo {{ $isYoutube ? 'is-youtube' : 'is-google' }}" aria-hidden="true">
+                            @if ($isYoutube)
                                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <rect x="2" y="5" width="20" height="14" rx="4" fill="#FF0000"/>
                                     <path d="M10 9.5v5l5-2.5-5-2.5Z" fill="#fff"/>
@@ -427,51 +425,70 @@
                             <h2 class="sc-channel__name">{{ $channel['name'] }}</h2>
                             <div class="sc-channel__meta">
                                 <span class="sc-badge {{ $statusClass }}">
-                                    <span class="dot" aria-hidden="true"></span>
+                                    @if (in_array($cardState, ['setup_required', 'needs_attention'], true))
+                                        <span aria-hidden="true">⚠</span>
+                                    @elseif ($cardState === 'connected' || $cardState === 'eligibility_ready')
+                                        <span aria-hidden="true">✓</span>
+                                    @else
+                                        <span class="dot" aria-hidden="true"></span>
+                                    @endif
                                     {{ $channel['connection_label'] }}
                                 </span>
-                                @if ($channel['health_status'] === 'needs_attention' && $channel['connection_status'] === 'connected')
-                                    <span class="sc-badge is-attention">
-                                        <span aria-hidden="true">⚠</span>
-                                        {{ $channel['health_label'] }}
-                                    </span>
-                                @endif
                             </div>
                             <p class="sc-channel__summary">{{ $channel['summary'] }}</p>
-                            @if ($channel['connection_status'] === 'connected')
+                            @if ($isGoogle && $cardState === 'connected')
+                                @if (! empty($channel['merchant_label']))
+                                    <p class="sc-channel__sync">{{ __('sales_channels.setup.test_success_body', ['name' => $channel['merchant_label'], 'merchant' => $channel['masked_merchant_id'] ?? '']) }}</p>
+                                @endif
+                                <p class="sc-channel__sync">{{ __('sales_channels.summary.synced', ['count' => $channel['products_synced']]) }}</p>
                                 <p class="sc-channel__sync">{{ __('sales_channels.last_sync', ['time' => $channel['last_synced_human']]) }}</p>
-                            @endif
-                            @if (! empty($channel['issue']) && $channel['connection_status'] === 'connected' && $channel['health_status'] === 'needs_attention')
-                                <div class="sc-channel__issue">
-                                    <strong>{{ $channel['issue']['title'] }}</strong>
-                                    {{ $channel['issue']['message'] }}
-                                </div>
                             @endif
                         </div>
 
                         <div class="sc-channel__actions">
-                            @if ($channel['connection_status'] === 'not_connected' || $channel['connection_status'] === 'disconnected')
-                                <x-filament::button color="primary" wire:click="openWizard({{ $channel['id'] }})" :disabled="! $this->canConnect()">
-                                    {{ __('sales_channels.actions.connect') }}
-                                </x-filament::button>
-                            @elseif ($channel['connection_status'] === 'expired')
-                                <x-filament::button color="warning" wire:click="reconnect({{ $channel['id'] }})" :disabled="! $this->canConnect()">
-                                    {{ __('sales_channels.actions.reconnect') }}
-                                </x-filament::button>
-                            @else
-                                @if ($channel['products_needing_attention'] > 0)
-                                    <x-filament::button color="warning" wire:click="openManage({{ $channel['id'] }})">
-                                        {{ __('sales_channels.actions.fix_issues') }}
+                            @if ($isGoogle)
+                                @if ($cardState === 'setup_required')
+                                    @if ($channel['can_setup'])
+                                        <x-filament::button color="primary" wire:click="openGoogleSetup">
+                                            {{ __('sales_channels.actions.setup_channel') }}
+                                        </x-filament::button>
+                                    @endif
+                                @elseif ($cardState === 'ready_to_connect')
+                                    @if ($channel['can_setup'])
+                                        <x-filament::button color="primary" wire:click="openGoogleSetup">
+                                            {{ __('sales_channels.actions.test_and_connect') }}
+                                        </x-filament::button>
+                                    @endif
+                                @elseif ($cardState === 'needs_attention')
+                                    @if ($channel['can_setup'])
+                                        <x-filament::button color="warning" wire:click="openGoogleSetup">
+                                            {{ __('sales_channels.actions.fix_connection') }}
+                                        </x-filament::button>
+                                    @endif
+                                    @if ($channel['can_manage'])
+                                        <x-filament::button color="gray" wire:click="openManage({{ $channel['id'] }})">
+                                            {{ __('sales_channels.actions.manage') }}
+                                        </x-filament::button>
+                                    @endif
+                                @else
+                                    @if (($channel['products_needing_attention'] ?? 0) > 0)
+                                        <x-filament::button color="warning" wire:click="openManage({{ $channel['id'] }})">
+                                            {{ __('sales_channels.actions.fix_issues') }}
+                                        </x-filament::button>
+                                    @endif
+                                    <x-filament::button color="gray" wire:click="openManage({{ $channel['id'] }})" :disabled="! $channel['can_manage']">
+                                        {{ __('sales_channels.actions.manage') }}
                                     </x-filament::button>
+                                    <span @if (! empty($channel['sync_disabled_reason'])) title="{{ $channel['sync_disabled_reason'] }}" @endif>
+                                        <x-filament::button color="primary" wire:click="syncNow({{ $channel['id'] }})" :disabled="! $channel['can_sync']">
+                                            {{ __('sales_channels.actions.sync_now') }}
+                                        </x-filament::button>
+                                    </span>
                                 @endif
-                                <x-filament::button color="gray" wire:click="openManage({{ $channel['id'] }})" :disabled="! $channel['can_manage']">
-                                    {{ __('sales_channels.actions.manage') }}
+                            @elseif ($isYoutube)
+                                <x-filament::button color="gray" wire:click="openYoutubeGuide">
+                                    {{ __('sales_channels.actions.view_setup_instructions') }}
                                 </x-filament::button>
-                                <span @if ($channel['sync_disabled_reason']) title="{{ $channel['sync_disabled_reason'] }}" @endif>
-                                    <x-filament::button color="primary" wire:click="syncNow({{ $channel['id'] }})" :disabled="! $channel['can_sync']">
-                                        {{ __('sales_channels.actions.sync_now') }}
-                                    </x-filament::button>
-                                </span>
                             @endif
                         </div>
                     </article>
@@ -505,36 +522,134 @@
             @endif
         </section>
 
-        @if ($wizard)
+        @if ($this->showGoogleSetup && $this->canConfigureGoogle())
+            @php
+                $step = $this->googleSetupStep;
+                $testOk = (bool) ($this->setupTestResult['ok'] ?? false);
+                $testIssue = $this->setupTestResult['issue'] ?? null;
+                $readiness = $this->setupReadiness ?? ['ready' => 0, 'needs_attention' => 0, 'total' => 0];
+            @endphp
             <div class="sc-modal-backdrop" role="dialog" aria-modal="true">
-                <div class="sc-modal">
-                    <h2>{{ __('sales_channels.wizard.title', ['channel' => $wizard['name']]) }}</h2>
+                <div class="sc-modal" style="width:min(100%,36rem)">
+                    <h2>{{ __('sales_channels.setup.title') }}</h2>
                     <ol class="sc-steps">
-                        @foreach ([1, 2, 3, 4] as $step)
-                            <li class="{{ $this->wizardStep > $step ? 'is-done' : ($this->wizardStep === $step ? 'is-current' : '') }}">
+                        @foreach ([1, 2, 3, 4, 5] as $s)
+                            <li class="{{ $step > $s ? 'is-done' : ($step === $s ? 'is-current' : '') }}">
                                 <span class="mark" aria-hidden="true">
-                                    @if ($this->wizardStep > $step) ✓
-                                    @else {{ $step }}
+                                    @if ($step > $s) ✓
+                                    @else {{ $s }}
                                     @endif
                                 </span>
-                                {{ __('sales_channels.wizard.step'.$step) }}
+                                {{ __('sales_channels.setup.step'.$s) }}
                             </li>
                         @endforeach
                     </ol>
-                    <p class="sc-modal-body">{{ __('sales_channels.wizard.step'.$this->wizardStep.'_body') }}</p>
-                    @unless ($wizard['configured'])
-                        <div class="sc-modal-note">{{ __('sales_channels.wizard.blocked_note') }}</div>
-                    @endunless
-                    <div class="sc-modal-actions">
-                        <x-filament::button color="gray" wire:click="closeWizard">{{ __('sales_channels.actions.close') }}</x-filament::button>
-                        @if ($this->wizardStep > 1)
-                            <x-filament::button color="gray" wire:click="wizardBack">{{ __('sales_channels.actions.back') }}</x-filament::button>
-                        @endif
-                        @if ($this->wizardStep < 4)
-                            <x-filament::button color="primary" wire:click="wizardNext">{{ __('sales_channels.actions.next') }}</x-filament::button>
+
+                    @if ($step === 1)
+                        <div class="mt-4 space-y-2">
+                            <label class="text-xs font-semibold" style="color: var(--sc-muted)">{{ __('sales_channels.setup.merchant_id_label') }}</label>
+                            <input type="text" wire:model="setupMerchantId" inputmode="numeric" autocomplete="off" class="mt-1 w-full rounded-lg border-gray-300 text-sm dark:border-gray-600 dark:bg-gray-800">
+                            <p class="text-sm" style="color: var(--sc-muted)">{{ __('sales_channels.setup.merchant_id_help') }}</p>
+                        </div>
+                    @elseif ($step === 2)
+                        <p class="sc-modal-body">{{ __('sales_channels.setup.service_account_steps') }}</p>
+                        <div class="mt-3 space-y-2">
+                            <label class="text-xs font-semibold" style="color: var(--sc-muted)">{{ __('sales_channels.setup.service_account_label') }}</label>
+                            <textarea wire:model="setupServiceAccountJson" rows="8" autocomplete="off" class="mt-1 w-full rounded-lg border-gray-300 font-mono text-xs dark:border-gray-600 dark:bg-gray-800" placeholder='{"type":"service_account",...}'></textarea>
+                            <p class="text-sm" style="color: var(--sc-muted)">{{ __('sales_channels.setup.service_account_help') }}</p>
+                            <p class="text-sm" style="color: var(--sc-muted)">{{ __('sales_channels.setup.service_account_saved') }}</p>
+                        </div>
+                    @elseif ($step === 3)
+                        @if ($this->setupTestResult === null)
+                            <p class="sc-modal-body">{{ __('sales_channels.setup.step3') }}</p>
+                            <div class="sc-modal-actions" style="justify-content:flex-start">
+                                <x-filament::button color="primary" wire:click="runGoogleConnectionTest" wire:loading.attr="disabled">
+                                    {{ __('sales_channels.setup.test_button') }}
+                                </x-filament::button>
+                            </div>
+                        @elseif ($testOk)
+                            <div class="sc-modal-note" style="border-color: rgba(4,120,87,0.25); background: var(--sc-green-soft); color: var(--sc-green)">
+                                <strong>✓ {{ __('sales_channels.setup.test_success_title') }}</strong>
+                                <div class="mt-1">
+                                    {{ __('sales_channels.setup.test_success_body', [
+                                        'name' => $this->setupTestResult['account_name'] ?? 'ScienceStreetLab',
+                                        'merchant' => $this->setupTestResult['masked_merchant_id'] ?? '',
+                                    ]) }}
+                                </div>
+                            </div>
                         @else
-                            <x-filament::button color="primary" wire:click="activateChannel">{{ __('sales_channels.actions.activate') }}</x-filament::button>
+                            <div class="sc-modal-note">
+                                <strong>⚠ {{ __('sales_channels.setup.test_failure_title') }}</strong>
+                                @if (is_array($testIssue))
+                                    <div class="mt-1">{{ $testIssue['message'] ?? '' }}</div>
+                                @endif
+                            </div>
+                            <div class="sc-modal-actions" style="justify-content:flex-start">
+                                <x-filament::button color="warning" wire:click="runGoogleConnectionTest">
+                                    {{ __('sales_channels.actions.try_again') }}
+                                </x-filament::button>
+                            </div>
                         @endif
+                    @elseif ($step === 4)
+                        <p class="sc-modal-body" style="font-weight:700;color:var(--sc-ink)">{{ __('sales_channels.setup.readiness_title') }}</p>
+                        <div class="mt-3 space-y-2">
+                            <div class="rounded-xl border p-3" style="border-color: var(--sc-line); background: var(--sc-green-soft)">
+                                ✓ {{ __('sales_channels.setup.readiness_ready', ['count' => $readiness['ready']]) }}
+                            </div>
+                            <div class="rounded-xl border p-3" style="border-color: var(--sc-line); background: var(--sc-amber-soft)">
+                                ⚠ {{ __('sales_channels.setup.readiness_attention', ['count' => $readiness['needs_attention']]) }}
+                            </div>
+                        </div>
+                        @if (($readiness['needs_attention'] ?? 0) > 0)
+                            <div class="mt-3">
+                                <x-filament::button color="gray" wire:click="openGoogleAttentionProducts">
+                                    {{ __('sales_channels.actions.view_products_attention') }}
+                                </x-filament::button>
+                            </div>
+                        @endif
+                    @elseif ($step === 5)
+                        <p class="sc-modal-body" style="font-weight:700;color:var(--sc-ink)">{{ __('sales_channels.setup.activate_intro') }}</p>
+                        <ul class="mt-3 space-y-2 text-sm">
+                            <li>✓ {{ __('sales_channels.platforms.google_merchant') }} — {{ __('sales_channels.connection.connected') }}</li>
+                            <li>{{ __('sales_channels.setup.activate_products') }}: {{ __('sales_channels.setup.readiness_ready', ['count' => $readiness['ready']]) }} · {{ __('sales_channels.setup.readiness_attention', ['count' => $readiness['needs_attention']]) }}</li>
+                            <li>{{ __('sales_channels.setup.activate_auto_sync') }}: {{ __('sales_channels.setup.activate_enabled') }}</li>
+                        </ul>
+                    @endif
+
+                    <div class="sc-modal-actions">
+                        <x-filament::button color="gray" wire:click="closeGoogleSetup">{{ __('sales_channels.actions.close') }}</x-filament::button>
+                        @if ($step > 1 && $step !== 3)
+                            <x-filament::button color="gray" wire:click="googleSetupBack">{{ __('sales_channels.actions.back') }}</x-filament::button>
+                        @endif
+                        @if ($step === 1 || $step === 2 || $step === 4)
+                            <x-filament::button color="primary" wire:click="googleSetupNext">{{ __('sales_channels.actions.next') }}</x-filament::button>
+                        @elseif ($step === 3 && $testOk)
+                            <x-filament::button color="primary" wire:click="continueAfterGoogleTest">{{ __('sales_channels.actions.continue') }}</x-filament::button>
+                        @elseif ($step === 5)
+                            <x-filament::button color="primary" wire:click="activateGoogleChannel">{{ __('sales_channels.actions.activate_google') }}</x-filament::button>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        @if ($this->showYoutubeGuide)
+            @php
+                $ytChannel = collect($this->channels)->firstWhere('platform', 'youtube_shopping');
+                $checklist = $ytChannel['youtube_checklist'] ?? ['merchant' => false, 'feed' => false, 'eligibility' => false, 'store' => false];
+            @endphp
+            <div class="sc-modal-backdrop" role="dialog" aria-modal="true">
+                <div class="sc-modal">
+                    <h2>{{ __('sales_channels.youtube.guide_title') }}</h2>
+                    <ul class="mt-4 space-y-2 text-sm">
+                        <li>{{ ($checklist['merchant'] ?? false) ? '✓' : '○' }} {{ __('sales_channels.youtube.check_merchant') }}</li>
+                        <li>{{ ($checklist['feed'] ?? false) ? '✓' : '○' }} {{ __('sales_channels.youtube.check_feed') }}</li>
+                        <li>{{ ($checklist['eligibility'] ?? false) ? '✓' : '○' }} {{ __('sales_channels.youtube.check_eligibility') }}</li>
+                        <li>{{ ($checklist['store'] ?? false) ? '✓' : '○' }} {{ __('sales_channels.youtube.check_store') }}</li>
+                    </ul>
+                    <p class="sc-modal-body">{{ __('sales_channels.youtube.not_direct_api') }}</p>
+                    <div class="sc-modal-actions">
+                        <x-filament::button color="gray" wire:click="closeYoutubeGuide">{{ __('sales_channels.actions.close') }}</x-filament::button>
                     </div>
                 </div>
             </div>

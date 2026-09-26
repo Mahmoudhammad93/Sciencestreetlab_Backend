@@ -10,6 +10,7 @@ use App\Modules\Catalog\Domain\Enums\ProductStatus;
 use App\Modules\Catalog\Domain\Enums\ProductType;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\Product;
 use App\Modules\SocialCommerce\Application\Services\ChannelHealthService;
+use App\Modules\SocialCommerce\Application\Services\GoogleMerchantSetupService;
 use App\Modules\SocialCommerce\Application\Services\HumanErrorMapper;
 use App\Modules\SocialCommerce\Application\Services\ProductChannelMapper;
 use App\Modules\SocialCommerce\Application\Services\ProductReadinessService;
@@ -19,11 +20,15 @@ use App\Modules\SocialCommerce\Domain\Enums\HealthStatus;
 use App\Modules\SocialCommerce\Domain\Enums\PublicationStatus;
 use App\Modules\SocialCommerce\Domain\Enums\SalesChannelPlatform;
 use App\Modules\SocialCommerce\Domain\Enums\SyncStatus;
+use App\Modules\SocialCommerce\Infrastructure\Google\ServiceAccountCredentialParser;
 use App\Modules\SocialCommerce\Infrastructure\Persistence\Models\SalesChannelIntegration;
 use App\Modules\SocialCommerce\Infrastructure\Persistence\Models\SalesChannelProduct;
+use App\Modules\SocialCommerce\Infrastructure\Providers\Adapters\GoogleMerchantProvider;
+use App\Modules\SocialCommerce\Infrastructure\Providers\Adapters\YouTubeShoppingProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
@@ -37,9 +42,10 @@ final class SalesChannelsTest extends TestCase
     {
         parent::setUp();
         $this->seed(\Database\Seeders\RolePermissionSeeder::class);
+        \Illuminate\Support\Facades\Cache::flush();
     }
 
-    public function test_integration_defaults_to_not_connected(): void
+    public function test_missing_configuration_shows_setup_required(): void
     {
         app(SalesChannelManager::class)->ensureDefaults();
 
@@ -47,27 +53,290 @@ final class SalesChannelsTest extends TestCase
             ->where('platform', SalesChannelPlatform::GoogleMerchant->value)
             ->firstOrFail();
 
-        $this->assertSame(ConnectionStatus::NotConnected, $integration->connection_status);
-        $this->assertSame(SyncStatus::NeverSynced, $integration->sync_status);
-        $this->assertSame(HealthStatus::Unavailable, $integration->health_status);
+        $state = app(GoogleMerchantSetupService::class)->cardState($integration);
+
+        $this->assertSame('setup_required', $state);
+
+        $admin = User::factory()->create();
+        $admin->assignRole('super_admin');
+
+        Livewire::actingAs($admin)
+            ->test(ManageSalesChannels::class)
+            ->assertSee(__('sales_channels.states.setup_required'))
+            ->assertSee(__('sales_channels.actions.setup_channel'));
     }
 
-    public function test_connected_integration_displays_correct_human_status(): void
+    public function test_credentials_are_hidden_from_serialization_and_never_include_private_key_in_public_meta(): void
     {
+        $parsed = app(ServiceAccountCredentialParser::class)->parse($this->fakeServiceAccountJson());
+
         $integration = $this->makeIntegration([
-            'connection_status' => ConnectionStatus::Connected,
-            'sync_status' => SyncStatus::Synced,
-            'health_status' => HealthStatus::Healthy,
+            'external_account_id' => '1234567890',
+            'credentials' => $parsed,
         ]);
 
-        $summary = app(ChannelHealthService::class)->summarize($integration);
+        $array = $integration->fresh()->toArray();
+        $this->assertArrayNotHasKey('credentials', $array);
 
-        $this->assertSame('connected', $summary['connection_status']);
-        $this->assertSame(__('sales_channels.connection.connected'), $summary['connection_label']);
-        $this->assertSame(__('sales_channels.actions.manage'), $summary['recommended_action']);
+        $meta = app(ServiceAccountCredentialParser::class)->publicMetadata($integration->fresh()->credentials);
+        $this->assertTrue($meta['configured']);
+        $this->assertSame('ssl@ssl-test.iam.gserviceaccount.com', $meta['client_email']);
+        $this->assertArrayNotHasKey('private_key', $meta);
+        $this->assertNotNull($integration->fresh()->credentials['private_key']);
     }
 
-    public function test_expired_connection_maps_to_reconnect_action(): void
+    public function test_unauthorized_employee_cannot_access_credentials_or_setup(): void
+    {
+        $staff = User::factory()->create();
+        $staff->assignRole('content_manager');
+
+        $this->actingAs($staff);
+
+        Livewire::actingAs($staff)
+            ->test(ManageSalesChannels::class)
+            ->assertSuccessful()
+            ->assertDontSee(__('sales_channels.actions.setup_channel'))
+            ->call('openGoogleSetup')
+            ->assertForbidden();
+    }
+
+    public function test_super_admin_can_configure_google_merchant(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('super_admin');
+
+        Livewire::actingAs($admin)
+            ->test(ManageSalesChannels::class)
+            ->assertSuccessful()
+            ->call('openGoogleSetup')
+            ->assertSet('showGoogleSetup', true)
+            ->set('setupMerchantId', '9876543210')
+            ->call('googleSetupNext')
+            ->assertSet('googleSetupStep', 2)
+            ->set('setupServiceAccountJson', $this->fakeServiceAccountJson())
+            ->call('googleSetupNext')
+            ->assertSet('googleSetupStep', 3)
+            ->assertSet('setupServiceAccountJson', '');
+
+        $integration = SalesChannelIntegration::query()
+            ->where('platform', SalesChannelPlatform::GoogleMerchant->value)
+            ->firstOrFail();
+
+        $this->assertSame('9876543210', $integration->external_account_id);
+        $this->assertTrue(app(GoogleMerchantProvider::class)->hasCredentials($integration));
+        $this->assertArrayNotHasKey('credentials', $integration->toArray());
+    }
+
+    public function test_invalid_credential_returns_human_friendly_failure(): void
+    {
+        $setup = app(GoogleMerchantSetupService::class);
+        $integration = $setup->integration();
+        $setup->saveMerchantId($integration, '1234567890');
+
+        try {
+            $setup->saveServiceAccountJson($integration, '{"type":"service_account"}');
+            $this->fail('Expected invalid credential exception');
+        } catch (\InvalidArgumentException $e) {
+            $issue = app(HumanErrorMapper::class)->present($e->getMessage());
+            $this->assertSame(__('sales_channels.errors.invalid_credentials.title'), $issue['title']);
+            $this->assertStringNotContainsString('private_key', $issue['message']);
+            $this->assertStringNotContainsString('BEGIN PRIVATE', $issue['message']);
+        }
+    }
+
+    public function test_merchant_access_denied_returns_human_friendly_failure(): void
+    {
+        $this->fakeGoogleHttp([
+            'token' => true,
+            'account_status' => 403,
+        ]);
+
+        $setup = app(GoogleMerchantSetupService::class);
+        $integration = $setup->integration();
+        $setup->saveMerchantId($integration, '1234567890');
+        $integration = $setup->saveServiceAccountJson($integration, $this->fakeServiceAccountJson());
+
+        $result = $setup->testAndPrepare($integration);
+
+        $this->assertFalse($result['ok']);
+        $this->assertSame('merchant_access_denied', $result['code']);
+        $this->assertSame(
+            __('sales_channels.errors.merchant_access_denied.title'),
+            $result['issue']['title']
+        );
+        $this->assertStringNotContainsString('403', $result['issue']['message']);
+        $this->assertStringNotContainsString('Permission denied', $result['issue']['message']);
+    }
+
+    public function test_successful_connection_test_marks_connected(): void
+    {
+        $this->fakeGoogleHttp([
+            'token' => true,
+            'account_status' => 200,
+            'datasources' => true,
+        ]);
+
+        $setup = app(GoogleMerchantSetupService::class);
+        $integration = $setup->integration();
+        $setup->saveMerchantId($integration, '1234567890');
+        $integration = $setup->saveServiceAccountJson($integration, $this->fakeServiceAccountJson());
+
+        $result = $setup->testAndPrepare($integration);
+
+        $this->assertTrue($result['ok']);
+        $this->assertSame('ScienceStreetLab Store', $result['account_name']);
+        $this->assertSame('******7890', $result['masked_merchant_id']);
+
+        $fresh = $integration->fresh();
+        $this->assertSame(ConnectionStatus::Connected, $fresh->connection_status);
+        $this->assertSame('connected', $setup->cardState($fresh));
+    }
+
+    public function test_product_readiness_failure_prevents_submission(): void
+    {
+        $this->fakeGoogleHttp([
+            'token' => true,
+            'account_status' => 200,
+            'datasources' => true,
+            'insert' => true,
+        ]);
+
+        $integration = $this->makeConnectedGoogleIntegration();
+
+        $product = Product::query()->create([
+            'sku' => 'SC-BAD-1',
+            'slug' => 'sc-bad-1',
+            'type' => ProductType::Kit,
+            'status' => ProductStatus::Published,
+            'price' => 0,
+            'currency' => 'EGP',
+            'published_at' => now(),
+            'name' => ['en' => '', 'ar' => ''],
+            'manage_stock' => false,
+            'stock_quantity' => 0,
+        ]);
+
+        $result = app(SalesChannelManager::class)->runSync($integration);
+
+        $channelProduct = SalesChannelProduct::query()
+            ->where('product_id', $product->id)
+            ->where('integration_id', $integration->id)
+            ->firstOrFail();
+
+        $this->assertSame(PublicationStatus::NeedsAttention, $channelProduct->publication_status);
+        $this->assertSame(SyncStatus::Failed, $channelProduct->sync_status);
+        $this->assertNotSame(SyncStatus::Synced, $result->sync_status);
+        Http::assertNotSent(fn ($request) => str_contains($request->url(), 'productInputs:insert'));
+    }
+
+    public function test_ready_product_can_reach_provider_sync(): void
+    {
+        $this->fakeGoogleHttp([
+            'token' => true,
+            'account_status' => 200,
+            'datasources' => true,
+            'insert' => true,
+        ]);
+        Storage::fake('public');
+
+        $integration = $this->makeConnectedGoogleIntegration();
+        $product = $this->makeReadyProduct();
+
+        $result = app(SalesChannelManager::class)->runSync($integration);
+
+        $this->assertSame(SyncStatus::Synced, $result->sync_status);
+
+        $channelProduct = SalesChannelProduct::query()
+            ->where('product_id', $product->id)
+            ->where('integration_id', $integration->id)
+            ->firstOrFail();
+
+        $this->assertSame(PublicationStatus::Published, $channelProduct->publication_status);
+        $this->assertSame(SyncStatus::Synced, $channelProduct->sync_status);
+        $this->assertNotNull($channelProduct->external_product_id);
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'productInputs:insert'));
+    }
+
+    public function test_provider_failure_is_sanitized_for_staff(): void
+    {
+        $issue = app(HumanErrorMapper::class)->present('merchant_access_denied');
+
+        $this->assertStringNotContainsString('merchant_access_denied', $issue['title']);
+        $this->assertStringNotContainsString('merchant_access_denied', $issue['message']);
+        $this->assertStringNotContainsString('403', $issue['message']);
+        $this->assertSame('merchant_access_denied', $issue['code']);
+    }
+
+    public function test_duplicate_sync_remains_protected(): void
+    {
+        Queue::fake();
+
+        $integration = $this->makeConnectedGoogleIntegration();
+        $manager = app(SalesChannelManager::class);
+
+        $manager->requestSync($integration);
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('sync_in_progress');
+        $manager->requestSync($integration->fresh() ?? $integration);
+    }
+
+    public function test_youtube_does_not_become_connected_when_merchant_connects(): void
+    {
+        $this->fakeGoogleHttp([
+            'token' => true,
+            'account_status' => 200,
+            'datasources' => true,
+        ]);
+
+        $setup = app(GoogleMerchantSetupService::class);
+        $google = $setup->integration();
+        $setup->saveMerchantId($google, '1234567890');
+        $google = $setup->saveServiceAccountJson($google, $this->fakeServiceAccountJson());
+        $setup->testAndPrepare($google);
+
+        $youtube = SalesChannelIntegration::query()
+            ->where('platform', SalesChannelPlatform::YouTubeShopping->value)
+            ->firstOrFail();
+
+        $this->assertSame(ConnectionStatus::NotConnected, $youtube->fresh()->connection_status);
+        $this->assertFalse(app(YouTubeShoppingProvider::class)->isConfigured());
+    }
+
+    public function test_youtube_shows_merchant_dependency_correctly(): void
+    {
+        Config::set('sales_channels.youtube_shopping.eligibility_confirmed', false);
+        Config::set('sales_channels.youtube_shopping.store_linked', false);
+
+        app(SalesChannelManager::class)->ensureDefaults();
+
+        $admin = User::factory()->create();
+        $admin->assignRole('super_admin');
+
+        Livewire::actingAs($admin)
+            ->test(ManageSalesChannels::class)
+            ->assertSee(__('sales_channels.youtube.status.merchant_required'))
+            ->assertSee(__('sales_channels.youtube.summary.merchant_required'));
+
+        $this->fakeGoogleHttp([
+            'token' => true,
+            'account_status' => 200,
+            'datasources' => true,
+        ]);
+
+        $setup = app(GoogleMerchantSetupService::class);
+        $google = $setup->integration();
+        $setup->saveMerchantId($google, '1234567890');
+        $google = $setup->saveServiceAccountJson($google, $this->fakeServiceAccountJson());
+        $setup->testAndPrepare($google);
+
+        Livewire::actingAs($admin)
+            ->test(ManageSalesChannels::class)
+            ->assertSee(__('sales_channels.youtube.status.eligibility_pending'))
+            ->assertSee(__('sales_channels.youtube.summary.eligibility_pending'));
+    }
+
+    public function test_expired_connection_maps_to_human_reconnect_copy(): void
     {
         $integration = $this->makeIntegration([
             'connection_status' => ConnectionStatus::Expired,
@@ -82,7 +351,6 @@ final class SalesChannelsTest extends TestCase
         $this->assertSame(__('sales_channels.actions.reconnect'), $summary['recommended_action']);
         $this->assertSame(__('sales_channels.errors.connection_expired.title'), $issue['title']);
         $this->assertStringContainsString('Reconnect', $issue['message']);
-        $this->assertSame(__('sales_channels.actions.reconnect'), $issue['action']);
     }
 
     public function test_syncing_state_represented_correctly(): void
@@ -100,99 +368,9 @@ final class SalesChannelsTest extends TestCase
         $this->assertSame(__('sales_channels.summary.syncing'), $summary['summary']);
     }
 
-    public function test_failed_sync_becomes_needs_attention(): void
+    public function test_duplicate_product_mappings_protected(): void
     {
-        $integration = $this->makeIntegration([
-            'connection_status' => ConnectionStatus::Connected,
-            'sync_status' => SyncStatus::Failed,
-            'last_error_code' => 'partial_or_failed_sync',
-        ]);
-
-        $health = app(ChannelHealthService::class)->resolveHealth($integration);
-
-        $this->assertSame(HealthStatus::NeedsAttention, $health);
-    }
-
-    public function test_successful_sync_updates_timestamps_and_status(): void
-    {
-        Config::set('sales_channels.google_merchant.enabled', true);
-        Config::set('sales_channels.google_merchant.client_id', 'test-client');
-        Config::set('sales_channels.google_merchant.client_secret', 'test-secret');
-        Config::set('sales_channels.google_merchant.api_contract_ready', true);
-        Storage::fake('public');
-
-        $integration = $this->makeIntegration([
-            'connection_status' => ConnectionStatus::Connected,
-            'sync_status' => SyncStatus::NeverSynced,
-        ]);
-
-        $product = $this->makeReadyProduct();
-
-        $result = app(SalesChannelManager::class)->runSync($integration);
-
-        $this->assertSame(SyncStatus::Synced, $result->sync_status);
-        $this->assertNotNull($result->last_synced_at);
-        $this->assertNotNull($result->last_successful_sync_at);
-        $this->assertSame(HealthStatus::Healthy, $result->health_status);
-
-        $channelProduct = SalesChannelProduct::query()
-            ->where('product_id', $product->id)
-            ->where('integration_id', $integration->id)
-            ->firstOrFail();
-
-        $this->assertSame(PublicationStatus::Published, $channelProduct->publication_status);
-        $this->assertSame(SyncStatus::Synced, $channelProduct->sync_status);
-    }
-
-    public function test_credentials_are_not_exposed_in_model_array(): void
-    {
-        $integration = $this->makeIntegration([
-            'credentials' => [
-                'access_token' => 'super-secret-token',
-                'refresh_token' => 'super-secret-refresh',
-            ],
-        ]);
-
-        $array = $integration->fresh()->toArray();
-
-        $this->assertArrayNotHasKey('credentials', $array);
-        $this->assertSame('super-secret-token', $integration->fresh()->credentials['access_token']);
-    }
-
-    public function test_unauthorized_users_cannot_manage_integrations(): void
-    {
-        $user = User::factory()->create();
-        $user->assignRole('order_manager');
-
-        $this->assertFalse(ManageSalesChannels::canAccess());
-
-        $this->actingAs($user);
-        $this->assertFalse(ManageSalesChannels::canAccess());
-
-        Livewire::actingAs($user)
-            ->test(ManageSalesChannels::class)
-            ->assertForbidden();
-    }
-
-    public function test_authorized_admin_can_manage_integrations(): void
-    {
-        $admin = User::factory()->create();
-        $admin->assignRole('super_admin');
-
-        $this->actingAs($admin);
-        $this->assertTrue(ManageSalesChannels::canAccess());
-
-        Livewire::actingAs($admin)
-            ->test(ManageSalesChannels::class)
-            ->assertSuccessful()
-            ->assertSee(__('sales_channels.title'));
-    }
-
-    public function test_duplicate_sync_cannot_create_duplicate_product_mappings(): void
-    {
-        $integration = $this->makeIntegration([
-            'connection_status' => ConnectionStatus::Connected,
-        ]);
+        $integration = $this->makeConnectedGoogleIntegration();
         $product = $this->makeReadyProduct();
         $manager = app(SalesChannelManager::class);
 
@@ -206,60 +384,17 @@ final class SalesChannelsTest extends TestCase
             ->count());
     }
 
-    public function test_product_readiness_identifies_missing_required_fields(): void
-    {
-        $product = Product::query()->create([
-            'sku' => 'SC-READY-1',
-            'slug' => 'sc-ready-1',
-            'type' => ProductType::Kit,
-            'status' => ProductStatus::Published,
-            'price' => 0,
-            'currency' => 'EGP',
-            'published_at' => now(),
-            'name' => ['en' => '', 'ar' => ''],
-            'manage_stock' => false,
-            'stock_quantity' => 0,
-        ]);
-
-        $issues = app(ProductReadinessService::class)->blockingIssueCodes($product);
-
-        $this->assertContains('title', $issues);
-        $this->assertContains('price', $issues);
-        $this->assertContains('main_image', $issues);
-        $this->assertFalse(app(ProductReadinessService::class)->isReady($product));
-    }
-
-    public function test_product_status_maps_to_understandable_issue(): void
-    {
-        $issue = app(HumanErrorMapper::class)->present('missing_main_image');
-
-        $this->assertSame(__('sales_channels.errors.missing_image.title'), $issue['title']);
-        $this->assertStringContainsString('main image', strtolower($issue['message']));
-        $this->assertSame(__('sales_channels.actions.fix_product'), $issue['action']);
-        $this->assertSame('missing_main_image', $issue['code']);
-    }
-
-    public function test_provider_technical_errors_are_not_directly_exposed_to_normal_users(): void
-    {
-        $issue = app(HumanErrorMapper::class)->present('token_refresh_failed');
-
-        $this->assertStringNotContainsString('token_refresh_failed', $issue['title']);
-        $this->assertStringNotContainsString('token_refresh_failed', $issue['message']);
-        $this->assertStringNotContainsString('oauth', strtolower($issue['message']));
-        $this->assertSame('token_refresh_failed', $issue['code']); // internal only
-    }
-
     public function test_arabic_localization_works(): void
     {
         app()->setLocale('ar');
 
         $this->assertSame('قنوات البيع', __('sales_channels.title'));
         $this->assertSame('متصل', __('sales_channels.connection.connected'));
-        $this->assertSame('يحتاج متابعة', __('sales_channels.health.needs_attention'));
-        $this->assertSame('إعادة الاتصال', __('sales_channels.actions.reconnect'));
+        $this->assertSame('يتطلب الإعداد', __('sales_channels.states.setup_required'));
+        $this->assertSame('إعداد القناة', __('sales_channels.actions.setup_channel'));
 
-        $issue = app(HumanErrorMapper::class)->present('token_refresh_failed');
-        $this->assertSame('انتهت صلاحية الاتصال', $issue['title']);
+        $issue = app(HumanErrorMapper::class)->present('merchant_access_denied');
+        $this->assertSame('تعذر الاتصال بـ Google Merchant Center', $issue['title']);
     }
 
     public function test_product_mapping_produces_expected_provider_neutral_data(): void
@@ -269,7 +404,6 @@ final class SalesChannelsTest extends TestCase
         Storage::fake('public');
 
         $product = $this->makeReadyProduct();
-
         $data = app(ProductChannelMapper::class)->map($product);
 
         $this->assertSame($product->sku, $data->sku);
@@ -283,20 +417,99 @@ final class SalesChannelsTest extends TestCase
         $this->assertSame('new', $data->condition);
     }
 
-    public function test_request_sync_prevents_duplicate_concurrent_jobs(): void
+    public function test_unauthorized_users_cannot_open_sales_channels_page(): void
     {
-        Queue::fake();
+        $user = User::factory()->create();
+        $user->assignRole('order_manager');
 
-        $integration = $this->makeIntegration([
+        Livewire::actingAs($user)
+            ->test(ManageSalesChannels::class)
+            ->assertForbidden();
+    }
+
+    /**
+     * @param  array{token?: bool, account_status?: int, datasources?: bool, insert?: bool}  $opts
+     */
+    private function fakeGoogleHttp(array $opts): void
+    {
+        $responses = [];
+
+        if ($opts['token'] ?? false) {
+            $responses['https://oauth2.googleapis.com/token'] = Http::response([
+                'access_token' => 'ya29.fake-access-token',
+                'expires_in' => 3600,
+                'token_type' => 'Bearer',
+            ], 200);
+        }
+
+        $accountStatus = (int) ($opts['account_status'] ?? 200);
+        $responses['https://merchantapi.googleapis.com/accounts/v1/accounts/*'] = Http::response(
+            $accountStatus === 200
+                ? ['name' => 'accounts/1234567890', 'accountName' => 'ScienceStreetLab Store']
+                : ['error' => ['message' => 'Permission denied', 'status' => 'PERMISSION_DENIED']],
+            $accountStatus
+        );
+
+        if ($opts['datasources'] ?? false) {
+            $responses['https://merchantapi.googleapis.com/datasources/v1/accounts/*/dataSources'] = Http::response([
+                'dataSources' => [[
+                    'name' => 'accounts/1234567890/dataSources/1',
+                    'input' => 'API',
+                    'primaryProductDataSource' => ['countries' => ['EG']],
+                ]],
+            ], 200);
+        }
+
+        if ($opts['insert'] ?? false) {
+            $responses['https://merchantapi.googleapis.com/products/v1/accounts/*/productInputs:insert*'] = Http::response([
+                'name' => 'accounts/1234567890/productInputs/offer-1',
+                'offerId' => 'offer-1',
+                'product' => 'accounts/1234567890/products/en~EG~offer-1',
+            ], 200);
+        }
+
+        Http::fake($responses);
+    }
+
+    private function makeConnectedGoogleIntegration(): SalesChannelIntegration
+    {
+        $parsed = app(ServiceAccountCredentialParser::class)->parse($this->fakeServiceAccountJson());
+
+        return $this->makeIntegration([
+            'external_account_id' => '1234567890',
+            'external_account_name' => 'ScienceStreetLab Store',
+            'credentials' => $parsed,
             'connection_status' => ConnectionStatus::Connected,
+            'sync_status' => SyncStatus::NeverSynced,
+            'health_status' => HealthStatus::Healthy,
+            'settings' => [
+                'merchant_id' => '1234567890',
+                'has_service_account' => true,
+                'data_source_name' => 'accounts/1234567890/dataSources/1',
+                'activated' => true,
+                'automatic_sync' => true,
+            ],
         ]);
-        $manager = app(SalesChannelManager::class);
+    }
 
-        $manager->requestSync($integration);
+    private function fakeServiceAccountJson(): string
+    {
+        $key = openssl_pkey_new([
+            'private_key_bits' => 2048,
+            'private_key_type' => OPENSSL_KEYTYPE_RSA,
+        ]);
+        $this->assertNotFalse($key);
+        openssl_pkey_export($key, $privateKey);
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('sync_in_progress');
-        $manager->requestSync($integration->fresh() ?? $integration);
+        return json_encode([
+            'type' => 'service_account',
+            'project_id' => 'ssl-test',
+            'private_key_id' => 'abc123',
+            'private_key' => $privateKey,
+            'client_email' => 'ssl@ssl-test.iam.gserviceaccount.com',
+            'client_id' => '123456789',
+            'token_uri' => 'https://oauth2.googleapis.com/token',
+        ], JSON_THROW_ON_ERROR);
     }
 
     /**

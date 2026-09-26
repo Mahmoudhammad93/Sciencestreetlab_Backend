@@ -99,7 +99,9 @@ Examples:
 | --- | --- | --- |
 | `token_refresh_failed` | Connection expired | Reconnect |
 | `missing_main_image` | Product needs attention | Fix Product |
-| `provider_not_configured` | Channel not ready | Connect (after admin setup) |
+| `provider_not_configured` | Setup required | Setup Channel |
+| `merchant_access_denied` | Couldn't connect to Merchant Center | Try Again |
+| `invalid_service_account` | Invalid service account | Try Again |
 
 Primary UI must never show raw codes like `oauth_failed`, `invalid_grant`, or `merchant_api_403`.
 
@@ -115,16 +117,10 @@ Primary UI must never show raw codes like `oauth_failed`, `invalid_grant`, or `m
 
 Implementations:
 
-- `GoogleMerchantProvider`
-- `YouTubeShoppingProvider`
+- `GoogleMerchantProvider` — live Merchant API (Accounts, Data Sources, Product Inputs)
+- `YouTubeShoppingProvider` — readiness / dependency only (no fabricated YouTube product API)
 
-Both extend `BlockedProviderAdapter`, which refuses live work until:
-
-1. `enabled` is true
-2. client id/secret are present
-3. `api_contract_ready` is true
-
-Google/YouTube HTTP contracts and OAuth scopes are **not invented** in this codebase.
+HTTP and auth live under `Infrastructure/Google/` (`GoogleServiceAccountTokenProvider`, `GoogleMerchantApiClient`, `ServiceAccountCredentialParser`).
 
 ## Product Mapping
 
@@ -149,11 +145,13 @@ Providers must consume the DTO — do not re-map inside adapters.
 
 Staff see **Needs Attention** with Fix Product — not API errors.
 
+Products that fail readiness are **never** submitted to Merchant API.
+
 ## Background Sync
 
 - `SyncSalesChannelProductsJob` is queued, retryable, and updates integration + product statuses
 - `SalesChannelManager::requestSync()` uses a cache lock to prevent duplicate concurrent syncs
-- Filament never calls external APIs in the request lifecycle
+- Connection testing runs server-side from the Super Admin setup wizard (not from normal staff actions)
 
 Automatic path: product save → `ProductSalesChannelSyncRequested` → listener queues sync for connected channels.
 
@@ -171,9 +169,26 @@ Landing page:
 2. Large channel cards with status + actions
 3. Simplified activity feed
 
-Connecting uses a 4-step wizard (progress: ✓ / ● / ○).
+### Google Merchant card states
 
-**Advanced Settings** is secondary and permission-gated; secrets are never redisplayed after save.
+| State | Badge | Primary action (Super Admin) |
+| --- | --- | --- |
+| A Setup Required | ⚠ Setup Required | Setup Channel |
+| B Ready to connect | ○ Not Connected | Test & Connect |
+| C Connected | ✓ Connected | Sync Now / Manage |
+| D Needs Attention | ⚠ Needs Attention | Fix Connection |
+
+Normal staff never see service-account JSON, private keys, API endpoints, or Google exception bodies.
+
+### Super Admin setup wizard (5 steps)
+
+1. Merchant Center Account ID
+2. Service account JSON (encrypted at rest; never redisplayed)
+3. Test Connection (real `accounts.get` + ensure API data source)
+4. Product Readiness summary
+5. Activate Google Shopping
+
+**Advanced Settings** remains secondary and permission-gated.
 
 Product edit form includes a **Sales Channels** section (Website + each channel).
 
@@ -182,10 +197,10 @@ Product edit form includes a **Sales Channels** section (Website + each channel)
 | Permission | Purpose |
 | --- | --- |
 | `sales_channels.view` | Open dashboard |
-| `sales_channels.manage` | Manage / fix issues |
-| `sales_channels.connect` | Connect / reconnect wizard |
+| `sales_channels.manage` | Manage / fix product issues |
+| `sales_channels.connect` | Legacy connect permission (Google setup uses technical) |
 | `sales_channels.sync` | Sync Now |
-| `sales_channels.view_technical_logs` | Advanced settings / technical context |
+| `sales_channels.view_technical_logs` | Credential setup wizard + advanced settings |
 
 `super_admin` receives all. `content_manager` gets view + sync only (no credentials).
 
@@ -198,72 +213,135 @@ Product edit form includes a **Sales Channels** section (Website + each channel)
 
 ## Security
 
-- Credentials cast as `encrypted:array` and `$hidden` on the model
-- Env-based client secrets (`config/sales_channels.php`) — not editable in normal UI
-- Advanced settings limited to technical permission / super_admin
-- No complete secrets shown after save
+- Service-account credentials cast as `encrypted:array` and `$hidden` on the model
+- Never returned from API resources or Livewire public props after save
+- Never printed in logs (sanitized codes only)
+- Never placed in frontend JavaScript or public storage
+- Never committed to the repository
+- Public metadata for technical admins: `client_email` / `project_id` only (no `private_key`)
 
-## Google Merchant Readiness
+## Google Merchant Production Setup
 
-Implemented:
+ScienceStreetLab manages its **own** Merchant Center account (in-house), not arbitrary customer accounts.
 
-- Integration row, statuses, health, readiness, mapper, job, admin card/wizard
-- Provider adapter boundary
+### Authentication architecture
 
-Blocked until external prerequisites:
-
-- Official Google Cloud OAuth client
-- Confirmed Merchant Center account + eligibility
-- Confirmed Content API / Merchant API contract and scopes
-- `SALES_CHANNEL_GOOGLE_*` env flags
-
-## YouTube Shopping Readiness
-
-Implemented: same architecture as Google Merchant via `YouTubeShoppingProvider`.
-
-Blocked until:
-
-- Confirmed YouTube Shopping / affiliate onboarding path for this account
-- Eligibility for the intended Merchant ↔ YouTube linkage
-- Official API/docs for the chosen path
-- `SALES_CHANNEL_YOUTUBE_*` env flags
-
-Do **not** assume ScienceStreetLab is eligible for a specific YouTube Shopping onboarding path.
-
-## External Prerequisites
-
-Still required before live publish:
-
-1. Google OAuth client ID + secret (and any Merchant-specific credentials)
-2. Google Merchant Center account ID / access
-3. Documented OAuth scopes and API endpoints from Google
-4. Confirmation of YouTube Shopping eligibility and onboarding docs
-5. Set in `.env`:
-
-```env
-SALES_CHANNEL_GOOGLE_MERCHANT_ENABLED=true
-SALES_CHANNEL_GOOGLE_CLIENT_ID=...
-SALES_CHANNEL_GOOGLE_CLIENT_SECRET=...
-SALES_CHANNEL_GOOGLE_API_CONTRACT_READY=true
-
-SALES_CHANNEL_YOUTUBE_ENABLED=true
-SALES_CHANNEL_YOUTUBE_API_CONTRACT_READY=true
+```
+Google Cloud Project
+       ↓
+Merchant API enabled
+       ↓
+Service Account
+       ↓
+Service Account granted access in Merchant Center
+       ↓
+ScienceStreetLab backend (encrypted credentials)
+       ↓
+Merchant API (JWT → OAuth token, scope auth/content)
 ```
 
-Flip `api_contract_ready` only after the real contract is implemented in the adapter.
+Do **not** use API keys for Merchant API authentication.
+
+Official pieces used by this codebase:
+
+| Piece | Value |
+| --- | --- |
+| OAuth scope | `https://www.googleapis.com/auth/content` |
+| Token URI | `https://oauth2.googleapis.com/token` |
+| Accounts API | `https://merchantapi.googleapis.com/accounts/v1` |
+| Products API | `https://merchantapi.googleapis.com/products/v1` |
+| Data Sources API | `https://merchantapi.googleapis.com/datasources/v1` |
+| Connection test | `accounts.get` |
+| Product sync | `productInputs.insert` into an API primary data source |
+
+### Steps for the Super Admin (Mahmoud)
+
+1. **Google Cloud**
+   - Create/select a Cloud project for ScienceStreetLab
+   - Enable **Merchant API**
+   - Create a **service account**
+   - Download the JSON key (keep offline; do not commit)
+2. **Merchant Center**
+   - Note the **Merchant Center Account ID** (top-right / Settings)
+   - Users → add the service account email → Admin (or access sufficient for Accounts + Products + Data Sources)
+3. **ScienceStreetLab admin**
+   - Open Sales Channels → Google Merchant → **Setup Channel**
+   - Enter Merchant ID → paste service-account JSON → **Test Connection**
+   - Review product readiness → **Activate Google Shopping**
+
+### Credential security
+
+Credentials are stored only in `sales_channel_integrations.credentials` (`encrypted:array`). After save, the wizard clears the textarea and never redisplays `private_key`.
+
+### Test Connection
+
+Success → `connection_status = connected`, activity: “Google Merchant Center connected”.
+
+Failure → human-friendly “We couldn't connect…” (access denied / invalid merchant / invalid credentials). Technical codes stay in logs/DB for authorized users only.
+
+### Product sync
+
+```
+Product → ProductReadinessService → ProductChannelMapper → GoogleMerchantProvider → Merchant API → SalesChannelProduct
+```
+
+Optional env defaults (not secrets):
+
+```env
+SALES_CHANNEL_GOOGLE_CONTENT_LANGUAGE=en
+SALES_CHANNEL_GOOGLE_FEED_LABEL=EG
+SALES_CHANNEL_GOOGLE_PRIMARY_COUNTRY=EG
+SALES_CHANNEL_GOOGLE_DATA_SOURCE_NAME="ScienceStreetLab API Primary"
+```
+
+### Troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| Setup Required | Merchant ID + service account not saved yet |
+| Invalid service account | JSON type must be `service_account` with usable private key |
+| Couldn't connect / access | Service account email must be a Merchant Center user |
+| Merchant not found | Confirm Account ID digits |
+| Products Need Attention | Fix catalog fields (image, price, title) before sync |
+
+## YouTube Shopping Dependency
+
+Merchant product sync and YouTube Shopping channel/store onboarding are **separate**.
+
+- Connecting Google Merchant does **not** mark YouTube as Connected
+- This app does **not** invent a direct YouTube Shopping product-publish API
+- YouTube card states:
+  - Before Merchant: “Google Merchant setup required”
+  - After Merchant: “Ready for eligibility check”
+- Eligibility / store linkage flags (ops-confirmed only):
+
+```env
+SALES_CHANNEL_YOUTUBE_ELIGIBILITY_CONFIRMED=false
+SALES_CHANNEL_YOUTUBE_STORE_LINKED=false
+```
+
+Flip these only after YouTube Studio / official onboarding confirms eligibility and store linkage. Never claim eligibility without that confirmation.
+
+### YouTube Studio (external)
+
+1. Confirm the brand YouTube channel is eligible for Shopping
+2. Link the Merchant product source through Google’s supported onboarding path
+3. Set the env flags above when confirmed
 
 ## Testing
 
 Focused suite: `tests/Feature/SocialCommerce/SalesChannelsTest.php`
 
-Covers defaults, human statuses, reconnect mapping, syncing/failed health, successful sync, hidden credentials, permissions, duplicate mappings, readiness, error mapping, Arabic labels, product mapping, duplicate sync lock.
+Covers setup-required state, hidden credentials, unauthorized staff, Super Admin configure, invalid credentials, access denied, successful test → Connected, readiness blocks submit, ready product sync (Http fake), sanitized errors, duplicate sync lock, YouTube dependency (no auto-connect), Arabic labels, product mapping.
 
 Run:
 
 ```bash
-php artisan test --filter=SalesChannelsTest
+php artisan test --filter=SalesChannels
 php artisan test
 ```
+
+Never require real Google credentials in automated tests.
 
 ## Future Providers
 

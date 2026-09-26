@@ -12,7 +12,7 @@ final class HumanErrorMapper
     public function map(?string $technicalCode): array
     {
         return match ($technicalCode) {
-            'token_refresh_failed', 'oauth_expired', 'invalid_grant' => [
+            'token_refresh_failed', 'oauth_expired', 'invalid_grant', 'token_exchange_failed' => [
                 'title_key' => 'sales_channels.errors.connection_expired.title',
                 'message_key' => 'sales_channels.errors.connection_expired.message',
                 'action_key' => 'sales_channels.actions.reconnect',
@@ -32,10 +32,30 @@ final class HumanErrorMapper
                 'message_key' => 'sales_channels.errors.missing_title.message',
                 'action_key' => 'sales_channels.actions.fix_product',
             ],
-            'provider_not_configured', 'credentials_missing' => [
+            'provider_not_configured', 'credentials_missing', 'data_source_missing' => [
                 'title_key' => 'sales_channels.errors.not_configured.title',
                 'message_key' => 'sales_channels.errors.not_configured.message',
-                'action_key' => 'sales_channels.actions.connect',
+                'action_key' => 'sales_channels.actions.setup_channel',
+            ],
+            'invalid_service_account', 'invalid_credentials' => [
+                'title_key' => 'sales_channels.errors.invalid_credentials.title',
+                'message_key' => 'sales_channels.errors.invalid_credentials.message',
+                'action_key' => 'sales_channels.actions.try_again',
+            ],
+            'merchant_access_denied' => [
+                'title_key' => 'sales_channels.errors.merchant_access_denied.title',
+                'message_key' => 'sales_channels.errors.merchant_access_denied.message',
+                'action_key' => 'sales_channels.actions.try_again',
+            ],
+            'invalid_merchant_id', 'merchant_not_found', 'invalid_merchant' => [
+                'title_key' => 'sales_channels.errors.invalid_merchant.title',
+                'message_key' => 'sales_channels.errors.invalid_merchant.message',
+                'action_key' => 'sales_channels.actions.try_again',
+            ],
+            'product_sync_failed', 'merchant_api_error' => [
+                'title_key' => 'sales_channels.errors.generic.title',
+                'message_key' => 'sales_channels.errors.generic.message',
+                'action_key' => 'sales_channels.actions.fix_issues',
             ],
             'sync_in_progress' => [
                 'title_key' => 'sales_channels.errors.sync_in_progress.title',
