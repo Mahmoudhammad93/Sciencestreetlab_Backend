@@ -33,7 +33,7 @@ final class ProductPresenter
 
         $payload['difficulty_level'] = $product->difficulty_level;
         $payload['target_age'] = $product->target_age;
-        $payload['key_benefits'] = $product->key_benefits ?? [];
+        $payload['key_benefits'] = $this->localizedList($product, 'key_benefits', $locale, $fallback);
         $payload['scientific_concepts'] = $this->localizedList($product, 'scientific_concepts', $locale, $fallback);
         $payload['design_lab_description'] = $this->localizedString($product, 'design_lab_description', $locale, $fallback);
         $payload['creative_lab_description'] = $this->localizedString($product, 'creative_lab_description', $locale, $fallback);
@@ -174,23 +174,61 @@ final class ProductPresenter
     private function localizedList(object $model, string $field, string $locale, string $fallback): array
     {
         $value = $model->getTranslation($field, $locale, false);
-        if (is_array($value)) {
-            return array_values(array_filter($value, fn ($item) => is_string($item) && $item !== ''));
+        if ($this->isStringList($value)) {
+            return $this->normalizeStringList($value);
         }
 
         $fallbackValue = $model->getTranslation($field, $fallback, false);
-        if (is_array($fallbackValue)) {
-            return array_values(array_filter($fallbackValue, fn ($item) => is_string($item) && $item !== ''));
+        if ($this->isStringList($fallbackValue)) {
+            return $this->normalizeStringList($fallbackValue);
         }
 
         if (method_exists($model, 'getTranslations')) {
-            foreach ($model->getTranslations($field) as $candidate) {
-                if (is_array($candidate)) {
-                    return array_values(array_filter($candidate, fn ($item) => is_string($item) && $item !== ''));
+            $all = $model->getTranslations($field);
+
+            // Legacy flat list stored before EN/AR localization (e.g. key_benefits).
+            if ($this->isStringList($all)) {
+                return $this->normalizeStringList($all);
+            }
+
+            foreach ($all as $candidate) {
+                if ($this->isStringList($candidate)) {
+                    return $this->normalizeStringList($candidate);
                 }
             }
         }
 
         return [];
+    }
+
+    /**
+     * @param  mixed  $value
+     */
+    private function isStringList(mixed $value): bool
+    {
+        if (! is_array($value) || $value === []) {
+            return is_array($value) && $value === [];
+        }
+
+        if (! array_is_list($value)) {
+            return false;
+        }
+
+        foreach ($value as $item) {
+            if (! is_string($item)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @param  list<mixed>  $value
+     * @return list<string>
+     */
+    private function normalizeStringList(array $value): array
+    {
+        return array_values(array_filter($value, fn ($item) => is_string($item) && $item !== ''));
     }
 }

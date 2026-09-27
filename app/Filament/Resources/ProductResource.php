@@ -197,9 +197,13 @@ class ProductResource extends Resource
                         ->all())
                     ->searchable()
                     ->nullable(),
-                Forms\Components\TagsInput::make('key_benefits')
-                    ->label(__('admin.products.fields.key_benefits'))
-                    ->placeholder(__('admin.products.fields.key_benefits_placeholder'))
+                Forms\Components\TagsInput::make('key_benefits.en')
+                    ->label(__('admin.products.fields.key_benefits_en'))
+                    ->placeholder(__('admin.products.fields.key_benefits_en_placeholder'))
+                    ->columnSpanFull(),
+                Forms\Components\TagsInput::make('key_benefits.ar')
+                    ->label(__('admin.products.fields.key_benefits_ar'))
+                    ->placeholder(__('admin.products.fields.key_benefits_ar_placeholder'))
                     ->columnSpanFull(),
                 Forms\Components\TagsInput::make('scientific_concepts.en')
                     ->label(__('admin.products.fields.concepts_en'))

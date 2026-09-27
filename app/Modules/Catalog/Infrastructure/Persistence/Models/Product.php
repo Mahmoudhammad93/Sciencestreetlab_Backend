@@ -30,6 +30,7 @@ class Product extends Model implements HasMedia
         'description',
         'meta_title',
         'meta_description',
+        'key_benefits',
         'scientific_concepts',
         'design_lab_description',
         'creative_lab_description',
@@ -66,7 +67,6 @@ class Product extends Model implements HasMedia
             'manage_stock' => 'boolean',
             'is_featured' => 'boolean',
             'published_at' => 'datetime',
-            'key_benefits' => 'array',
         ];
     }
 

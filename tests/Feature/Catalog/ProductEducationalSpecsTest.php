@@ -37,7 +37,10 @@ final class ProductEducationalSpecsTest extends TestCase
             'name' => ['en' => 'Microscope Package', 'ar' => 'باقة المجهر'],
             'difficulty_level' => 'Intermediate',
             'target_age' => '10-14',
-            'key_benefits' => ['Hands-on labs', 'Curriculum aligned'],
+            'key_benefits' => [
+                'en' => ['Hands-on labs', 'Curriculum aligned'],
+                'ar' => ['تجارب عملية', 'متوافق مع المنهج'],
+            ],
             'scientific_concepts' => ['en' => ['Magnification', 'Cells'], 'ar' => ['التكبير', 'الخلايا']],
             'design_lab_description' => [
                 'en' => 'Design a lens experiment.',
@@ -77,6 +80,7 @@ final class ProductEducationalSpecsTest extends TestCase
             ->assertJsonPath('data.difficultyLevel', 'Intermediate')
             ->assertJsonPath('data.targetAge', '10-14')
             ->assertJsonPath('data.key_benefits.0', 'Hands-on labs')
+            ->assertJsonPath('data.keyBenefits.1', 'Curriculum aligned')
             ->assertJsonPath('data.scientific_concepts.1', 'Cells')
             ->assertJsonPath('data.curriculum_alignment.0.grade_level', 'Grade 6')
             ->assertJsonPath('data.curriculumAlignment.1.lesson_name', 'Microscopy')
@@ -101,6 +105,8 @@ final class ProductEducationalSpecsTest extends TestCase
         ])->assertOk();
 
         $ar->assertJsonPath('data.scientific_concepts.0', 'التكبير')
+            ->assertJsonPath('data.key_benefits.0', 'تجارب عملية')
+            ->assertJsonPath('data.keyBenefits.1', 'متوافق مع المنهج')
             ->assertJsonPath('data.design_lab_description', 'صمم تجربة عدسة.')
             ->assertJsonPath('data.design_lab.text', 'صمم تجربة عدسة.')
             ->assertJsonPath('data.creative_lab_description', 'ابتكر قصة عالم مصغر.')
@@ -245,6 +251,30 @@ final class ProductEducationalSpecsTest extends TestCase
             ->assertJsonPath('data.design_lab_description', 'English only design lab')
             ->assertJsonPath('data.design_lab.text', 'English only design lab')
             ->assertJsonPath('data.design_lab.image', null);
+    }
+
+    public function test_legacy_flat_key_benefits_still_expose_via_api(): void
+    {
+        $product = Product::query()->create([
+            'sku' => 'EDU-LEGACY-BEN',
+            'slug' => 'edu-legacy-benefits',
+            'type' => ProductType::Kit,
+            'status' => ProductStatus::Published,
+            'price' => 100,
+            'currency' => 'EGP',
+            'published_at' => now(),
+            'name' => ['en' => 'Legacy Benefits', 'ar' => 'فوائد قديمة'],
+        ]);
+
+        // Simulate pre-localization storage shape.
+        \Illuminate\Support\Facades\DB::table('products')->where('id', $product->id)->update([
+            'key_benefits' => json_encode(['Hands-on', 'Aligned'], JSON_UNESCAPED_UNICODE),
+        ]);
+
+        $this->getJson('/api/v1/products/edu-legacy-benefits', ['Accept-Language' => 'en'])
+            ->assertOk()
+            ->assertJsonPath('data.key_benefits.0', 'Hands-on')
+            ->assertJsonPath('data.keyBenefits.1', 'Aligned');
     }
 
     public function test_existing_product_image_collection_still_works(): void
