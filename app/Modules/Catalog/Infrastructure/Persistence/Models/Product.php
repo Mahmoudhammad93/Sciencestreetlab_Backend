@@ -36,7 +36,7 @@ class Product extends Model implements HasMedia
     ];
 
     /** @var list<string> */
-    protected $appends = ['image', 'gallery_urls', 'concept_image_urls'];
+    protected $appends = ['image', 'gallery_urls', 'concept_image_urls', 'design_lab_image'];
 
     protected $fillable = [
         'uuid', 'sku', 'slug', 'type', 'status', 'price', 'compare_price',
@@ -121,11 +121,26 @@ class Product extends Model implements HasMedia
 
         $this->addMediaCollection('concept_images')
             ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+
+        // One shared Design Lab image (not locale-specific).
+        $this->addMediaCollection('design_lab')
+            ->singleFile()
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
     }
 
     public function getImageAttribute(): ?string
     {
         $url = $this->getFirstMediaUrl('image');
+
+        return $url !== '' ? $url : null;
+    }
+
+    /**
+     * Shared Design Lab image URL (same for AR and EN).
+     */
+    public function getDesignLabImageAttribute(): ?string
+    {
+        $url = $this->getFirstMediaUrl('design_lab');
 
         return $url !== '' ? $url : null;
     }

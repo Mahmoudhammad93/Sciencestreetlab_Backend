@@ -209,14 +209,6 @@ class ProductResource extends Resource
                     ->label(__('admin.products.fields.concepts_ar'))
                     ->placeholder(__('admin.products.fields.concepts_ar_placeholder'))
                     ->columnSpanFull(),
-                Forms\Components\Textarea::make('design_lab_description.en')
-                    ->label(__('admin.products.fields.design_lab_en'))
-                    ->rows(3)
-                    ->columnSpanFull(),
-                Forms\Components\Textarea::make('design_lab_description.ar')
-                    ->label(__('admin.products.fields.design_lab_ar'))
-                    ->rows(3)
-                    ->columnSpanFull(),
                 Forms\Components\Textarea::make('creative_lab_description.en')
                     ->label(__('admin.products.fields.creative_lab_en'))
                     ->rows(3)
@@ -246,6 +238,37 @@ class ProductResource extends Resource
                     ->collapsible()
                     ->columnSpanFull(),
             ])->columns(2)->collapsed(),
+            Forms\Components\Section::make(__('admin.products.sections.design_lab'))
+                ->description(__('admin.products.sections.design_lab_description'))
+                ->schema([
+                    SpatieMediaLibraryFileUpload::make('design_lab_image')
+                        ->collection('design_lab')
+                        ->label(__('admin.products.fields.design_lab_image'))
+                        ->image()
+                        ->maxFiles(1)
+                        ->panelLayout('integrated')
+                        ->imagePreviewHeight('220')
+                        ->imageEditor()
+                        ->imageEditorAspectRatios([
+                            null,
+                            '16:9',
+                            '4:3',
+                            '1:1',
+                        ])
+                        ->maxSize(5120)
+                        ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+                        ->helperText(__('admin.products.fields.design_lab_image_help'))
+                        ->columnSpanFull(),
+                    Forms\Components\Textarea::make('design_lab_description.en')
+                        ->label(__('admin.products.fields.design_lab_en'))
+                        ->rows(4)
+                        ->columnSpanFull(),
+                    Forms\Components\Textarea::make('design_lab_description.ar')
+                        ->label(__('admin.products.fields.design_lab_ar'))
+                        ->rows(4)
+                        ->columnSpanFull(),
+                ])
+                ->collapsed(false),
             Forms\Components\Section::make(__('admin.products.sections.pricing'))->schema([
                 Forms\Components\TextInput::make('price')
                     ->label(__('admin.common.fields.price'))

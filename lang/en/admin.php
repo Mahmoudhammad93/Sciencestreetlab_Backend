@@ -499,6 +499,8 @@ return [
             'curriculum_alignment' => 'Curriculum alignment',
             'design_lab_ar' => 'Design lab description (Arabic)',
             'design_lab_en' => 'Design lab description (English)',
+            'design_lab_image' => 'Design Lab image',
+            'design_lab_image_help' => 'One shared image for Design Lab (same for Arabic and English). Optional.',
             'difficulty' => 'Difficulty level',
             'difficulty_placeholder' => 'Beginner / Intermediate / Advanced',
             'gallery' => 'Gallery',
@@ -526,6 +528,8 @@ return [
         'sections' => [
             'content_ar' => 'Arabic content',
             'content_en' => 'English content',
+            'design_lab' => 'Design Lab',
+            'design_lab_description' => 'One shared image plus English and Arabic text. The image is not locale-specific.',
             'educational' => 'Educational specifications',
             'gallery' => 'Gallery & concept images',
             'general' => 'General',

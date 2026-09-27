@@ -700,3 +700,39 @@ Then run:
 
 Send `Accept-Language: ar` or `en` (also accepts tags like `en-US`). Translatable fields (`title`, `name`) are returned in that locale.
 The Postman collection sets `Accept-Language: {{locale}}` (default `en`).
+
+### Product Design Lab (Single Product)
+
+`GET /products/{slug}` returns Design Lab using the product’s existing educational-spec architecture:
+
+| Field | Localized? | Notes |
+|-------|------------|--------|
+| `design_lab.text` / `design_lab_description` / `designLabDescription` | **Yes** (AR/EN via `Accept-Language`) | Spatie Translatable JSON on the product |
+| `design_lab.image` / `design_lab_image` / `designLabImage` | **No** — one shared image | Spatie Media collection `design_lab` |
+
+There are **no** `image_ar` / `image_en` fields. Frontend must use the same image URL for both languages.
+
+Example (`Accept-Language: en`):
+
+```json
+{
+  "design_lab_description": "Design a lens experiment.",
+  "designLabDescription": "Design a lens experiment.",
+  "design_lab_image": "https://example.com/storage/…/design-lab.jpg",
+  "designLabImage": "https://example.com/storage/…/design-lab.jpg",
+  "design_lab": {
+    "text": "Design a lens experiment.",
+    "image": "https://example.com/storage/…/design-lab.jpg"
+  },
+  "designLab": {
+    "text": "Design a lens experiment.",
+    "image": "https://example.com/storage/…/design-lab.jpg"
+  }
+}
+```
+
+Example (`Accept-Language: ar`): same `image` URL; `text` / `design_lab_description` in Arabic.
+
+If no Design Lab image is uploaded, `image` is `null` and the product details response still succeeds.
+
+Localization fallback matches the rest of catalog copy (requested locale → default locale → any available translation).

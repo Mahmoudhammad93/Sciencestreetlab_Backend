@@ -499,6 +499,8 @@ return [
             'curriculum_alignment' => 'مواءمة المنهج',
             'design_lab_ar' => 'وصف مختبر التصميم (عربي)',
             'design_lab_en' => 'وصف مختبر التصميم (إنجليزي)',
+            'design_lab_image' => 'صورة مختبر التصميم',
+            'design_lab_image_help' => 'صورة واحدة مشتركة لمختبر التصميم (نفسها للعربية والإنجليزية). اختيارية.',
             'difficulty' => 'مستوى الصعوبة',
             'difficulty_placeholder' => 'مبتدئ / متوسط / متقدّم',
             'gallery' => 'المعرض',
@@ -526,6 +528,8 @@ return [
         'sections' => [
             'content_ar' => 'المحتوى العربي',
             'content_en' => 'المحتوى الإنجليزي',
+            'design_lab' => 'مختبر التصميم',
+            'design_lab_description' => 'صورة واحدة مشتركة مع نص إنجليزي ونص عربي. الصورة ليست خاصة بلغة.',
             'educational' => 'المواصفات التعليمية',
             'gallery' => 'المعرض وصور المفاهيم',
             'general' => 'عام',

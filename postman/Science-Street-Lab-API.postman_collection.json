@@ -1043,7 +1043,7 @@
                 "{{product_slug}}"
               ]
             },
-            "description": "Product detail. Includes category when present, plus educational specifications:\n- `difficulty_level` / `difficultyLevel`\n- `target_age` / `targetAge`\n- `key_benefits` / `keyBenefits`\n- `scientific_concepts` / `scientificConcepts`\n- `gallery`, `concept_images` / `conceptImages`\n- `curriculum_alignment` / `curriculumAlignment` (`grade_level`, `lesson_name`)\n- `design_lab_description` / `creative_lab_description`\n- `related_course` / `relatedCourse` (title, tagline, description, lab copy, course_url)\nExisting `image` field is unchanged.",
+            "description": "Product detail. Includes category when present, plus educational specifications:\n- `difficulty_level` / `difficultyLevel`\n- `target_age` / `targetAge`\n- `key_benefits` / `keyBenefits`\n- `scientific_concepts` / `scientificConcepts`\n- `gallery`, `concept_images` / `conceptImages`\n- `curriculum_alignment` / `curriculumAlignment` (`grade_level`, `lesson_name`)\n- Design Lab: localized text via `design_lab_description` / `design_lab.text` (Accept-Language) + ONE shared image via `design_lab_image` / `design_lab.image` (not locale-specific; null if missing)\n- `creative_lab_description`\n- `related_course` / `relatedCourse` (title, tagline, description, lab copy + shared design_lab image, course_url)\nExisting `image` field is unchanged.",
             "auth": {
               "type": "noauth"
             }

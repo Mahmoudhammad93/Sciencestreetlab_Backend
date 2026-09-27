@@ -37,6 +37,7 @@ final class ProductPresenter
         $payload['scientific_concepts'] = $this->localizedList($product, 'scientific_concepts', $locale, $fallback);
         $payload['design_lab_description'] = $this->localizedString($product, 'design_lab_description', $locale, $fallback);
         $payload['creative_lab_description'] = $this->localizedString($product, 'creative_lab_description', $locale, $fallback);
+        $payload['design_lab_image'] = $product->design_lab_image;
         $payload['related_course_id'] = $product->related_course_id;
         $payload['gallery'] = $product->gallery_urls;
         $payload['concept_images'] = $product->concept_image_urls;
@@ -49,6 +50,13 @@ final class ProductPresenter
             ])
             ->all();
         $payload['related_course'] = $this->presentRelatedCourse($product, $locale, $fallback);
+
+        // Nested Design Lab contract (additive; flat fields kept for compatibility).
+        $payload['design_lab'] = [
+            'text' => $payload['design_lab_description'],
+            'image' => $payload['design_lab_image'],
+        ];
+        $payload['designLab'] = $payload['design_lab'];
 
         $payload['reviews_summary'] = [
             'average_rating' => round((float) $product->average_rating, 2),
@@ -82,6 +90,7 @@ final class ProductPresenter
         $payload['relatedCourse'] = $payload['related_course'];
         $payload['designLabDescription'] = $payload['design_lab_description'];
         $payload['creativeLabDescription'] = $payload['creative_lab_description'];
+        $payload['designLabImage'] = $payload['design_lab_image'];
 
         return $payload;
     }
@@ -100,6 +109,7 @@ final class ProductPresenter
         $frontend = rtrim((string) config('sciencestreet.frontend_url', ''), '/');
         $design = $this->localizedString($product, 'design_lab_description', $locale, $fallback);
         $creative = $this->localizedString($product, 'creative_lab_description', $locale, $fallback);
+        $designImage = $product->design_lab_image;
 
         return [
             'id' => $course->id,
@@ -113,8 +123,18 @@ final class ProductPresenter
                 ?: null,
             'design_lab_description' => $design,
             'creative_lab_description' => $creative,
+            'design_lab_image' => $designImage,
             'designLabDescription' => $design,
             'creativeLabDescription' => $creative,
+            'designLabImage' => $designImage,
+            'design_lab' => [
+                'text' => $design,
+                'image' => $designImage,
+            ],
+            'designLab' => [
+                'text' => $design,
+                'image' => $designImage,
+            ],
             'course_url' => $frontend !== '' ? $frontend.'/courses/'.$course->slug : '/courses/'.$course->slug,
             'courseUrl' => $frontend !== '' ? $frontend.'/courses/'.$course->slug : '/courses/'.$course->slug,
         ];
