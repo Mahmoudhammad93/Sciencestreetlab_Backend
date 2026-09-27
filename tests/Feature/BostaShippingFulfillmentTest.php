@@ -63,10 +63,164 @@ final class BostaShippingFulfillmentTest extends TestCase
         $shipment = $order->bostaShipment;
         $this->assertNotNull($shipment);
         $this->assertSame('fake-bosta-'.$order->id, $shipment->external_shipment_id);
+        $this->assertSame('TRK-'.$order->order_number, $shipment->tracking_number);
+        $this->assertSame(ShipmentStatus::Created, $shipment->status);
+        $this->assertTrue((bool) data_get($shipment->metadata, 'raw.test_mode'));
 
         app(BostaShipmentService::class)->ensureShipmentForOrder($order->fresh(['items']));
         $this->assertDatabaseCount('shipments', 1);
         $this->assertSame(0, Enrollment::query()->count());
+    }
+
+    public function test_fake_mode_does_not_require_api_key_and_uses_fake_client(): void
+    {
+        config([
+            'bosta.enabled' => true,
+            'bosta.use_fake' => true,
+            'bosta.api_key' => null,
+            'bosta.api_url' => null,
+            'bosta.api_contract_ready' => false,
+        ]);
+
+        $this->assertInstanceOf(
+            \App\Modules\Commerce\Infrastructure\Shipping\Bosta\FakeBostaClient::class,
+            app(\App\Modules\Commerce\Domain\Contracts\BostaClientInterface::class)
+        );
+
+        [$user, , $product] = $this->kitWithCourse();
+        $order = $this->checkoutKit($user, $product);
+
+        $this->assertNotNull($order->bostaShipment?->external_shipment_id);
+        $this->assertStringStartsWith('fake-bosta-', $order->bostaShipment->external_shipment_id);
+    }
+
+    public function test_digital_only_course_order_does_not_create_bosta_shipment(): void
+    {
+        config(['bosta.enabled' => true, 'bosta.use_fake' => true]);
+
+        $user = User::factory()->create();
+        $course = Course::query()->create([
+            'slug' => 'digital-only-'.uniqid(),
+            'access_type' => AccessType::Paid,
+            'is_published' => true,
+            'published_at' => now(),
+            'title' => ['en' => 'Digital', 'ar' => 'رقمي'],
+            'short_description' => ['en' => 's', 'ar' => 'م'],
+            'description' => ['en' => 'd', 'ar' => 'و'],
+        ]);
+        $product = Product::query()->create([
+            'sku' => 'DIG-ONLY-'.uniqid(),
+            'slug' => 'dig-only-'.uniqid(),
+            'type' => ProductType::Course,
+            'status' => ProductStatus::Published,
+            'price' => 100,
+            'currency' => 'EGP',
+            'course_id' => $course->id,
+            'published_at' => now(),
+            'name' => ['en' => 'Course', 'ar' => 'دورة'],
+        ]);
+
+        $order = app(CheckoutService::class)->createOrderFromCart(
+            $user,
+            $this->cartWithProduct($user, $product),
+            ['first_name' => $user->name, 'email' => $user->email],
+            [],
+        );
+
+        $this->assertFalse($order->requires_delivery_fulfillment);
+        $this->assertNull($order->bostaShipment);
+        $this->assertDatabaseCount('shipments', 0);
+    }
+
+    public function test_bosta_disabled_skips_shipment_creation(): void
+    {
+        config(['bosta.enabled' => false, 'bosta.use_fake' => true]);
+
+        [$user, , $product] = $this->kitWithCourse();
+        $order = $this->checkoutKit($user, $product);
+
+        $this->assertFalse($order->requires_delivery_fulfillment);
+        $this->assertNull($order->bostaShipment);
+        $this->assertDatabaseCount('shipments', 0);
+    }
+
+    public function test_production_refuses_fake_bosta_client_binding(): void
+    {
+        config(['bosta.use_fake' => true, 'bosta.enabled' => true]);
+        $this->app['env'] = 'production';
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('BOSTA_USE_FAKE=true is forbidden when APP_ENV=production');
+
+        app(\App\Modules\Commerce\Domain\Contracts\BostaClientInterface::class);
+    }
+
+    public function test_http_bosta_client_is_not_used_in_fake_mode(): void
+    {
+        config(['bosta.enabled' => true, 'bosta.use_fake' => true, 'bosta.api_key' => null]);
+
+        $httpResolved = false;
+        $this->app->bind(
+            \App\Modules\Commerce\Infrastructure\Shipping\Bosta\HttpBostaClient::class,
+            function () use (&$httpResolved) {
+                $httpResolved = true;
+                throw new \RuntimeException('HttpBostaClient must not be resolved in fake mode');
+            }
+        );
+
+        $this->assertInstanceOf(
+            \App\Modules\Commerce\Infrastructure\Shipping\Bosta\FakeBostaClient::class,
+            app(\App\Modules\Commerce\Domain\Contracts\BostaClientInterface::class)
+        );
+
+        [$user, , $product] = $this->kitWithCourse();
+        $order = $this->checkoutKit($user, $product);
+
+        $this->assertFalse($httpResolved, 'HttpBostaClient must not be resolved when BOSTA_USE_FAKE=true');
+        $this->assertSame('fake-bosta-'.$order->id, $order->bostaShipment?->external_shipment_id);
+        $this->assertSame(ShipmentStatus::Created, $order->bostaShipment?->status);
+    }
+
+    public function test_admin_delivered_transition_unlocks_course_after_payment(): void
+    {
+        Mail::fake();
+        [$user, $course, $product] = $this->kitWithCourse();
+        $order = $this->checkoutKit($user, $product);
+
+        $payment = Payment::query()->create([
+            'order_id' => $order->id,
+            'gateway' => 'mock',
+            'amount' => $order->total,
+            'currency' => 'EGP',
+            'status' => PaymentStatus::Pending->value,
+        ]);
+        app(PaymentCompletionService::class)->complete($payment);
+
+        $order->refresh();
+        $this->assertNull($order->fulfilled_at);
+        $this->assertDatabaseMissing('enrollments', [
+            'user_id' => $user->id,
+            'course_id' => $course->id,
+        ]);
+
+        // Simulate Filament admin "Update Bosta shipping" → Delivered
+        app(BostaWebhookService::class)->handle([
+            'external_shipment_id' => $order->bostaShipment->external_shipment_id,
+            'status' => 'Out for Delivery',
+        ]);
+        $this->assertNull($order->fresh()->fulfilled_at);
+
+        app(BostaWebhookService::class)->handle([
+            'external_shipment_id' => $order->bostaShipment->external_shipment_id,
+            'status' => 'Delivered',
+        ]);
+
+        $order->refresh();
+        $this->assertNotNull($order->fulfilled_at);
+        $this->assertDatabaseHas('enrollments', [
+            'user_id' => $user->id,
+            'course_id' => $course->id,
+        ]);
     }
 
     public function test_online_payment_does_not_enroll_until_bosta_delivered(): void

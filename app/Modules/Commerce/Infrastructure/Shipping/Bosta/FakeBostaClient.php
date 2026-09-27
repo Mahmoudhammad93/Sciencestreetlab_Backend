@@ -8,12 +8,19 @@ use App\Modules\Commerce\Domain\Contracts\BostaClientInterface;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Order;
 
 /**
- * Deterministic client for automated tests and local dry runs.
+ * Deterministic client for automated tests and local/staging dry runs.
+ *
+ * Must never run when APP_ENV=production (enforced by CommerceServiceProvider
+ * and a secondary guard here).
  */
 final class FakeBostaClient implements BostaClientInterface
 {
     public function createShipment(Order $order): array
     {
+        if (app()->environment('production')) {
+            throw new \RuntimeException('FakeBostaClient must not create shipments in production.');
+        }
+
         $id = 'fake-bosta-'.$order->id;
 
         return [
@@ -23,6 +30,7 @@ final class FakeBostaClient implements BostaClientInterface
             'provider_status' => 'Pickup requested',
             'raw' => [
                 'driver' => 'fake',
+                'test_mode' => true,
                 'order_id' => $order->id,
             ],
         ];

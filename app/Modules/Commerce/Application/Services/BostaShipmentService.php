@@ -27,6 +27,10 @@ final class BostaShipmentService
     public function shouldCreateForOrder(Order $order): bool
     {
         if (! (bool) config('bosta.enabled')) {
+            Log::info('Bosta shipment skipped: BOSTA_ENABLED=false', [
+                'order_id' => $order->id,
+            ]);
+
             return false;
         }
 
@@ -41,6 +45,10 @@ final class BostaShipmentService
                 return true;
             }
         }
+
+        Log::info('Bosta shipment skipped: no kit/bundle items on order', [
+            'order_id' => $order->id,
+        ]);
 
         return false;
     }

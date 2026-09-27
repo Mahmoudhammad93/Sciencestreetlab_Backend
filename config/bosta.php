@@ -27,7 +27,8 @@ return [
 
     /*
     | When true (default in testing), FakeBostaClient / FakeBostaWebhookVerifier
-    | are bound. Set BOSTA_USE_FAKE=true locally without credentials.
+    | are bound. Set BOSTA_USE_FAKE=true locally/staging without credentials.
+    | FORBIDDEN when APP_ENV=production — binding will throw.
     */
     'use_fake' => (bool) env('BOSTA_USE_FAKE', env('APP_ENV') === 'testing'),
 

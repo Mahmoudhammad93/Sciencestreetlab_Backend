@@ -54,6 +54,14 @@ final class CommerceServiceProvider extends ModuleServiceProvider
 
         $this->app->bind(BostaClientInterface::class, function ($app): BostaClientInterface {
             if ((bool) config('bosta.use_fake')) {
+                if ($app->environment('production')) {
+                    throw new \RuntimeException(
+                        'BOSTA_USE_FAKE=true is forbidden when APP_ENV=production. '
+                        .'Disable fake mode and use HttpBostaClient with real credentials, '
+                        .'or set APP_ENV to local/staging for test shipments.'
+                    );
+                }
+
                 return $app->make(FakeBostaClient::class);
             }
 
@@ -62,6 +70,12 @@ final class CommerceServiceProvider extends ModuleServiceProvider
 
         $this->app->bind(BostaWebhookVerifierInterface::class, function ($app): BostaWebhookVerifierInterface {
             if ((bool) config('bosta.use_fake')) {
+                if ($app->environment('production')) {
+                    throw new \RuntimeException(
+                        'BOSTA_USE_FAKE=true is forbidden when APP_ENV=production.'
+                    );
+                }
+
                 return $app->make(FakeBostaWebhookVerifier::class);
             }
 

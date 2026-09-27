@@ -36,5 +36,10 @@
         <env name="FAWATERAK_API_KEY" value=""/>
         <env name="BREVO_API_KEY" value=""/>
         <env name="PAYMENT_GATEWAY" value="myfatoorah"/>
+        <!-- Isolate suite from local .env Bosta TEST flags (kit checkout would defer enrollment). -->
+        <env name="BOSTA_ENABLED" value="false" force="true"/>
+        <env name="BOSTA_USE_FAKE" value="true" force="true"/>
+        <env name="BOSTA_API_CONTRACT_READY" value="false" force="true"/>
+        <env name="BOSTA_WEBHOOK_SIGNATURE_READY" value="false" force="true"/>
     </php>
 </phpunit>
