@@ -23,6 +23,7 @@ class Lesson extends Model
 
     protected $fillable = [
         'course_id', 'slug', 'lesson_type', 'sort_order', 'is_published', 'video_duration_seconds',
+        'video_url', 'video_provider',
         'title', 'content',
     ];
 

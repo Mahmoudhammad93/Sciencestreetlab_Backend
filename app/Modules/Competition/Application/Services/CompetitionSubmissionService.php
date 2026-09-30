@@ -45,8 +45,17 @@ final class CompetitionSubmissionService
             throw new DomainException('participant_disqualified');
         }
 
+        if (! array_key_exists('sample_number', $data) || $data['sample_number'] === null || $data['sample_number'] === '') {
+            throw new DomainException('invalid_sample_number');
+        }
+
         $sampleNumber = (int) $data['sample_number'];
         $photoIndex = (int) ($data['photo_index'] ?? 1);
+
+        // Historical migrated rows may have null slots; never treat null as a valid new slot.
+        if ($sampleNumber < 1 || $photoIndex < 1) {
+            throw new DomainException($sampleNumber < 1 ? 'invalid_sample_number' : 'invalid_photo_index');
+        }
 
         $this->validateSlot($competition, $sampleNumber, $photoIndex);
 

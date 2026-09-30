@@ -18,7 +18,7 @@ class CompetitionSubmission extends Model implements HasMedia
     use InteractsWithMedia;
 
     protected $fillable = [
-        'uuid', 'participant_id', 'sample_number', 'photo_index', 'status',
+        'uuid', 'participant_id', 'sample_number', 'photo_index', 'sample_name', 'status',
         'description', 'scientific_notes', 'rejection_reason',
         'submitted_at', 'reviewed_at', 'reviewed_by',
     ];

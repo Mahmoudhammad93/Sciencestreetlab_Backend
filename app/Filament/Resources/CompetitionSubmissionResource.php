@@ -49,8 +49,9 @@ class CompetitionSubmissionResource extends Resource
     {
         return $form->schema([
             Forms\Components\TextInput::make('uuid')->label(__('admin.competition_submissions.fields.uuid'))->disabled()->extraInputAttributes(['dir' => 'ltr']),
-            Forms\Components\TextInput::make('sample_number')->label(__('admin.competition_submissions.fields.sample_number'))->disabled(),
-            Forms\Components\TextInput::make('photo_index')->label(__('admin.competition_submissions.fields.photo_index'))->disabled(),
+            Forms\Components\TextInput::make('sample_number')->label(__('admin.competition_submissions.fields.sample_number'))->disabled()->placeholder('—'),
+            Forms\Components\TextInput::make('photo_index')->label(__('admin.competition_submissions.fields.photo_index'))->disabled()->placeholder('—'),
+            Forms\Components\TextInput::make('sample_name')->label(__('admin.competition_submissions.fields.sample_name'))->disabled()->placeholder('—'),
             Forms\Components\Select::make('status')
                 ->label(__('admin.common.fields.status'))
                 ->options(collect(SubmissionStatus::cases())->mapWithKeys(fn ($s) => [$s->value => $s->name]))
@@ -73,8 +74,16 @@ class CompetitionSubmissionResource extends Resource
                     ->square(),
                 Tables\Columns\TextColumn::make('participant.user.name')->label(__('admin.competition_submissions.table.student'))->searchable(),
                 Tables\Columns\TextColumn::make('participant.competition.slug')->label(__('admin.competition_submissions.table.competition')),
-                Tables\Columns\TextColumn::make('sample_number')->label(__('admin.competition_submissions.table.sample_number')),
-                Tables\Columns\TextColumn::make('photo_index')->label(__('admin.competition_submissions.table.photo_index')),
+                Tables\Columns\TextColumn::make('sample_number')
+                    ->label(__('admin.competition_submissions.table.sample_number'))
+                    ->placeholder('—'),
+                Tables\Columns\TextColumn::make('photo_index')
+                    ->label(__('admin.competition_submissions.table.photo_index'))
+                    ->placeholder('—'),
+                Tables\Columns\TextColumn::make('sample_name')
+                    ->label(__('admin.competition_submissions.table.sample_name'))
+                    ->placeholder('—')
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('status')->label(__('admin.common.fields.status'))->badge(),
                 Tables\Columns\TextColumn::make('submitted_at')->label(__('admin.common.fields.created_at'))->dateTime()->sortable(),
             ])

@@ -46,9 +46,15 @@ class PendingReviewsWidget extends BaseWidget
                 Tables\Columns\TextColumn::make('participant.competition.slug')
                     ->label(__('admin.widgets.pending_photos.table.competition')),
                 Tables\Columns\TextColumn::make('sample_number')
-                    ->label(__('admin.widgets.pending_photos.table.sample')),
+                    ->label(__('admin.widgets.pending_photos.table.sample'))
+                    ->placeholder('—'),
                 Tables\Columns\TextColumn::make('photo_index')
-                    ->label(__('admin.widgets.pending_photos.table.photo_number')),
+                    ->label(__('admin.widgets.pending_photos.table.photo_number'))
+                    ->placeholder('—'),
+                Tables\Columns\TextColumn::make('sample_name')
+                    ->label(__('admin.widgets.pending_photos.table.sample_name'))
+                    ->placeholder('—')
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('submitted_at')
                     ->since()
                     ->sortable(),

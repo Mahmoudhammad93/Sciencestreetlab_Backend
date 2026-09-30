@@ -21,6 +21,7 @@ class Competition extends Model
         'uuid', 'slug', 'prerequisite_course_id', 'required_photos',
         'photos_per_sample', 'max_photos_per_sample', 'starts_at', 'ends_at',
         'status', 'prize_description', 'prize_amount', 'rules_version',
+        'title', 'description', 'rules',
     ];
 
     protected static function booted(): void
