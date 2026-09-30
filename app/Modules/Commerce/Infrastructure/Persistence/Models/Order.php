@@ -19,7 +19,7 @@ class Order extends Model
     ];
 
     protected $fillable = [
-        'uuid', 'order_number', 'user_id', 'status', 'order_type', 'subtotal', 'discount_amount',
+        'uuid', 'order_number', 'user_id', 'is_guest', 'status', 'order_type', 'subtotal', 'discount_amount',
         'shipping_amount', 'tax_amount', 'total', 'currency', 'coupon_id', 'coupon_code',
         'billing_address', 'shipping_address', 'notes', 'paid_at', 'confirmation_email_sent_at',
         'confirmation_email_claimed_at', 'shipped_at',
@@ -55,6 +55,7 @@ class Order extends Model
             'delivered_at' => 'datetime',
             'fulfilled_at' => 'datetime',
             'requires_delivery_fulfillment' => 'boolean',
+            'is_guest' => 'boolean',
             'cancelled_at' => 'datetime',
         ];
     }

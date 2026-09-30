@@ -39,7 +39,8 @@ final class GrantEnrollmentOnOrderFulfilled
             }
 
             if ($order->user === null) {
-                // Historical guest orders (user_id null) cannot receive enrollments.
+                // Live guest course access is granted via GuestPurchaseClaim consumption,
+                // not automatic enrollment (enrollments.user_id is NOT NULL).
                 continue;
             }
 

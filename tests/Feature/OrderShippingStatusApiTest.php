@@ -479,8 +479,8 @@ final class OrderShippingStatusApiTest extends TestCase
         return app(CheckoutService::class)->createOrderFromCart(
             $user,
             $this->cartWithProduct($user, $product),
-            ['first_name' => $user->name, 'email' => $user->email],
-            ['city' => 'Cairo'],
-        );
+            ['first_name' => $user->name, 'last_name' => 'User', 'email' => $user->email, 'phone' => '01012345678', 'city' => 'Cairo', 'country' => 'EG'],
+            ['first_name' => $user->name, 'last_name' => 'User', 'email' => $user->email, 'phone' => '01012345678', 'city' => 'Cairo', 'country' => 'EG'],
+        )['order'];
     }
 }

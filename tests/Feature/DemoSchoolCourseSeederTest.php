@@ -184,6 +184,7 @@ final class DemoSchoolCourseSeederTest extends TestCase
         $orderId = $this->postJson('/api/v1/checkout', [
             'billing_address' => [
                 'first_name' => 'School',
+                'last_name' => 'Test',
                 'email' => $buyer->email,
                 'phone' => '01012345678',
                 'city' => 'Cairo',

@@ -27,7 +27,7 @@ Your payment was successful. This email confirms order **{{ $order->order_number
 Reference: {{ $order->order_number }}
 
 <x-mail::button :url="$viewOrderUrl">
-View order
+{{ $viewOrderLabel ?? 'View order' }}
 </x-mail::button>
 
 @if (! empty($enrollmentQrs))

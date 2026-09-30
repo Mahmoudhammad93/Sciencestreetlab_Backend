@@ -6,6 +6,8 @@ use App\Modules\Commerce\Http\Controllers\Api\BostaWebhookController;
 use App\Modules\Commerce\Http\Controllers\Api\CartController;
 use App\Modules\Commerce\Http\Controllers\Api\CartCouponController;
 use App\Modules\Commerce\Http\Controllers\Api\CheckoutController;
+use App\Modules\Commerce\Http\Controllers\Api\GuestClaimController;
+use App\Modules\Commerce\Http\Controllers\Api\GuestOrderController;
 use App\Modules\Commerce\Http\Controllers\Api\OrderController;
 use App\Modules\Commerce\Http\Controllers\Api\PaymentController;
 use Illuminate\Support\Facades\Route;
@@ -30,9 +32,17 @@ Route::get('/payments/myfatoorah/callback', [PaymentController::class, 'myfatoor
 Route::get('/payments/myfatoorah/confirm', [PaymentController::class, 'myfatoorahConfirm']);
 Route::post('/payments/mock/{payment}/complete', [PaymentController::class, 'completeMock']);
 
-Route::middleware('auth:sanctum')->group(function (): void {
+Route::middleware('auth.optional')->group(function (): void {
     Route::post('/checkout', [CheckoutController::class, 'store']);
     Route::post('/checkout/{order}/pay', [CheckoutController::class, 'pay']);
+});
+
+Route::get('/guest/claims/{token}', [GuestClaimController::class, 'show']);
+Route::post('/guest/claims/{token}/consume', [GuestClaimController::class, 'consume'])
+    ->middleware('auth.optional');
+Route::get('/guest/orders/{orderNumber}', [GuestOrderController::class, 'show']);
+
+Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/orders', [OrderController::class, 'index']);
     Route::get('/orders/{orderNumber}', [OrderController::class, 'show']);
 });

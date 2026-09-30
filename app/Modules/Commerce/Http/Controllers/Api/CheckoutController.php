@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Modules\Commerce\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Modules\Commerce\Application\Services\CartService;
 use App\Modules\Commerce\Application\Services\CheckoutService;
+use App\Modules\Commerce\Application\Services\GuestOrderCapabilityService;
 use App\Modules\Commerce\Http\Support\ResolvesCart;
-use App\Modules\Commerce\Application\Services\CouponService;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Order;
+use App\Shared\Contracts\PaymentGatewayInterface;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,6 +19,7 @@ final class CheckoutController extends Controller
     public function __construct(
         private readonly ResolvesCart $resolvesCart,
         private readonly CheckoutService $checkoutService,
+        private readonly GuestOrderCapabilityService $guestCapabilities,
     ) {}
 
     public function store(Request $request): JsonResponse
@@ -26,11 +27,20 @@ final class CheckoutController extends Controller
         $validated = $request->validate([
             'billing_address' => ['required', 'array'],
             'billing_address.first_name' => ['required', 'string', 'max:255'],
+            'billing_address.last_name' => ['required', 'string', 'max:255'],
             'billing_address.email' => ['required', 'email'],
             'billing_address.phone' => ['required', 'string', 'max:20'],
-            'billing_address.city' => ['required', 'string', 'max:100'],
-            'billing_address.country' => ['required', 'string', 'max:2'],
-            'shipping_address' => ['required', 'array'],
+            'billing_address.city' => ['nullable', 'string', 'max:100'],
+            'billing_address.country' => ['nullable', 'string', 'max:2'],
+            'billing_address.address' => ['nullable', 'string', 'max:500'],
+            'shipping_address' => ['nullable', 'array'],
+            'shipping_address.first_name' => ['nullable', 'string', 'max:255'],
+            'shipping_address.last_name' => ['nullable', 'string', 'max:255'],
+            'shipping_address.email' => ['nullable', 'email'],
+            'shipping_address.phone' => ['nullable', 'string', 'max:20'],
+            'shipping_address.city' => ['nullable', 'string', 'max:100'],
+            'shipping_address.country' => ['nullable', 'string', 'max:2'],
+            'shipping_address.address' => ['nullable', 'string', 'max:500'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
@@ -38,23 +48,53 @@ final class CheckoutController extends Controller
         $cart = $this->resolvesCart->fromRequest($request);
 
         try {
-            $order = $this->checkoutService->createOrderFromCart(
+            $result = $this->checkoutService->createOrderFromCart(
                 $user,
                 $cart,
                 $validated['billing_address'],
-                $validated['shipping_address'],
+                $validated['shipping_address'] ?? null,
                 $validated['notes'] ?? null,
             );
         } catch (DomainException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
-        return response()->json(['data' => $order], 201);
+        $payload = [
+            'data' => $result['order'],
+        ];
+
+        if ($result['guest_tokens'] !== null) {
+            $payload['guest'] = [
+                'pay_token' => $result['guest_tokens']['pay_token'],
+                'access_token' => $result['guest_tokens']['status_token'],
+            ];
+        }
+
+        return response()->json($payload, 201);
     }
 
     public function pay(Request $request, Order $order): JsonResponse
     {
-        if ($order->user_id !== $request->user()->id) {
+        $user = $request->user();
+        $guestPayToken = $request->input('guest_pay_token')
+            ?? $request->header('X-Guest-Pay-Token');
+
+        $authorized = false;
+
+        if ($user && $order->user_id !== null && (int) $order->user_id === (int) $user->id) {
+            $authorized = true;
+        }
+
+        if (! $authorized && $order->is_guest && $order->user_id === null) {
+            try {
+                $this->guestCapabilities->assertPayAllowed($order, is_string($guestPayToken) ? $guestPayToken : null);
+                $authorized = true;
+            } catch (DomainException $e) {
+                return response()->json(['message' => $e->getMessage()], 403);
+            }
+        }
+
+        if (! $authorized) {
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
@@ -62,7 +102,7 @@ final class CheckoutController extends Controller
             return response()->json(['message' => 'Order is not awaiting payment.'], 422);
         }
 
-        $gateway = app(\App\Shared\Contracts\PaymentGatewayInterface::class);
+        $gateway = app(PaymentGatewayInterface::class);
         $result = $gateway->initiate($order);
 
         return response()->json([

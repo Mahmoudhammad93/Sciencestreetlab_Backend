@@ -80,7 +80,7 @@ final class QuestionBankSystemTest extends TestCase
         $this->postJson('/api/v1/cart/items', ['product_id' => $product->id]);
         $orderId = $this->postJson('/api/v1/checkout', [
             'billing_address' => [
-                'first_name' => 'S', 'email' => $user->email, 'phone' => '01000000000',
+                'first_name' => 'S', 'last_name' => 'Test', 'email' => $user->email, 'phone' => '01000000000',
                 'city' => 'Cairo', 'country' => 'EG',
             ],
             'shipping_address' => ['city' => 'Cairo', 'country' => 'EG'],

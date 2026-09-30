@@ -34,6 +34,7 @@ final class LearningServiceProvider extends ModuleServiceProvider
         parent::boot();
 
         Event::listen(OrderFulfilled::class, GrantEnrollmentOnOrderFulfilled::class);
+        Event::listen(OrderFulfilled::class, \App\Modules\Commerce\Application\Listeners\EnsureGuestPurchaseClaimOnOrderFulfilled::class);
         Event::listen(OrderFulfilled::class, SendOrderConfirmationEmail::class);
     }
 }

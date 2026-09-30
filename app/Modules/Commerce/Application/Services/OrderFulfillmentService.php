@@ -175,6 +175,11 @@ final class OrderFulfillmentService
                 $order->update($updates);
             }
 
+            if (in_array($newStatus, [OrderStatus::Cancelled->value, OrderStatus::Refunded->value], true)) {
+                app(GuestPurchaseClaimService::class)->revokeForOrder($order);
+                app(GuestOrderCapabilityService::class)->revokeAllForOrder($order);
+            }
+
             return $order->fresh(['items']) ?? $order;
         }
 
@@ -200,6 +205,14 @@ final class OrderFulfillmentService
 
         if ($updates !== []) {
             $order->update($updates);
+        }
+
+        if (in_array($newStatus, [OrderStatus::Cancelled->value, OrderStatus::Refunded->value], true)) {
+            app(GuestPurchaseClaimService::class)->revokeForOrder($order);
+            app(GuestOrderCapabilityService::class)->revokeAllForOrder($order);
+            if ($order->cancelled_at === null && $newStatus === OrderStatus::Cancelled->value) {
+                $order->update(['cancelled_at' => now()]);
+            }
         }
 
         return $order->fresh(['items']) ?? $order;

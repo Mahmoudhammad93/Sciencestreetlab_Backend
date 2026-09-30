@@ -33,12 +33,17 @@ final class CheckoutFlowTest extends TestCase
         $checkout = $this->postJson('/api/v1/checkout', [
             'billing_address' => [
                 'first_name' => 'Ahmed',
+                'last_name' => 'Ali',
                 'email' => $user->email,
                 'phone' => '01012345678',
                 'city' => 'Cairo',
                 'country' => 'EG',
             ],
             'shipping_address' => [
+                'first_name' => 'Ahmed',
+                'last_name' => 'Ali',
+                'email' => $user->email,
+                'phone' => '01012345678',
                 'city' => 'Cairo',
                 'country' => 'EG',
             ],
@@ -108,12 +113,20 @@ final class CheckoutFlowTest extends TestCase
         $this->postJson('/api/v1/checkout', [
             'billing_address' => [
                 'first_name' => 'Ahmed',
+                'last_name' => 'Ali',
                 'email' => $user->email,
                 'phone' => '01012345678',
                 'city' => 'Cairo',
                 'country' => 'EG',
             ],
-            'shipping_address' => ['city' => 'Cairo', 'country' => 'EG'],
+            'shipping_address' => [
+                'first_name' => 'Ahmed',
+                'last_name' => 'Ali',
+                'email' => $user->email,
+                'phone' => '01012345678',
+                'city' => 'Cairo',
+                'country' => 'EG',
+            ],
         ])->assertCreated();
 
         $this->assertSame(1, $coupon->fresh()->used_count);

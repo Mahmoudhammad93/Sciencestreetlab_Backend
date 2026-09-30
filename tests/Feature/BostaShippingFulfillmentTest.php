@@ -54,9 +54,9 @@ final class BostaShippingFulfillmentTest extends TestCase
         $order = app(CheckoutService::class)->createOrderFromCart(
             $user,
             $cart,
-            ['first_name' => $user->name, 'email' => $user->email],
-            ['city' => 'Cairo', 'phone' => '01000000000'],
-        );
+            ['first_name' => $user->name, 'last_name' => 'User', 'email' => $user->email, 'phone' => '01012345678', 'city' => 'Cairo', 'country' => 'EG'],
+            ['first_name' => $user->name, 'last_name' => 'User', 'email' => $user->email, 'phone' => '01012345678', 'city' => 'Cairo', 'country' => 'EG'],
+        )['order'];
 
         $this->assertTrue($order->requires_delivery_fulfillment);
         $this->assertDatabaseCount('shipments', 1);
@@ -123,9 +123,9 @@ final class BostaShippingFulfillmentTest extends TestCase
         $order = app(CheckoutService::class)->createOrderFromCart(
             $user,
             $this->cartWithProduct($user, $product),
-            ['first_name' => $user->name, 'email' => $user->email],
-            [],
-        );
+            ['first_name' => $user->name, 'last_name' => 'User', 'email' => $user->email, 'phone' => '01012345678', 'city' => 'Cairo', 'country' => 'EG'],
+            null,
+        )['order'];
 
         $this->assertFalse($order->requires_delivery_fulfillment);
         $this->assertNull($order->bostaShipment);
@@ -660,8 +660,8 @@ final class BostaShippingFulfillmentTest extends TestCase
         return app(CheckoutService::class)->createOrderFromCart(
             $user,
             $this->cartWithProduct($user, $product),
-            ['first_name' => $user->name, 'email' => $user->email],
-            ['city' => 'Cairo'],
-        );
+            ['first_name' => $user->name, 'last_name' => 'User', 'email' => $user->email, 'phone' => '01012345678', 'city' => 'Cairo', 'country' => 'EG'],
+            ['first_name' => $user->name, 'last_name' => 'User', 'email' => $user->email, 'phone' => '01012345678', 'city' => 'Cairo', 'country' => 'EG'],
+        )['order'];
     }
 }

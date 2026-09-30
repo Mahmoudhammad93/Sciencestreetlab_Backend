@@ -6,12 +6,15 @@ namespace App\Modules\Commerce\Application\Services;
 
 use App\Modules\Commerce\Domain\Enums\OrderStatus;
 use App\Modules\Commerce\Domain\Enums\PaymentStatus;
+use App\Modules\Commerce\Infrastructure\Persistence\Models\Order;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Payment;
 
 final class PaymentCompletionService
 {
     public function __construct(
         private readonly OrderFulfillmentService $fulfillment,
+        private readonly GuestPurchaseClaimService $guestClaims,
+        private readonly GuestOrderCapabilityService $guestCapabilities,
     ) {}
 
     public function complete(Payment $payment, ?string $transactionId = null, ?array $gatewayResponse = null): Payment
@@ -47,5 +50,11 @@ final class PaymentCompletionService
         $payment->order->update(['status' => OrderStatus::Pending->value]);
 
         return $payment->fresh();
+    }
+
+    public function markOrderCancelledOrRefunded(Order $order): void
+    {
+        $this->guestClaims->revokeForOrder($order);
+        $this->guestCapabilities->revokeAllForOrder($order);
     }
 }

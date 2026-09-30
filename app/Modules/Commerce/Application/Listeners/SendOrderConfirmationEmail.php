@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Commerce\Application\Listeners;
 
 use App\Modules\Commerce\Application\Services\EnrollmentQrCodeRenderer;
+use App\Modules\Commerce\Application\Services\GuestOrderCapabilityService;
 use App\Modules\Commerce\Domain\Events\OrderFulfilled;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Order;
 use App\Modules\Commerce\Mail\OrderConfirmationMail;
@@ -22,6 +23,7 @@ final class SendOrderConfirmationEmail implements ShouldQueue
 
     public function __construct(
         private readonly EnrollmentQrCodeRenderer $qrCodes,
+        private readonly GuestOrderCapabilityService $guestCapabilities,
     ) {}
 
     public function handle(OrderFulfilled $event): void
@@ -35,15 +37,30 @@ final class SendOrderConfirmationEmail implements ShouldQueue
         try {
             $order = Order::query()->with(['items.product', 'user', 'payment'])->find($orderId);
 
-            if (! $order?->user?->email) {
+            // Guest recipient is always the immutable billing snapshot email.
+            $recipient = $order?->user?->email
+                ?: (is_array($order?->billing_address) ? ($order->billing_address['email'] ?? null) : null);
+
+            if (! $order || ! is_string($recipient) || $recipient === '') {
                 $this->releaseClaim($orderId);
 
                 return;
             }
 
-            Mail::to($order->user->email)->send(new OrderConfirmationMail(
+            $rawStatusToken = null;
+            if ($order->is_guest && $order->user_id === null) {
+                // Mint at send-time: raw status tokens cannot be recovered from hashes.
+                // Rotates any prior active status capability so retries stay single-active.
+                $rawStatusToken = $this->guestCapabilities->rotateStatusTokenForDelivery($order);
+            }
+
+            $mailLocale = $this->resolveMailLocale($order);
+
+            Mail::to($recipient)->send(new OrderConfirmationMail(
                 $order,
                 $this->enrollmentQrs($order),
+                $rawStatusToken,
+                $mailLocale,
             ));
         } catch (Throwable $exception) {
             $this->releaseClaim($orderId);
@@ -52,6 +69,18 @@ final class SendOrderConfirmationEmail implements ShouldQueue
         }
 
         $this->markSent($orderId);
+    }
+
+    private function resolveMailLocale(Order $order): string
+    {
+        $userLocale = $order->user?->locale;
+        if (is_string($userLocale) && in_array($userLocale, ['ar', 'en'], true)) {
+            return $userLocale;
+        }
+
+        $default = (string) config('sciencestreet.default_locale', 'ar');
+
+        return in_array($default, ['ar', 'en'], true) ? $default : 'ar';
     }
 
     private function claim(int $orderId): bool

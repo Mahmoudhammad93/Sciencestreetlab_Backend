@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Modules\Commerce\Application\Services;
 
 use App\Models\User;
+use App\Modules\Catalog\Domain\Enums\ProductType;
+use App\Modules\Catalog\Infrastructure\Persistence\Models\Product;
 use App\Modules\Commerce\Domain\Enums\OrderStatus;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Cart;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Coupon;
@@ -19,33 +21,97 @@ final class CheckoutService
         private readonly CartService $cartService,
         private readonly CouponService $couponService,
         private readonly BostaShipmentService $bostaShipments,
+        private readonly GuestOrderCapabilityService $guestCapabilities,
     ) {}
 
     /**
      * @param  array<string, mixed>  $billingAddress
-     * @param  array<string, mixed>  $shippingAddress
+     * @param  array<string, mixed>|null  $shippingAddress
+     * @return array{order: Order, guest_tokens: array{pay_token: string, status_token: string}|null}
      */
     public function createOrderFromCart(
-        User $user,
+        ?User $user,
         Cart $cart,
         array $billingAddress,
-        array $shippingAddress,
+        ?array $shippingAddress = null,
         ?string $notes = null,
-    ): Order {
+    ): array {
         $cart->load('items.product');
 
         if ($cart->items->isEmpty()) {
             throw new DomainException('Cannot checkout with an empty cart.');
         }
 
-        return DB::transaction(function () use ($user, $cart, $billingAddress, $shippingAddress, $notes): Order {
-            $subtotal = $cart->total();
+        $this->assertBilling($billingAddress);
+
+        $requiresShipping = $this->cartRequiresShipping($cart);
+        if ($requiresShipping) {
+            if ($shippingAddress === null || $shippingAddress === []) {
+                throw new DomainException('Shipping address is required for physical products.');
+            }
+            // Prefer explicit shipping fields; fall back to billing contact when omitted.
+            $shippingAddress = array_merge([
+                'first_name' => $billingAddress['first_name'] ?? '',
+                'last_name' => $billingAddress['last_name'] ?? '',
+                'email' => $billingAddress['email'] ?? '',
+                'phone' => $billingAddress['phone'] ?? '',
+                'address' => $billingAddress['address'] ?? '',
+            ], $shippingAddress);
+            $this->assertShipping($shippingAddress);
+        } else {
+            $shippingAddress = $shippingAddress ?: [
+                'first_name' => $billingAddress['first_name'] ?? '',
+                'last_name' => $billingAddress['last_name'] ?? '',
+                'email' => $billingAddress['email'] ?? '',
+                'phone' => $billingAddress['phone'] ?? '',
+                'city' => $billingAddress['city'] ?? '',
+                'country' => $billingAddress['country'] ?? 'EG',
+                'address' => $billingAddress['address'] ?? '',
+            ];
+        }
+
+        return DB::transaction(function () use ($user, $cart, $billingAddress, $shippingAddress, $notes): array {
+            $lines = [];
+            $subtotal = 0.0;
+
+            foreach ($cart->items as $item) {
+                $product = $item->product;
+                if (! $product instanceof Product) {
+                    throw new DomainException('Cart contains an invalid product.');
+                }
+
+                $this->assertProductPurchasable($product);
+
+                $unitPrice = (float) $product->price;
+                $qty = max(1, (int) $item->quantity);
+                $lineTotal = $unitPrice * $qty;
+                $subtotal += $lineTotal;
+
+                $lines[] = [
+                    'product' => $product,
+                    'quantity' => $qty,
+                    'unit_price' => $unitPrice,
+                    'total_price' => $lineTotal,
+                ];
+            }
+
+            // Refresh coupon calc against authoritative line prices by syncing cart item prices.
+            foreach ($lines as $line) {
+                $cart->items
+                    ->firstWhere('product_id', $line['product']->id)
+                    ?->update(['unit_price' => $line['unit_price']]);
+            }
+            $cart->unsetRelation('items');
+            $cart->load('items.product');
+
             $discount = $this->couponService->discountForCart($cart);
             $shipping = 0;
             $total = max(0, $subtotal - $discount + $shipping);
+            $isGuest = $user === null;
 
             $order = Order::query()->create([
-                'user_id' => $user->id,
+                'user_id' => $user?->id,
+                'is_guest' => $isGuest,
                 'status' => OrderStatus::AwaitingPayment->value,
                 'subtotal' => $subtotal,
                 'discount_amount' => $discount,
@@ -60,19 +126,21 @@ final class CheckoutService
                 'notes' => $notes,
             ]);
 
-            foreach ($cart->items as $item) {
+            foreach ($lines as $line) {
+                /** @var Product $product */
+                $product = $line['product'];
                 OrderItem::query()->create([
                     'order_id' => $order->id,
-                    'product_id' => $item->product_id,
-                    'product_name' => $item->product->getTranslation('name', app()->getLocale()) ?: $item->product->sku,
-                    'product_sku' => $item->product->sku,
-                    'quantity' => $item->quantity,
-                    'unit_price' => $item->unit_price,
-                    'total_price' => $item->unit_price * $item->quantity,
+                    'product_id' => $product->id,
+                    'product_name' => $product->getTranslation('name', app()->getLocale()) ?: $product->sku,
+                    'product_sku' => $product->sku,
+                    'quantity' => $line['quantity'],
+                    'unit_price' => $line['unit_price'],
+                    'total_price' => $line['total_price'],
                     'metadata' => [
-                        'product_type' => $item->product->type->value,
-                        'course_id' => $item->product->course_id,
-                        'course_plan_id' => $item->product->course_plan_id,
+                        'product_type' => $product->type->value,
+                        'course_id' => $product->course_id,
+                        'course_plan_id' => $product->course_plan_id,
                     ],
                 ]);
             }
@@ -86,8 +154,74 @@ final class CheckoutService
 
             $order = $order->load('items');
             $this->bostaShipments->ensureShipmentForOrder($order);
+            $order = $order->fresh(['items', 'bostaShipment']) ?? $order;
 
-            return $order->fresh(['items', 'bostaShipment']) ?? $order;
+            $guestTokens = null;
+            if ($isGuest) {
+                $guestTokens = $this->guestCapabilities->issueForGuestOrder($order);
+            }
+
+            return [
+                'order' => $order,
+                'guest_tokens' => $guestTokens,
+            ];
         });
+    }
+
+    public function cartRequiresShipping(Cart $cart): bool
+    {
+        $cart->loadMissing('items.product');
+
+        foreach ($cart->items as $item) {
+            $type = $item->product?->type;
+            if ($type === ProductType::Kit || $type === ProductType::Bundle) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function assertProductPurchasable(Product $product): void
+    {
+        $status = is_object($product->status) && property_exists($product->status, 'value')
+            ? (string) $product->status->value
+            : (string) $product->status;
+
+        if ($status !== 'published') {
+            throw new DomainException('Product is not available for purchase: '.$product->sku);
+        }
+
+        if ($product->manage_stock && (int) ($product->stock_quantity ?? 0) <= 0) {
+            throw new DomainException('Product is out of stock: '.$product->sku);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $billing
+     */
+    private function assertBilling(array $billing): void
+    {
+        foreach (['first_name', 'last_name', 'email', 'phone'] as $field) {
+            if (! isset($billing[$field]) || trim((string) $billing[$field]) === '') {
+                throw new DomainException("Billing {$field} is required.");
+            }
+        }
+
+        if (! filter_var((string) $billing['email'], FILTER_VALIDATE_EMAIL)) {
+            throw new DomainException('Billing email is invalid.');
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $shipping
+     */
+    private function assertShipping(array $shipping): void
+    {
+        foreach (['first_name', 'phone', 'city', 'country'] as $field) {
+            if (! isset($shipping[$field]) || trim((string) $shipping[$field]) === '') {
+                throw new DomainException("Shipping {$field} is required.");
+            }
+        }
     }
 }

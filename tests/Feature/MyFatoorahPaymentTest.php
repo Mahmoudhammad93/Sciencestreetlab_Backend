@@ -31,6 +31,7 @@ final class MyFatoorahPaymentTest extends TestCase
         $checkout = $this->postJson('/api/v1/checkout', [
             'billing_address' => [
                 'first_name' => 'Sara',
+                'last_name' => 'Test',
                 'email' => $user->email,
                 'phone' => '01012345678',
                 'city' => 'Cairo',
@@ -100,6 +101,7 @@ final class MyFatoorahPaymentTest extends TestCase
         $checkout = $this->postJson('/api/v1/checkout', [
             'billing_address' => [
                 'first_name' => 'Sara',
+                'last_name' => 'Test',
                 'email' => $user->email,
                 'phone' => '01012345678',
                 'city' => 'Cairo',
