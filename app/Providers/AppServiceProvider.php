@@ -118,8 +118,8 @@ class AppServiceProvider extends ServiceProvider
     {
         $key = $this->brevoApiKey();
 
-        Mail::extend('brevo', function () use ($key) {
-            return new BrevoTransport($key ?? (string) config('services.brevo.key', ''));
+        Mail::extend('brevo', function () {
+            return new BrevoTransport((string) config('services.brevo.key', ''));
         });
 
         if ($key === null || $key === '') {

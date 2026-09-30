@@ -9,12 +9,12 @@ use App\Modules\Commerce\Domain\Events\OrderFulfilled;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Order;
 use App\Modules\Commerce\Mail\OrderConfirmationMail;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Enrollment;
-use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Throwable;
 
-final class SendOrderConfirmationEmail implements ShouldQueueAfterCommit
+final class SendOrderConfirmationEmail implements ShouldQueue
 {
     public int $tries = 3;
 

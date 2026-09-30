@@ -82,17 +82,19 @@ class EditOrder extends EditRecord
                     }
 
                     try {
-                        $updated = app(BostaWebhookService::class)->handle([
+                        $result = app(BostaWebhookService::class)->handle([
                             'external_shipment_id' => $shipment->external_shipment_id,
                             'status' => (string) $data['status'],
                         ]);
 
+                        $updated = $result->shipment ?? $shipment->fresh();
+
                         $this->refreshFormData(['status', 'notes']);
                         $this->record->refresh();
 
-                        $label = $updated->status instanceof ShipmentStatus
+                        $label = $updated?->status instanceof ShipmentStatus
                             ? $updated->status->label()
-                            : (string) $updated->status;
+                            : (string) ($updated?->status ?? '');
 
                         Notification::make()
                             ->title(__('admin.orders.notifications.bosta_updated'))

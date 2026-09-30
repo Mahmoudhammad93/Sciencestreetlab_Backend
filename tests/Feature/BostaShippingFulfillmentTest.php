@@ -318,6 +318,232 @@ final class BostaShippingFulfillmentTest extends TestCase
         $this->assertSame(0, Enrollment::query()->count());
     }
 
+    public function test_webhook_route_requires_no_user_login(): void
+    {
+        [$user, , $product] = $this->kitWithCourse();
+        $order = $this->checkoutKit($user, $product);
+
+        $this->assertGuest();
+
+        $this->postJson('/api/v1/webhooks/bosta', [
+            'external_shipment_id' => $order->bostaShipment->external_shipment_id,
+            'status' => 'in_transit',
+        ], ['X-Bosta-Test-Secret' => 'test-secret'])
+            ->assertOk()
+            ->assertJsonPath('ok', true)
+            ->assertJsonPath('status', 'in_transit');
+    }
+
+    public function test_malformed_webhook_payload_is_rejected(): void
+    {
+        $this->postJson('/api/v1/webhooks/bosta', [
+            'status' => 'delivered',
+        ], ['X-Bosta-Test-Secret' => 'test-secret'])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'Bosta webhook missing shipment identifier.');
+
+        $this->assertSame(0, Enrollment::query()->count());
+    }
+
+    public function test_unknown_shipment_does_not_create_data(): void
+    {
+        [$user, , $product] = $this->kitWithCourse();
+        $this->checkoutKit($user, $product);
+        $before = \App\Modules\Commerce\Infrastructure\Persistence\Models\Shipment::query()->count();
+
+        $this->postJson('/api/v1/webhooks/bosta', [
+            'external_shipment_id' => 'totally-unknown-bosta-id',
+            'status' => 'delivered',
+        ], ['X-Bosta-Test-Secret' => 'test-secret'])
+            ->assertOk()
+            ->assertJsonPath('ok', true)
+            ->assertJsonPath('outcome', 'ignored_unknown_shipment');
+
+        $this->assertSame($before, \App\Modules\Commerce\Infrastructure\Persistence\Models\Shipment::query()->count());
+        $this->assertSame(0, Enrollment::query()->count());
+        $this->assertSame(0, Order::query()->whereNotNull('fulfilled_at')->count());
+    }
+
+    public function test_unknown_bosta_status_does_not_fulfill(): void
+    {
+        Mail::fake();
+        [$user, $course, $product] = $this->kitWithCourse();
+        $order = $this->checkoutKit($user, $product);
+        $externalId = $order->bostaShipment->external_shipment_id;
+
+        $this->postJson('/api/v1/webhooks/bosta', [
+            'external_shipment_id' => $externalId,
+            'status' => 'weird_new_bosta_code_99',
+        ], ['X-Bosta-Test-Secret' => 'test-secret'])
+            ->assertOk()
+            ->assertJsonPath('outcome', 'ignored_unknown_status')
+            ->assertJsonPath('status', 'created');
+
+        $order->refresh();
+        $this->assertNull($order->fulfilled_at);
+        $this->assertSame(ShipmentStatus::Created, $order->bostaShipment->fresh()->status);
+        $this->assertSame('weird_new_bosta_code_99', $order->bostaShipment->fresh()->provider_status);
+        $this->assertDatabaseMissing('enrollments', [
+            'user_id' => $user->id,
+            'course_id' => $course->id,
+        ]);
+        Mail::assertNothingSent();
+    }
+
+    public function test_non_delivered_statuses_do_not_grant_course_access(): void
+    {
+        Mail::fake();
+        [$user, $course, $product] = $this->kitWithCourse();
+        $order = $this->checkoutKit($user, $product);
+        $externalId = $order->bostaShipment->external_shipment_id;
+
+        foreach (['picked_up', 'in_transit', 'out_for_delivery'] as $status) {
+            $this->postJson('/api/v1/webhooks/bosta', [
+                'external_shipment_id' => $externalId,
+                'status' => $status,
+            ], ['X-Bosta-Test-Secret' => 'test-secret'])
+                ->assertOk()
+                ->assertJsonPath('status', $status);
+
+            $this->assertNull($order->fresh()->fulfilled_at);
+            $this->assertDatabaseMissing('enrollments', [
+                'user_id' => $user->id,
+                'course_id' => $course->id,
+            ]);
+        }
+
+        Mail::assertNothingSent();
+    }
+
+    public function test_cancelled_returned_failed_statuses_do_not_fulfill(): void
+    {
+        Mail::fake();
+        [$user, $course, $product] = $this->kitWithCourse();
+        $order = $this->checkoutKit($user, $product);
+        $externalId = $order->bostaShipment->external_shipment_id;
+
+        foreach ([
+            'cancelled' => ShipmentStatus::Cancelled,
+            'returned' => ShipmentStatus::Failed,
+            'rejected' => ShipmentStatus::Failed,
+            'failed' => ShipmentStatus::Failed,
+        ] as $providerStatus => $expected) {
+            // Fresh kit each terminal attempt after first would stick terminal — recreate.
+            if ($providerStatus !== 'cancelled') {
+                [$user, $course, $product] = $this->kitWithCourse();
+                $order = $this->checkoutKit($user, $product);
+                $externalId = $order->bostaShipment->external_shipment_id;
+            }
+
+            $this->postJson('/api/v1/webhooks/bosta', [
+                'external_shipment_id' => $externalId,
+                'status' => $providerStatus,
+            ], ['X-Bosta-Test-Secret' => 'test-secret'])
+                ->assertOk()
+                ->assertJsonPath('status', $expected->value);
+
+            $this->assertNull($order->fresh()->fulfilled_at);
+            $this->assertDatabaseMissing('enrollments', [
+                'user_id' => $user->id,
+                'course_id' => $course->id,
+            ]);
+        }
+
+        Mail::assertNothingSent();
+    }
+
+    public function test_out_of_order_event_cannot_regress_delivered_state(): void
+    {
+        Mail::fake();
+        [$user, $course, $product] = $this->kitWithCourse();
+        $order = $this->checkoutKit($user, $product);
+        $externalId = $order->bostaShipment->external_shipment_id;
+
+        $this->postJson('/api/v1/webhooks/bosta', [
+            'external_shipment_id' => $externalId,
+            'status' => 'delivered',
+        ], ['X-Bosta-Test-Secret' => 'test-secret'])
+            ->assertOk()
+            ->assertJsonPath('status', 'delivered');
+
+        $this->postJson('/api/v1/webhooks/bosta', [
+            'external_shipment_id' => $externalId,
+            'status' => 'in_transit',
+        ], ['X-Bosta-Test-Secret' => 'test-secret'])
+            ->assertOk()
+            ->assertJsonPath('status', 'delivered')
+            ->assertJsonPath('duplicate', true)
+            ->assertJsonPath('outcome', 'duplicate');
+
+        $shipment = $order->bostaShipment->fresh();
+        $this->assertSame(ShipmentStatus::Delivered, $shipment->status);
+        $this->assertSame(1, Enrollment::query()->where('user_id', $user->id)->where('course_id', $course->id)->count());
+        Mail::assertSent(OrderConfirmationMail::class, 1);
+    }
+
+    public function test_terminal_failure_is_not_overwritten_by_mid_journey_or_delivered(): void
+    {
+        Mail::fake();
+        [$user, $course, $product] = $this->kitWithCourse();
+        $order = $this->checkoutKit($user, $product);
+        $externalId = $order->bostaShipment->external_shipment_id;
+
+        $this->postJson('/api/v1/webhooks/bosta', [
+            'external_shipment_id' => $externalId,
+            'status' => 'failed',
+        ], ['X-Bosta-Test-Secret' => 'test-secret'])
+            ->assertOk()
+            ->assertJsonPath('status', 'failed');
+
+        $this->postJson('/api/v1/webhooks/bosta', [
+            'external_shipment_id' => $externalId,
+            'status' => 'in_transit',
+        ], ['X-Bosta-Test-Secret' => 'test-secret'])
+            ->assertOk()
+            ->assertJsonPath('status', 'failed')
+            ->assertJsonPath('outcome', 'ignored_terminal_regression');
+
+        $this->postJson('/api/v1/webhooks/bosta', [
+            'external_shipment_id' => $externalId,
+            'status' => 'delivered',
+        ], ['X-Bosta-Test-Secret' => 'test-secret'])
+            ->assertOk()
+            ->assertJsonPath('status', 'failed')
+            ->assertJsonPath('outcome', 'ignored_terminal_regression');
+
+        $this->assertNull($order->fresh()->fulfilled_at);
+        $this->assertDatabaseMissing('enrollments', [
+            'user_id' => $user->id,
+            'course_id' => $course->id,
+        ]);
+        Mail::assertNothingSent();
+    }
+
+    public function test_configured_verifier_rejects_until_official_signature_ready(): void
+    {
+        [$user, , $product] = $this->kitWithCourse();
+        $order = $this->checkoutKit($user, $product);
+
+        config([
+            'bosta.webhook_signature_ready' => false,
+            'bosta.webhook_secret' => 'real-looking-secret',
+        ]);
+
+        // Keep FakeBostaClient for shipment create; swap only webhook verifier to production stub.
+        $this->app->instance(
+            \App\Modules\Commerce\Domain\Contracts\BostaWebhookVerifierInterface::class,
+            $this->app->make(\App\Modules\Commerce\Infrastructure\Shipping\Bosta\ConfiguredBostaWebhookVerifier::class)
+        );
+
+        $this->postJson('/api/v1/webhooks/bosta', [
+            'external_shipment_id' => $order->bostaShipment->external_shipment_id,
+            'status' => 'delivered',
+        ], ['X-Bosta-Test-Secret' => 'real-looking-secret'])
+            ->assertUnauthorized();
+
+        $this->assertNull($order->fresh()->fulfilled_at);
+    }
+
     public function test_non_bosta_course_product_still_enrolls_on_payment(): void
     {
         config(['bosta.enabled' => true]);

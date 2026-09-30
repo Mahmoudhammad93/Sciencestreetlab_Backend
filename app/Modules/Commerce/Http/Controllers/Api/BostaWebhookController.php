@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Commerce\Http\Controllers\Api;
 
 use App\Modules\Commerce\Application\Services\BostaWebhookService;
+use App\Modules\Commerce\Application\Support\BostaWebhookResult;
 use App\Modules\Commerce\Domain\Contracts\BostaWebhookVerifierInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,6 +13,12 @@ use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 use Throwable;
 
+/**
+ * Public Bosta shipment-status webhook (no Sanctum / CSRF).
+ *
+ * Auth is verifier-based. Production signature algorithm remains
+ * BLOCKED_BY_BOSTA_CREDENTIALS_OR_DOCS until official Bosta docs are applied.
+ */
 final class BostaWebhookController
 {
     public function __construct(
@@ -36,13 +43,9 @@ final class BostaWebhookController
         }
 
         try {
-            $shipment = $this->webhooks->handle($request->all());
+            $result = $this->webhooks->handle($request->all());
 
-            return response()->json([
-                'ok' => true,
-                'shipment_id' => $shipment->id,
-                'status' => $shipment->status->value,
-            ]);
+            return response()->json($this->payload($result));
         } catch (InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         } catch (Throwable $e) {
@@ -50,5 +53,31 @@ final class BostaWebhookController
 
             return response()->json(['message' => 'Webhook processing failed'], 500);
         }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function payload(BostaWebhookResult $result): array
+    {
+        $body = [
+            'ok' => true,
+            'outcome' => $result->outcome,
+            'duplicate' => $result->duplicate,
+            'external_shipment_id' => $result->externalShipmentId,
+        ];
+
+        if ($result->shipment !== null) {
+            $body['shipment_id'] = $result->shipment->id;
+            $body['order_id'] = $result->shipment->order_id;
+            $body['status'] = $result->shipment->status->value;
+            $body['fulfilled'] = $result->fulfilled;
+        }
+
+        if ($result->mappedStatus !== null) {
+            $body['mapped_status'] = $result->mappedStatus->value;
+        }
+
+        return $body;
     }
 }

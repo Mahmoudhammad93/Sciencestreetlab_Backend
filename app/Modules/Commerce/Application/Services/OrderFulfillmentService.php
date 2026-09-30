@@ -56,17 +56,14 @@ final class OrderFulfillmentService
             return $fresh;
         }
 
-        return DB::transaction(function () use ($order): Order {
+        $dispatchPaid = false;
+
+        $fresh = DB::transaction(function () use ($order, &$dispatchPaid): Order {
             /** @var Order $locked */
             $locked = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
 
             if ($locked->paid_at !== null) {
-                $loaded = $locked->loadMissing('items');
-                if (! $this->defersFulfillmentUntilDelivery($loaded)) {
-                    return $this->fulfill($loaded);
-                }
-
-                return $loaded;
+                return $locked->loadMissing('items');
             }
 
             $locked->update([
@@ -74,15 +71,20 @@ final class OrderFulfillmentService
                 'paid_at' => now(),
             ]);
 
-            $fresh = $locked->fresh(['items']);
-            event(new OrderPaid($fresh));
+            $dispatchPaid = true;
 
-            if (! $this->defersFulfillmentUntilDelivery($fresh)) {
-                return $this->fulfill($fresh);
-            }
-
-            return $fresh;
+            return $locked->fresh(['items']);
         });
+
+        if ($dispatchPaid) {
+            event(new OrderPaid($fresh));
+        }
+
+        if (! $this->defersFulfillmentUntilDelivery($fresh)) {
+            return $this->fulfill($fresh);
+        }
+
+        return $fresh;
     }
 
     /**
@@ -94,7 +96,9 @@ final class OrderFulfillmentService
             return $order->fresh(['items']) ?? $order;
         }
 
-        return DB::transaction(function () use ($order): Order {
+        $dispatchFulfilled = false;
+
+        $fresh = DB::transaction(function () use ($order, &$dispatchFulfilled): Order {
             /** @var Order $locked */
             $locked = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
 
@@ -103,12 +107,16 @@ final class OrderFulfillmentService
             }
 
             $locked->update(['fulfilled_at' => now()]);
+            $dispatchFulfilled = true;
 
-            $fresh = $locked->fresh(['items']);
-            event(new OrderFulfilled($fresh));
-
-            return $fresh;
+            return $locked->fresh(['items']);
         });
+
+        if ($dispatchFulfilled) {
+            event(new OrderFulfilled($fresh));
+        }
+
+        return $fresh;
     }
 
     /**
