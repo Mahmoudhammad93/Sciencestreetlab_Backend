@@ -54,14 +54,14 @@ final class MyFatoorahGateway implements PaymentGatewayInterface
         $user = $order->user;
 
         $data = $this->client->sendPayment([
-            'CustomerName' => (string) ($billing['first_name'] ?? $user->name ?? 'Customer'),
+            'CustomerName' => (string) ($billing['first_name'] ?? $user?->name ?? 'Customer'),
             'NotificationOption' => 'Lnk',
             'InvoiceValue' => (float) $order->total,
-            'CustomerEmail' => (string) ($billing['email'] ?? $user->email),
+            'CustomerEmail' => (string) ($billing['email'] ?? $user?->email ?? ''),
             'CallBackUrl' => $callbackUrl,
             'ErrorUrl' => $callbackUrl,
             'Language' => strtolower((string) config('myfatoorah.language')) === 'en' ? 'en' : 'ar',
-            'CustomerMobile' => MyFatoorahPhoneNormalizer::normalize($billing['phone'] ?? $user->phone ?? null),
+            'CustomerMobile' => MyFatoorahPhoneNormalizer::normalize($billing['phone'] ?? $user?->phone ?? null),
             'DisplayCurrencyIso' => (string) config('myfatoorah.currency', $order->currency),
             'CustomerReference' => $order->order_number,
         ]);

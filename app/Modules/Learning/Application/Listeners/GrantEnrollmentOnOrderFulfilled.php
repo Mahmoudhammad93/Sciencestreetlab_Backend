@@ -38,6 +38,11 @@ final class GrantEnrollmentOnOrderFulfilled
                 continue;
             }
 
+            if ($order->user === null) {
+                // Historical guest orders (user_id null) cannot receive enrollments.
+                continue;
+            }
+
             $plan = null;
             if ($planId) {
                 $plan = CoursePlan::query()

@@ -139,12 +139,12 @@ final class PaymobGateway implements PaymentGatewayInterface
 
         return [
             'apartment' => $billing['apartment'] ?? 'NA',
-            'email' => $billing['email'] ?? $user->email,
+            'email' => $billing['email'] ?? $user?->email ?? '',
             'floor' => $billing['floor'] ?? 'NA',
-            'first_name' => $billing['first_name'] ?? $user->name,
+            'first_name' => $billing['first_name'] ?? $user?->name ?? 'Guest',
             'street' => $billing['street'] ?? 'NA',
             'building' => $billing['building'] ?? 'NA',
-            'phone_number' => $billing['phone'] ?? $user->phone ?? '01000000000',
+            'phone_number' => $billing['phone'] ?? $user?->phone ?? '01000000000',
             'shipping_method' => 'PKG',
             'postal_code' => $billing['postal_code'] ?? 'NA',
             'city' => $billing['city'] ?? 'Cairo',

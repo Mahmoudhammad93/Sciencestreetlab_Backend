@@ -52,7 +52,7 @@ final class FawaterakGateway implements PaymentGatewayInterface
         $billing = $order->billing_address ?? [];
         $user = $order->user;
         [$firstName, $lastName] = $this->splitName(
-            (string) ($billing['first_name'] ?? $user->name ?? 'Customer')
+            (string) ($billing['first_name'] ?? $user?->name ?? 'Customer')
             .' '.(string) ($billing['last_name'] ?? '')
         );
 
@@ -62,8 +62,8 @@ final class FawaterakGateway implements PaymentGatewayInterface
             'customer' => array_filter([
                 'first_name' => $firstName,
                 'last_name' => $lastName,
-                'email' => (string) ($billing['email'] ?? $user->email),
-                'phone' => $billing['phone'] ?? $user->phone ?? null,
+                'email' => (string) ($billing['email'] ?? $user?->email ?? ''),
+                'phone' => $billing['phone'] ?? $user?->phone ?? null,
                 'address' => $billing['address'] ?? null,
             ], static fn ($value) => $value !== null && $value !== ''),
             'cartItems' => [

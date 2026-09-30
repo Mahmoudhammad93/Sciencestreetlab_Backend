@@ -5,19 +5,45 @@ declare(strict_types=1);
 namespace App\Console\Commands\MigrateWordPress;
 
 use App\Modules\Migration\Application\Services\WordPress\WordPressCourseImporter;
+use App\Modules\Migration\Application\Services\WordPress\WordPressRealPersistGate;
 use Illuminate\Console\Command;
 
 final class MigrateWordPressCoursesCommand extends Command
 {
-    protected $signature = 'migration:wordpress:courses {--dry-run : Report without modifying production data}';
+    use InteractsWithWordPressMigrationAuthorization;
 
-    protected $description = 'Import WordPress/LearnDash courses (blocked until dump schema is supplied).';
+    protected $signature = 'migration:wordpress:courses
+        {--dry-run : Report without modifying data}
+        {--migration-run= : Active legacy_migration_runs.id required for real import}';
 
-    public function handle(WordPressCourseImporter $importer): int
+    protected $description = 'Import LearnDash courses/lessons/topics (approved tree). Real import requires WORDPRESS_REAL_PERSIST=1 and --migration-run.';
+
+    public function handle(WordPressCourseImporter $importer, WordPressRealPersistGate $gate): int
     {
-        $result = $importer->import((bool) $this->option('dry-run'));
-        $this->line(json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        $dryRun = (bool) $this->option('dry-run');
 
-        return self::SUCCESS;
+        if (! $dryRun) {
+            $auth = $this->beginMutatingImport($gate, 'course');
+            if (! $auth['ok']) {
+                return $auth['code'];
+            }
+        }
+
+        try {
+            $result = $importer->import($dryRun);
+            $this->line(json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+            if (! $dryRun && ($result['status'] ?? '') === 'blocked') {
+                $this->error((string) ($result['code'] ?? 'blocked'));
+
+                return self::FAILURE;
+            }
+
+            return self::SUCCESS;
+        } finally {
+            if (! $dryRun) {
+                $this->endMutatingImport();
+            }
+        }
     }
 }

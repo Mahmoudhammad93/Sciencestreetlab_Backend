@@ -5,12 +5,21 @@ declare(strict_types=1);
 namespace App\Modules\Migration\Infrastructure\Providers;
 
 use App\Modules\Migration\Application\Services\WordPress\LegacyImportMapRepository;
+use App\Modules\Migration\Application\Services\WordPress\MigrationRunService;
+use App\Modules\Migration\Application\Services\WordPress\WordPressApprovedCollisionMapper;
 use App\Modules\Migration\Application\Services\WordPress\WordPressAuditService;
+use App\Modules\Migration\Application\Services\WordPress\WordPressCollisionAnalyzer;
+use App\Modules\Migration\Application\Services\WordPress\WordPressCompetitionImporter;
+use App\Modules\Migration\Application\Services\WordPress\WordPressCompetitionSlotAnalyzer;
 use App\Modules\Migration\Application\Services\WordPress\WordPressConnectionService;
 use App\Modules\Migration\Application\Services\WordPress\WordPressCourseImporter;
+use App\Modules\Migration\Application\Services\WordPress\WordPressCourseTreeAnalyzer;
 use App\Modules\Migration\Application\Services\WordPress\WordPressEnrollmentImporter;
 use App\Modules\Migration\Application\Services\WordPress\WordPressOrderImporter;
+use App\Modules\Migration\Application\Services\WordPress\WordPressProductImporter;
+use App\Modules\Migration\Application\Services\WordPress\WordPressRealPersistGate;
 use App\Modules\Migration\Application\Services\WordPress\WordPressUserImporter;
+use App\Modules\Migration\Application\Services\WordPress\WordPressVariableProductAnalyzer;
 use App\Shared\Kernel\ModuleServiceProvider;
 
 final class MigrationServiceProvider extends ModuleServiceProvider
@@ -26,10 +35,19 @@ final class MigrationServiceProvider extends ModuleServiceProvider
 
         $this->app->singleton(WordPressConnectionService::class);
         $this->app->singleton(LegacyImportMapRepository::class);
+        $this->app->singleton(WordPressCourseTreeAnalyzer::class);
+        $this->app->singleton(WordPressVariableProductAnalyzer::class);
+        $this->app->singleton(WordPressCompetitionSlotAnalyzer::class);
+        $this->app->singleton(WordPressCollisionAnalyzer::class);
+        $this->app->singleton(WordPressApprovedCollisionMapper::class);
+        $this->app->singleton(MigrationRunService::class);
+        $this->app->singleton(WordPressRealPersistGate::class);
         $this->app->singleton(WordPressUserImporter::class);
         $this->app->singleton(WordPressCourseImporter::class);
         $this->app->singleton(WordPressEnrollmentImporter::class);
         $this->app->singleton(WordPressOrderImporter::class);
+        $this->app->singleton(WordPressProductImporter::class);
+        $this->app->singleton(WordPressCompetitionImporter::class);
         $this->app->singleton(WordPressAuditService::class);
     }
 

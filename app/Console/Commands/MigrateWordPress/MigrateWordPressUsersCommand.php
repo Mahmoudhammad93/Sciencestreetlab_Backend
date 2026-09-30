@@ -4,20 +4,46 @@ declare(strict_types=1);
 
 namespace App\Console\Commands\MigrateWordPress;
 
+use App\Modules\Migration\Application\Services\WordPress\WordPressRealPersistGate;
 use App\Modules\Migration\Application\Services\WordPress\WordPressUserImporter;
 use Illuminate\Console\Command;
 
 final class MigrateWordPressUsersCommand extends Command
 {
-    protected $signature = 'migration:wordpress:users {--dry-run : Report without modifying production data}';
+    use InteractsWithWordPressMigrationAuthorization;
 
-    protected $description = 'Import WordPress users. Passwords are NEVER copied — imported users must reset (password_strategy=reset_required).';
+    protected $signature = 'migration:wordpress:users
+        {--dry-run : Report without modifying data}
+        {--migration-run= : Active legacy_migration_runs.id required for real import}';
 
-    public function handle(WordPressUserImporter $importer): int
+    protected $description = 'Import WordPress users. Passwords are NEVER copied. Real import requires WORDPRESS_REAL_PERSIST=1 and --migration-run.';
+
+    public function handle(WordPressUserImporter $importer, WordPressRealPersistGate $gate): int
     {
-        $result = $importer->import((bool) $this->option('dry-run'));
-        $this->line(json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        $dryRun = (bool) $this->option('dry-run');
 
-        return ($result['status'] ?? '') === 'blocked' ? self::SUCCESS : self::SUCCESS;
+        if (! $dryRun) {
+            $auth = $this->beginMutatingImport($gate, 'user');
+            if (! $auth['ok']) {
+                return $auth['code'];
+            }
+        }
+
+        try {
+            $result = $importer->import($dryRun);
+            $this->line(json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+            if (! $dryRun && ($result['status'] ?? '') === 'blocked') {
+                $this->error((string) ($result['code'] ?? 'blocked'));
+
+                return self::FAILURE;
+            }
+
+            return self::SUCCESS;
+        } finally {
+            if (! $dryRun) {
+                $this->endMutatingImport();
+            }
+        }
     }
 }

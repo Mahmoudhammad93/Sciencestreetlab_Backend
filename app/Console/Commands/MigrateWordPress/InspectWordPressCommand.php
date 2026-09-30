@@ -11,7 +11,7 @@ final class InspectWordPressCommand extends Command
 {
     protected $signature = 'migration:wordpress:inspect';
 
-    protected $description = 'Inspect WordPress DB connection readiness (does not invent LearnDash/Woo mappings).';
+    protected $description = 'Inspect WordPress legacy DB connection and production (wp_) table probes.';
 
     public function handle(WordPressConnectionService $connection): int
     {
@@ -26,15 +26,21 @@ final class InspectWordPressCommand extends Command
             ])->values()->all()
         );
 
-        $this->line('Core probes:');
+        $this->line('Core probes (prefix '.$report['prefix'].'):');
         foreach ($report['probes'] as $table => $exists) {
             $state = $exists === null ? 'n/a' : ($exists ? 'present' : 'missing');
             $this->line("  - {$report['prefix']}{$table}: {$state}");
         }
 
+        if (($report['status'] ?? '') === 'connected') {
+            $this->info('Connection OK. Production Multisite prefix must remain wp_ (exclude wp_2_ / wp_3_).');
+
+            return self::SUCCESS;
+        }
+
         if (($report['blocked_reason'] ?? null) !== null) {
-            $this->warn($report['blocked_reason']);
-            $this->warn('LearnDash / WooCommerce source SQL remains blocked until a verified dump is supplied.');
+            $this->warn((string) $report['blocked_reason']);
+            $this->warn('Configure WORDPRESS_DB_* to wordpress_legacy and verify dump import before dry-runs.');
         }
 
         return self::SUCCESS;

@@ -9,10 +9,10 @@ use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 /**
- * Builds and probes the optional `wordpress` DB connection.
+ * WordPress legacy connection + readiness probes.
  *
- * LearnDash / WooCommerce table+column mappings remain
- * BLOCKED_UNTIL_WORDPRESS_DB_DUMP — only WordPress core probes are allowed.
+ * Production Multisite site (blog_id=1 / sciencestreetlab.com) uses prefix wp_.
+ * Never query wp_2_* or wp_3_* for production imports.
  */
 final class WordPressConnectionService
 {
@@ -51,6 +51,23 @@ final class WordPressConnectionService
     }
 
     /**
+     * Logical table suffix for the wordpress connection (e.g. users → wp_users via connection prefix).
+     * Do NOT pre-apply WORDPRESS_DB_PREFIX here — Laravel's connection prefix already does.
+     */
+    public function table(string $suffix): string
+    {
+        return ltrim($suffix, '_');
+    }
+
+    /**
+     * Fully qualified physical table name for rare raw SQL (includes configured prefix).
+     */
+    public function physicalTable(string $suffix): string
+    {
+        return $this->tablePrefix().ltrim($suffix, '_');
+    }
+
+    /**
      * @return array{
      *     configured: bool,
      *     missing: list<string>,
@@ -69,6 +86,12 @@ final class WordPressConnectionService
         $probes = [
             'users' => null,
             'posts' => null,
+            'wc_orders' => null,
+            'woocommerce_order_items' => null,
+            'learndash_user_activity' => null,
+            'learndash_pro_quiz_master' => null,
+            'aq_competitions' => null,
+            'lpc_competitions' => null,
         ];
 
         if ($missing !== []) {
@@ -101,7 +124,6 @@ final class WordPressConnectionService
             ];
         }
 
-        // Connection prefix is applied by Schema; probe well-known core table names only.
         foreach (array_keys($probes) as $table) {
             try {
                 $probes[$table] = Schema::connection($this->connectionName())->hasTable($table);
@@ -110,7 +132,7 @@ final class WordPressConnectionService
             }
         }
 
-        $coreReady = ($probes['users'] ?? false) === true;
+        $coreReady = ($probes['users'] ?? false) === true && ($probes['posts'] ?? false) === true;
 
         return [
             'configured' => true,
@@ -126,9 +148,6 @@ final class WordPressConnectionService
     }
 
     /**
-     * Whether source-specific import SQL may run.
-     * Always false until a verified WordPress dump unlocks LearnDash/Woo mappings.
-     *
      * @return array{ok: bool, reason: string|null, inspect: array<string, mixed>}
      */
     public function assertReadyForImport(string $expectedCoreTable = 'users'): array
@@ -152,11 +171,23 @@ final class WordPressConnectionService
             ];
         }
 
-        // Core probe passed, but LearnDash / WooCommerce mappings are still blocked.
         return [
-            'ok' => false,
-            'reason' => self::BLOCKED,
+            'ok' => true,
+            'reason' => null,
             'inspect' => $inspect,
         ];
+    }
+
+    /**
+     * Guard: production imports must use wp_ only (never wp_2_ / wp_3_).
+     */
+    public function assertProductionPrefix(): void
+    {
+        $prefix = $this->tablePrefix();
+        if ($prefix !== 'wp_') {
+            throw new \RuntimeException(
+                "Refusing WordPress import with prefix [{$prefix}]. Production Multisite site 1 requires WORDPRESS_DB_PREFIX=wp_."
+            );
+        }
     }
 }
