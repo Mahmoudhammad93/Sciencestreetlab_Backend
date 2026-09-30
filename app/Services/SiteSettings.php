@@ -13,6 +13,20 @@ final class SiteSettings
 {
     public const CACHE_KEY = 'site_settings.payload';
 
+    /** @var list<string> */
+    public const HOME_SLIDER_TRANSITIONS = [
+        'fade',
+        'glitch',
+        'slide',
+        'slide_up',
+        'zoom',
+        'blur',
+        'flip',
+        'wipe',
+        'cube',
+        'flash',
+    ];
+
     /**
      * @return array<string, mixed>
      */
@@ -39,6 +53,7 @@ final class SiteSettings
             'navbar_text_color' => '#3030d0',
             'promo_banner_enabled' => true,
             'promo_banner' => 'خصم ٢٥٪ ليصبح سعره ٢٧٩٠ ج بدلا من 3720 بعد الخصم لفترة محدودة',
+            'home_slider_transition' => 'glitch',
             'admin_brand_name' => 'Science Street Lab',
             'admin_primary_color' => '#2828a0',
             'admin_accent_color' => '#fcd500',
@@ -70,7 +85,24 @@ final class SiteSettings
             return array_merge(self::defaults(), $record->payload ?? []);
         });
 
+        $payload['admin_layout'] = self::normalizeAdminLayout(
+            is_string($payload['admin_layout'] ?? null) ? $payload['admin_layout'] : 'container'
+        );
+        $payload['home_slider_transition'] = self::normalizeHomeSliderTransition(
+            is_string($payload['home_slider_transition'] ?? null) ? $payload['home_slider_transition'] : 'glitch'
+        );
+
         return $payload;
+    }
+
+    public static function normalizeAdminLayout(string $layout): string
+    {
+        return match ($layout) {
+            'fluid', 'full' => 'full',
+            'wide' => 'wide',
+            'compact', 'container' => 'container',
+            default => 'container',
+        };
     }
 
     public static function getString(string $key, ?string $default = null): string
@@ -130,7 +162,17 @@ final class SiteSettings
             'navbar_text_color' => self::normalizeHex((string) $all['navbar_text_color'], '#3030d0'),
             'promo_banner_enabled' => (bool) $all['promo_banner_enabled'],
             'promo_banner' => $all['promo_banner'],
+            'home_slider_transition' => self::normalizeHomeSliderTransition(
+                is_string($all['home_slider_transition'] ?? null) ? $all['home_slider_transition'] : 'glitch'
+            ),
         ];
+    }
+
+    public static function normalizeHomeSliderTransition(string $value): string
+    {
+        $value = strtolower(trim($value));
+
+        return in_array($value, self::HOME_SLIDER_TRANSITIONS, true) ? $value : 'glitch';
     }
 
     public static function normalizeHex(string $value, string $fallback): string

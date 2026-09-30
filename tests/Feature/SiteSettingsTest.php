@@ -25,6 +25,7 @@ final class SiteSettingsTest extends TestCase
             ->assertJsonPath('data.primary_color', '#2828a0')
             ->assertJsonPath('data.navbar_color', '#fcd500')
             ->assertJsonPath('data.navbar_text_color', '#3030d0')
+            ->assertJsonPath('data.home_slider_transition', 'glitch')
             ->assertJsonMissingPath('data.admin_layout');
     }
 
@@ -34,7 +35,7 @@ final class SiteSettingsTest extends TestCase
             'site_name_en' => 'Science Street',
             'primary_color' => '#112233',
             'navbar_color' => '#ffaa00',
-            'admin_layout' => 'fluid',
+            'admin_layout' => 'full',
         ]);
 
         $this->getJson('/api/v1/settings')
@@ -43,7 +44,7 @@ final class SiteSettingsTest extends TestCase
             ->assertJsonPath('data.primary_color', '#112233')
             ->assertJsonPath('data.navbar_color', '#ffaa00');
 
-        $this->assertSame('fluid', SiteSettings::get()['admin_layout']);
+        $this->assertSame('full', SiteSettings::get()['admin_layout']);
     }
 
     public function test_image_dropzone_normalizes_external_logo_url_to_empty_upload_state(): void

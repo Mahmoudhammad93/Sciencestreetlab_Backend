@@ -130,9 +130,11 @@ class AdminPanelProvider extends PanelProvider
     private function layoutWidth(string $layout): MaxWidth
     {
         return match ($layout) {
-            'compact' => MaxWidth::FiveExtraLarge,
-            'fluid' => MaxWidth::Full,
-            default => MaxWidth::SevenExtraLarge,
+            // Legacy aliases from earlier compact/fluid naming.
+            'compact' => MaxWidth::SevenExtraLarge,
+            'fluid', 'full' => MaxWidth::Full,
+            'wide' => MaxWidth::ScreenTwoExtraLarge,
+            default => MaxWidth::SevenExtraLarge, // container
         };
     }
 

@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Filament\Pages;
 
 use App\Filament\Forms\Components\ImageDropzone;
+use App\Modules\Content\Infrastructure\Persistence\Models\HomeSlide;
 use App\Services\SiteSettings;
 use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Pages\Concerns\InteractsWithFormActions;
 use Filament\Pages\Page;
@@ -200,6 +202,31 @@ class ManageSettings extends Page
                                             ->rows(2)
                                             ->columnSpanFull(),
                                     ]),
+                                Forms\Components\Section::make(__('admin.settings.sections.home_slider'))
+                                    ->description(__('admin.settings.sections.home_slider_description'))
+                                    ->schema([
+                                        Forms\Components\Select::make('home_slider_transition')
+                                            ->label(__('admin.settings.fields.home_slider_transition'))
+                                            ->helperText(__('admin.settings.fields.home_slider_transition_help'))
+                                            ->options(collect(SiteSettings::HOME_SLIDER_TRANSITIONS)->mapWithKeys(
+                                                fn (string $key): array => [$key => __('admin.settings.options.slider_transition.'.$key)]
+                                            )->all())
+                                            ->default('glitch')
+                                            ->required()
+                                            ->native(false)
+                                            ->live(),
+                                        Forms\Components\ViewField::make('home_slider_transition_preview')
+                                            ->label(__('admin.settings.fields.home_slider_transition_preview'))
+                                            ->helperText(__('admin.settings.fields.home_slider_transition_preview_help'))
+                                            ->view('filament.forms.components.home-slider-transition-preview')
+                                            ->viewData(fn (Get $get): array => [
+                                                'transition' => SiteSettings::normalizeHomeSliderTransition(
+                                                    (string) ($get('home_slider_transition') ?? 'glitch')
+                                                ),
+                                                'slides' => self::homeSliderPreviewSlides(),
+                                            ])
+                                            ->dehydrated(false),
+                                    ]),
                             ]),
                         Forms\Components\Tabs\Tab::make(__('admin.settings.tabs.admin_dashboard'))
                             ->icon('heroicon-o-swatch')
@@ -235,14 +262,14 @@ class ManageSettings extends Page
                                             ->label(__('admin.settings.fields.admin_layout'))
                                             ->helperText(__('admin.settings.fields.admin_layout_help'))
                                             ->options([
-                                                'compact' => __('admin.settings.options.layout.compact'),
                                                 'container' => __('admin.settings.options.layout.container'),
-                                                'fluid' => __('admin.settings.options.layout.fluid'),
+                                                'wide' => __('admin.settings.options.layout.wide'),
+                                                'full' => __('admin.settings.options.layout.full'),
                                             ])
                                             ->icons([
-                                                'compact' => 'heroicon-o-view-columns',
                                                 'container' => 'heroicon-o-square-2-stack',
-                                                'fluid' => 'heroicon-o-arrows-pointing-out',
+                                                'wide' => 'heroicon-o-view-columns',
+                                                'full' => 'heroicon-o-arrows-pointing-out',
                                             ])
                                             ->inline()
                                             ->required(),
@@ -284,6 +311,10 @@ class ManageSettings extends Page
         $state['navbar_text_color'] = SiteSettings::normalizeHex((string) ($state['navbar_text_color'] ?? ''), '#3030d0');
         $state['admin_primary_color'] = SiteSettings::normalizeHex((string) ($state['admin_primary_color'] ?? ''), '#2828a0');
         $state['admin_accent_color'] = SiteSettings::normalizeHex((string) ($state['admin_accent_color'] ?? ''), '#fcd500');
+        $state['admin_layout'] = SiteSettings::normalizeAdminLayout((string) ($state['admin_layout'] ?? 'container'));
+        $state['home_slider_transition'] = SiteSettings::normalizeHomeSliderTransition(
+            (string) ($state['home_slider_transition'] ?? 'glitch')
+        );
 
         SiteSettings::save($state);
 
@@ -307,5 +338,26 @@ class ManageSettings extends Page
                 ->submit('save')
                 ->keyBindings(['mod+s']),
         ];
+    }
+
+    /**
+     * Active homepage slides used by the settings transition preview.
+     *
+     * @return list<array{id: int, image_url: ?string, background_color: string}>
+     */
+    public static function homeSliderPreviewSlides(): array
+    {
+        return HomeSlide::query()
+            ->active()
+            ->ordered()
+            ->limit(8)
+            ->get(['id', 'image', 'background_color'])
+            ->map(static fn (HomeSlide $slide): array => [
+                'id' => (int) $slide->id,
+                'image_url' => ImageDropzone::publicUrl($slide->image),
+                'background_color' => (string) ($slide->background_color ?: '#4B208C'),
+            ])
+            ->values()
+            ->all();
     }
 }
