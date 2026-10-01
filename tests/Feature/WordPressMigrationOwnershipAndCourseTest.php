@@ -463,10 +463,6 @@ final class WordPressMigrationOwnershipAndCourseTest extends TestCase
             config('wordpress.course_8507_verdict'),
         );
         $this->assertSame('ABSORB_TREE', config('wordpress.course_tree_policies.8507'));
-        $this->assertSame(
-            'MAP_EXISTING',
-            app(WordPressApprovedCollisionMapper::class)->courseDecision('8507'),
-        );
 
         $run = app(MigrationRunService::class)->start('testing-8507-absorb-tree');
         $course = Course::query()->create([
@@ -476,6 +472,12 @@ final class WordPressMigrationOwnershipAndCourseTest extends TestCase
             'is_published' => true,
             'title' => ['ar' => 'كورس الميكروسكوب'],
         ]);
+
+        // Destination-aware: MAP_EXISTING only after approved local slug exists.
+        $this->assertSame(
+            'MAP_EXISTING',
+            app(WordPressApprovedCollisionMapper::class)->courseDecision('8507'),
+        );
 
         $nativeLesson = \App\Modules\Learning\Infrastructure\Persistence\Models\Lesson::query()->create([
             'course_id' => $course->id,

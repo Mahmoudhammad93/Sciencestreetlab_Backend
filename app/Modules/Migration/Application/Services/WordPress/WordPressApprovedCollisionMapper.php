@@ -69,13 +69,29 @@ final class WordPressApprovedCollisionMapper
         return is_array($ids) ? $ids : [6912];
     }
 
+    /**
+     * Effective MAP_EXISTING only when the approved destination target exists.
+     *
+     * Staging registry entries remain configured historically; on destinations
+     * where the local slug is absent, return null so importers fall through to
+     * normal create/collision logic (no phantom would_map_existing).
+     */
     public function productDecision(string $legacyId): ?string
     {
         foreach ($this->approvedProductEntries() as $entry) {
-            if ((string) ($entry['legacy_id'] ?? '') === $legacyId
-                && ($entry['decision'] ?? null) === self::DECISION_MAP_EXISTING) {
-                return self::DECISION_MAP_EXISTING;
+            if ((string) ($entry['legacy_id'] ?? '') !== $legacyId
+                || ($entry['decision'] ?? null) !== self::DECISION_MAP_EXISTING) {
+                continue;
             }
+
+            $slug = $entry['local_slug'] ?? null;
+            if (! is_string($slug) || $slug === '') {
+                return null;
+            }
+
+            return Product::query()->where('slug', $slug)->exists()
+                ? self::DECISION_MAP_EXISTING
+                : null;
         }
 
         return null;
@@ -84,10 +100,19 @@ final class WordPressApprovedCollisionMapper
     public function competitionDecision(string $legacyId): ?string
     {
         foreach ($this->approvedCompetitionEntries() as $entry) {
-            if ((string) ($entry['legacy_id'] ?? '') === $legacyId
-                && ($entry['decision'] ?? null) === self::DECISION_MAP_EXISTING) {
-                return self::DECISION_MAP_EXISTING;
+            if ((string) ($entry['legacy_id'] ?? '') !== $legacyId
+                || ($entry['decision'] ?? null) !== self::DECISION_MAP_EXISTING) {
+                continue;
             }
+
+            $slug = $entry['local_slug'] ?? null;
+            if (! is_string($slug) || $slug === '') {
+                return null;
+            }
+
+            return Competition::query()->where('slug', $slug)->exists()
+                ? self::DECISION_MAP_EXISTING
+                : null;
         }
 
         return null;
@@ -96,10 +121,19 @@ final class WordPressApprovedCollisionMapper
     public function courseDecision(string $legacyId): ?string
     {
         foreach ($this->approvedCourseEntries() as $entry) {
-            if ((string) ($entry['legacy_id'] ?? '') === $legacyId
-                && ($entry['decision'] ?? null) === self::DECISION_MAP_EXISTING) {
-                return self::DECISION_MAP_EXISTING;
+            if ((string) ($entry['legacy_id'] ?? '') !== $legacyId
+                || ($entry['decision'] ?? null) !== self::DECISION_MAP_EXISTING) {
+                continue;
             }
+
+            $slug = $entry['local_slug'] ?? null;
+            if (! is_string($slug) || $slug === '') {
+                return null;
+            }
+
+            return Course::query()->where('slug', $slug)->exists()
+                ? self::DECISION_MAP_EXISTING
+                : null;
         }
 
         return null;

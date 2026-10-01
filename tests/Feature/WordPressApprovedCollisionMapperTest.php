@@ -251,6 +251,110 @@ final class WordPressApprovedCollisionMapperTest extends TestCase
         $this->assertSame(MigrationImportOutcome::WOULD_SKIP, $outcome);
     }
 
+    public function test_approved_product_target_absent_yields_no_phantom_map_decision(): void
+    {
+        $mapper = app(WordPressApprovedCollisionMapper::class);
+
+        $this->assertNull($mapper->productDecision('6811'));
+        $outcome = MigrationImportOutcome::classifyProductShell(
+            false,
+            false,
+            false,
+            $mapper->productDecision('6811'),
+        );
+        $this->assertSame(MigrationImportOutcome::WOULD_CREATE, $outcome);
+
+        $result = $mapper->simulate();
+        $this->assertSame(0, $result['products']['would_map_existing']);
+        $this->assertSame(10, $result['products']['unresolved']);
+        $this->assertSame(0, LegacyImportMap::query()->count());
+    }
+
+    public function test_approved_product_target_exists_yields_map_existing(): void
+    {
+        $this->seedApprovedTargets();
+        $mapper = app(WordPressApprovedCollisionMapper::class);
+
+        $this->assertSame('MAP_EXISTING', $mapper->productDecision('6811'));
+        $outcome = MigrationImportOutcome::classifyProductShell(
+            false,
+            true,
+            false,
+            $mapper->productDecision('6811'),
+        );
+        $this->assertSame(MigrationImportOutcome::WOULD_MAP_EXISTING, $outcome);
+    }
+
+    public function test_course_8507_target_exists_preserves_map_existing_and_absorb_tree(): void
+    {
+        $this->seedApprovedTargets();
+        $mapper = app(WordPressApprovedCollisionMapper::class);
+
+        $this->assertSame('MAP_EXISTING', $mapper->courseDecision('8507'));
+        $this->assertSame('ABSORB_TREE', $mapper->courseTreePolicy('8507'));
+        $outcome = MigrationImportOutcome::classifyCourseShell(
+            false,
+            false,
+            $mapper->courseDecision('8507'),
+        );
+        $this->assertSame(MigrationImportOutcome::WOULD_MAP_EXISTING, $outcome);
+    }
+
+    public function test_course_8507_target_absent_yields_no_phantom_map(): void
+    {
+        $mapper = app(WordPressApprovedCollisionMapper::class);
+
+        $this->assertNull($mapper->courseDecision('8507'));
+        // Tree policy registry entry remains historical; decision is destination-aware.
+        $this->assertSame('ABSORB_TREE', $mapper->courseTreePolicy('8507'));
+        $outcome = MigrationImportOutcome::classifyCourseShell(
+            false,
+            false,
+            $mapper->courseDecision('8507'),
+        );
+        $this->assertSame(MigrationImportOutcome::WOULD_CREATE, $outcome);
+
+        $result = $mapper->simulate();
+        $this->assertSame(0, $result['courses']['would_map_existing']);
+        $this->assertSame(1, $result['courses']['unresolved']);
+        $this->assertFalse($result['course_8507']['approved_for_map_existing']);
+        $this->assertSame(0, LegacyImportMap::query()->count());
+    }
+
+    public function test_competition_target_exists_yields_map_existing(): void
+    {
+        $this->seedApprovedTargets();
+        $mapper = app(WordPressApprovedCollisionMapper::class);
+
+        $this->assertSame('MAP_EXISTING', $mapper->competitionDecision('4'));
+        $outcome = MigrationImportOutcome::classifyCompetitionShell(
+            false,
+            true,
+            $mapper->competitionDecision('4'),
+            true,
+        );
+        $this->assertSame(MigrationImportOutcome::WOULD_MAP_EXISTING, $outcome);
+    }
+
+    public function test_competition_target_absent_yields_no_phantom_map(): void
+    {
+        $mapper = app(WordPressApprovedCollisionMapper::class);
+
+        $this->assertNull($mapper->competitionDecision('4'));
+        $outcome = MigrationImportOutcome::classifyCompetitionShell(
+            false,
+            false,
+            $mapper->competitionDecision('4'),
+            false,
+        );
+        $this->assertSame(MigrationImportOutcome::WOULD_DEFER, $outcome);
+
+        $result = $mapper->simulate();
+        $this->assertSame(0, $result['competitions']['would_map_existing']);
+        $this->assertSame(1, $result['competitions']['unresolved']);
+        $this->assertSame(0, LegacyImportMap::query()->count());
+    }
+
     /**
      * @return void
      */

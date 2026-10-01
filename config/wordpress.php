@@ -75,6 +75,10 @@ return [
     | Course 8507 is HUMAN_APPROVED_FOR_STAGING as MAP_EXISTING + ABSORB_TREE
     | (Option A MAP_EXISTING_AND_IMPORT_CONTENT) — see docs/WORDPRESS-COURSE-8507-IDENTITY.md.
     |
+    | Destination-aware: WordPressApprovedCollisionMapper::*Decision() returns
+    | MAP_EXISTING only when the approved local_slug exists on the destination.
+    | Absent targets fall through to normal create/collision logic (no phantom maps).
+    |
     | Do NOT treat this registry as authorization for a real entity import.
     | Use: php artisan migration:wordpress:apply-approved-collisions --dry-run
     |
