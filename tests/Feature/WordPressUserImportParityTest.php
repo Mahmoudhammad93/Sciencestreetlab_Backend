@@ -51,6 +51,23 @@ final class WordPressUserImportParityTest extends TestCase
         );
     }
 
+    public function test_classify_soft_deleted_email_is_skip_existing_email(): void
+    {
+        $user = User::factory()->create(['email' => 'trashed@example.com']);
+        $user->delete();
+        $this->assertTrue($user->fresh()->trashed());
+
+        $importer = app(WordPressUserImporter::class);
+        $email = $importer->normalizeEmail('  TRASHED@example.com ');
+
+        $this->assertSame(
+            WordPressUserImporter::OUTCOME_SKIP_EXISTING_EMAIL,
+            $importer->classifyImportDecision('1004', $email),
+        );
+        $this->assertSame(0, User::query()->where('email', 'trashed@example.com')->count());
+        $this->assertSame(1, User::withTrashed()->where('email', 'trashed@example.com')->count());
+    }
+
     public function test_classify_mapped_legacy_id_is_skip_mapped(): void
     {
         $user = User::factory()->create(['email' => 'mapped@example.com']);
@@ -136,6 +153,49 @@ final class WordPressUserImportParityTest extends TestCase
         $this->assertSame(WordPressUserImporter::OUTCOME_SKIP_EXISTING_EMAIL, $persist['outcome']);
         $this->assertFalse($persist['created']);
         $this->assertNull($persist['map']);
+    }
+
+    public function test_soft_deleted_email_dry_run_and_persist_skip_without_restore_or_map(): void
+    {
+        $existing = User::factory()->create([
+            'email' => 'soft-collision@example.com',
+            'name' => 'Soft Deleted Keep',
+            'password' => Hash::make('original-secret'),
+        ]);
+        $originalHash = $existing->password;
+        $existing->delete();
+        $this->assertNotNull($existing->fresh()->deleted_at);
+
+        $importer = app(WordPressUserImporter::class);
+        $email = $importer->normalizeEmail(' Soft-Collision@Example.com ');
+        $beforeMaps = LegacyImportMap::query()->where('entity_type', 'user')->count();
+        $beforeUsers = User::withTrashed()->count();
+        $beforeActive = User::query()->count();
+
+        $dryDecision = $importer->classifyImportDecision('3003', $email);
+        $persist = $importer->importUserSilently('3003', [
+            'email' => ' Soft-Collision@Example.com ',
+            'name' => 'Should Not Restore Or Create',
+            'phone' => '01000000000',
+        ]);
+
+        $existing->refresh();
+        $this->assertSame(WordPressUserImporter::OUTCOME_SKIP_EXISTING_EMAIL, $dryDecision);
+        $this->assertSame(WordPressUserImporter::OUTCOME_SKIP_EXISTING_EMAIL, $persist['outcome']);
+        $this->assertFalse($persist['created']);
+        $this->assertNull($persist['map']);
+        $this->assertSame($beforeUsers, User::withTrashed()->count());
+        $this->assertSame($beforeActive, User::query()->count());
+        $this->assertSame($beforeMaps, LegacyImportMap::query()->where('entity_type', 'user')->count());
+        $this->assertTrue($existing->trashed());
+        $this->assertSame('Soft Deleted Keep', $existing->name);
+        $this->assertSame($originalHash, $existing->password);
+        $this->assertDatabaseMissing('legacy_import_maps', [
+            'entity_type' => 'user',
+            'legacy_id' => '3003',
+        ]);
+        $this->assertSame(0, User::query()->where('email', 'soft-collision@example.com')->count());
+        $this->assertSame(1, User::withTrashed()->where('email', 'soft-collision@example.com')->count());
     }
 
     public function test_dry_run_and_persist_agree_on_new_email_decision(): void

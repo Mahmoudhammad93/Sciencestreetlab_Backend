@@ -46,6 +46,8 @@ final class WordPressUserImporter
      * Shared collision decision for dry-run prediction and real persist.
      *
      * Existing destination emails are SKIPPED (no User::create, no ownership map).
+     * Soft-deleted destination users are included: MySQL unique(email) still
+     * blocks INSERT, so dry-run must match that physical constraint.
      */
     public function classifyImportDecision(string $legacyId, string $normalizedEmail): string
     {
@@ -57,7 +59,7 @@ final class WordPressUserImporter
             return self::OUTCOME_SKIP_MAPPED;
         }
 
-        if (User::query()->where('email', $normalizedEmail)->exists()) {
+        if (User::withTrashed()->where('email', $normalizedEmail)->exists()) {
             return self::OUTCOME_SKIP_EXISTING_EMAIL;
         }
 
@@ -264,8 +266,9 @@ final class WordPressUserImporter
         }
 
         if ($decision === self::OUTCOME_SKIP_EXISTING_EMAIL || $decision === self::OUTCOME_SKIP_NO_EMAIL) {
+            // Include soft-deleted rows for lookup only — never restore or mutate them.
             $existingUser = $email !== ''
-                ? User::query()->where('email', $email)->first()
+                ? User::withTrashed()->where('email', $email)->first()
                 : null;
 
             return [
