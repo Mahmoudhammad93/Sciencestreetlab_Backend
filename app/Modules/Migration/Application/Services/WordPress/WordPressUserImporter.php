@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Migration\Application\Services\WordPress;
 
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -13,14 +14,55 @@ use Illuminate\Support\Str;
  *
  * Password policy: NEVER copy wp_users.user_pass. password_strategy=reset_required.
  * Dry-run writes NOTHING (no users, no legacy_import_maps).
+ *
+ * Dry-run and real persist share classifyImportDecision() so existing-email
+ * collisions cannot diverge between prediction and mutation.
  */
 final class WordPressUserImporter
 {
+    public const OUTCOME_CREATE = 'create';
+
+    public const OUTCOME_SKIP_MAPPED = 'skip_mapped';
+
+    public const OUTCOME_SKIP_EXISTING_EMAIL = 'skip_existing_email';
+
+    public const OUTCOME_SKIP_NO_EMAIL = 'skip_no_email';
+
     public function __construct(
         private readonly WordPressConnectionService $connection,
         private readonly LegacyImportMapRepository $maps,
         private readonly WordPressRealPersistGate $persistGate,
     ) {}
+
+    /**
+     * Normalize source/destination emails identically for dry-run and persist.
+     */
+    public function normalizeEmail(?string $email): string
+    {
+        return strtolower(trim((string) $email));
+    }
+
+    /**
+     * Shared collision decision for dry-run prediction and real persist.
+     *
+     * Existing destination emails are SKIPPED (no User::create, no ownership map).
+     */
+    public function classifyImportDecision(string $legacyId, string $normalizedEmail): string
+    {
+        if ($normalizedEmail === '') {
+            return self::OUTCOME_SKIP_NO_EMAIL;
+        }
+
+        if ($this->maps->find('user', $legacyId)?->local_id) {
+            return self::OUTCOME_SKIP_MAPPED;
+        }
+
+        if (User::query()->where('email', $normalizedEmail)->exists()) {
+            return self::OUTCOME_SKIP_EXISTING_EMAIL;
+        }
+
+        return self::OUTCOME_CREATE;
+    }
 
     /**
      * @return array<string, mixed>
@@ -49,6 +91,9 @@ final class WordPressUserImporter
         $wouldSkipExistingEmail = 0;
         $skippedNoEmail = 0;
         $created = 0;
+        $skippedMapped = 0;
+        $skippedExistingEmail = 0;
+        $failed = 0;
         $samples = [];
 
         // Site 1 membership: usermeta.meta_key = 'wp_capabilities' (not wp_3_capabilities).
@@ -66,6 +111,9 @@ final class WordPressUserImporter
                 &$wouldSkipExistingEmail,
                 &$skippedNoEmail,
                 &$created,
+                &$skippedMapped,
+                &$skippedExistingEmail,
+                &$failed,
                 &$samples,
                 $usersTable,
                 $metaTable,
@@ -96,8 +144,10 @@ final class WordPressUserImporter
                     }
 
                     $legacyId = (string) $row->ID;
-                    $email = strtolower(trim((string) $row->user_email));
-                    if ($email === '') {
+                    $email = $this->normalizeEmail((string) $row->user_email);
+                    $decision = $this->classifyImportDecision($legacyId, $email);
+
+                    if ($decision === self::OUTCOME_SKIP_NO_EMAIL) {
                         $skippedNoEmail++;
 
                         continue;
@@ -117,9 +167,9 @@ final class WordPressUserImporter
                     ];
 
                     if ($dryRun) {
-                        if ($this->maps->find('user', $legacyId)?->local_id) {
+                        if ($decision === self::OUTCOME_SKIP_MAPPED) {
                             $wouldSkipMapped++;
-                        } elseif (User::query()->where('email', $email)->exists()) {
+                        } elseif ($decision === self::OUTCOME_SKIP_EXISTING_EMAIL) {
                             $wouldSkipExistingEmail++;
                         } else {
                             $wouldCreate++;
@@ -129,6 +179,7 @@ final class WordPressUserImporter
                                     'email' => $email,
                                     'name' => $name,
                                     'password_strategy' => 'reset_required',
+                                    'predicted_outcome' => 'would_create',
                                 ];
                             }
                         }
@@ -136,14 +187,29 @@ final class WordPressUserImporter
                         continue;
                     }
 
-                    $result = $this->importUserSilently($legacyId, $attrs, false);
-                    if ($result['created']) {
-                        $created++;
-                    } else {
-                        $wouldSkipMapped++;
+                    try {
+                        $result = $this->importUserSilently($legacyId, $attrs, false);
+                        match ($result['outcome']) {
+                            self::OUTCOME_CREATE => $created++,
+                            self::OUTCOME_SKIP_MAPPED => $skippedMapped++,
+                            self::OUTCOME_SKIP_EXISTING_EMAIL => $skippedExistingEmail++,
+                            default => $failed++,
+                        };
+                    } catch (QueryException $e) {
+                        // Race: another request created the email after classify.
+                        if ($this->isUniqueEmailViolation($e)) {
+                            $skippedExistingEmail++;
+
+                            continue;
+                        }
+                        // No outer transaction: earlier users in this run stay committed.
+                        throw $e;
                     }
                 }
             }, 'umeta_id');
+
+        $skippedMappedTotal = $dryRun ? $wouldSkipMapped : $skippedMapped;
+        $skippedExistingTotal = $dryRun ? $wouldSkipExistingEmail : $skippedExistingEmail;
 
         return [
             'status' => 'ok',
@@ -151,6 +217,8 @@ final class WordPressUserImporter
             'dry_run' => $dryRun,
             'membership_rule' => 'usermeta.meta_key=wp_capabilities (Multisite site 1 / sciencestreetlab.com)',
             'password_strategy' => 'reset_required',
+            'existing_email_policy' => 'SKIP_EXISTING_EMAIL',
+            'existing_email_map_policy' => 'NO_MAP_FOR_SKIPPED_EXISTING_EMAIL',
             'scanned' => $scanned,
             'eligible' => $eligible,
             'would_create' => $wouldCreate,
@@ -159,7 +227,10 @@ final class WordPressUserImporter
             'skipped_no_email' => $skippedNoEmail,
             'created' => $dryRun ? 0 : $created,
             'imported' => $dryRun ? 0 : $created,
-            'skipped' => $wouldSkipMapped + $wouldSkipExistingEmail + $skippedNoEmail,
+            'skipped_mapped' => $dryRun ? 0 : $skippedMapped,
+            'skip_existing_email' => $dryRun ? 0 : $skippedExistingEmail,
+            'failed' => $dryRun ? 0 : $failed,
+            'skipped' => $skippedMappedTotal + $skippedExistingTotal + $skippedNoEmail,
             'samples' => $samples,
             'wrote_to_database' => ! $dryRun && $created > 0,
             'inspect' => $ready['inspect'],
@@ -168,34 +239,65 @@ final class WordPressUserImporter
 
     /**
      * @param  array{name?: string, email: string, phone?: string|null}  $attributes
-     * @return array{user: User, map: \App\Modules\Migration\Infrastructure\Persistence\Models\LegacyImportMap|null, created: bool}
+     * @return array{
+     *     user: User|null,
+     *     map: \App\Modules\Migration\Infrastructure\Persistence\Models\LegacyImportMap|null,
+     *     created: bool,
+     *     outcome: string
+     * }
      */
     public function importUserSilently(string $legacyId, array $attributes, bool $dryRun = false): array
     {
-        $existing = $this->maps->find('user', $legacyId);
-        if ($existing?->local_id) {
-            $user = User::query()->find($existing->local_id);
-            if ($user !== null) {
-                return ['user' => $user, 'map' => $existing, 'created' => false];
-            }
+        $email = $this->normalizeEmail($attributes['email'] ?? null);
+        $decision = $this->classifyImportDecision($legacyId, $email);
+
+        if ($decision === self::OUTCOME_SKIP_MAPPED) {
+            $existing = $this->maps->find('user', $legacyId);
+            $user = $existing?->local_id ? User::query()->find($existing->local_id) : null;
+
+            return [
+                'user' => $user ?? new User(['email' => $email, 'name' => $attributes['name'] ?? $email]),
+                'map' => $existing,
+                'created' => false,
+                'outcome' => self::OUTCOME_SKIP_MAPPED,
+            ];
+        }
+
+        if ($decision === self::OUTCOME_SKIP_EXISTING_EMAIL || $decision === self::OUTCOME_SKIP_NO_EMAIL) {
+            $existingUser = $email !== ''
+                ? User::query()->where('email', $email)->first()
+                : null;
+
+            return [
+                'user' => $existingUser ?? new User([
+                    'name' => $attributes['name'] ?? $email,
+                    'email' => $email,
+                ]),
+                'map' => null,
+                'created' => false,
+                'outcome' => $decision === self::OUTCOME_SKIP_NO_EMAIL
+                    ? self::OUTCOME_SKIP_NO_EMAIL
+                    : self::OUTCOME_SKIP_EXISTING_EMAIL,
+            ];
         }
 
         if ($dryRun) {
             $placeholder = new User([
-                'name' => $attributes['name'] ?? $attributes['email'],
-                'email' => $attributes['email'],
+                'name' => $attributes['name'] ?? $email,
+                'email' => $email,
             ]);
 
             return [
                 'user' => $placeholder,
                 'map' => null,
                 'created' => false,
+                'outcome' => self::OUTCOME_CREATE,
             ];
         }
 
         $user = User::query()->create([
-            'name' => $attributes['name'] ?? $attributes['email'],
-            'email' => $attributes['email'],
+            'name' => $attributes['name'] ?? $email,
+            'email' => $email,
             'phone' => $attributes['phone'] ?? null,
             'password' => Str::password(64),
             'is_active' => true,
@@ -203,7 +305,7 @@ final class WordPressUserImporter
 
         $map = $this->maps->upsertMapping('user', $legacyId, [
             'local_id' => $user->id,
-            'legacy_email' => $attributes['email'],
+            'legacy_email' => $email,
             'imported_at' => now(),
             'metadata' => LegacyImportMapRepository::ownershipCreated([
                 'password_strategy' => 'reset_required',
@@ -211,7 +313,20 @@ final class WordPressUserImporter
             ]),
         ]);
 
-        return ['user' => $user, 'map' => $map, 'created' => true];
+        return [
+            'user' => $user,
+            'map' => $map,
+            'created' => true,
+            'outcome' => self::OUTCOME_CREATE,
+        ];
+    }
+
+    private function isUniqueEmailViolation(QueryException $e): bool
+    {
+        $message = strtolower($e->getMessage());
+
+        return str_contains($message, 'users_email_unique')
+            || (str_contains($message, 'unique') && str_contains($message, 'email'));
     }
 
     private function metaValue(string $connection, string $metaTable, int $userId, string $key): ?string
