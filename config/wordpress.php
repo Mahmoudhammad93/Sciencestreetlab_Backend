@@ -216,6 +216,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Legacy first-login password upgrade (Option A)
+    |--------------------------------------------------------------------------
+    |
+    | Run-scoped USER maps with password_strategy=reset_required may verify
+    | against the READ-ONLY historical WordPress DB on first login, then
+    | upgrade users.password to Laravel bcrypt. Never copies WP hashes into
+    | users.password. Never writes to the historical DB.
+    |
+    */
+    'legacy_auth' => [
+        'migration_run_id' => (int) env('WORDPRESS_LEGACY_AUTH_MIGRATION_RUN_ID', 1),
+        'enabled' => filter_var(env('WORDPRESS_LEGACY_AUTH_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | AQ competition identity decision (never auto-chosen by importer alone)
     |--------------------------------------------------------------------------
     |

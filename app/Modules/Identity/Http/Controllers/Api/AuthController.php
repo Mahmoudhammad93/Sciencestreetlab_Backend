@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Modules\Commerce\Application\Services\CartService;
 use App\Modules\Commerce\Http\Support\ResolvesCart;
+use App\Modules\Identity\Application\Services\LegacyWordPressPasswordUpgradeService;
 use App\Modules\Identity\Http\Resources\UserAuthResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,6 +20,7 @@ final class AuthController extends Controller
     public function __construct(
         private readonly CartService $cartService,
         private readonly ResolvesCart $resolvesCart,
+        private readonly LegacyWordPressPasswordUpgradeService $legacyPasswordUpgrade,
     ) {}
 
     public function register(Request $request): JsonResponse
@@ -62,13 +64,25 @@ final class AuthController extends Controller
 
         $user = User::query()->where('email', $validated['email'])->first();
 
-        if (! $user || ! Hash::check($validated['password'], $user->password)) {
-            return response()->json([
-                'message' => __('auth.failed'),
-                'code' => 'INVALID_CREDENTIALS',
-            ], 401);
+        if (! $user) {
+            return $this->invalidCredentials();
         }
 
+        if (Hash::check($validated['password'], $user->password)) {
+            return $this->successfulLogin($request, $user);
+        }
+
+        // Laravel password failed — Option A legacy WordPress first-login upgrade.
+        $upgrade = $this->legacyPasswordUpgrade->attemptUpgrade($user, $validated['password']);
+        if (! ($upgrade['ok'] ?? false) || ! ($upgrade['user'] instanceof User)) {
+            return $this->invalidCredentials();
+        }
+
+        return $this->successfulLogin($request, $upgrade['user']);
+    }
+
+    private function successfulLogin(Request $request, User $user): JsonResponse
+    {
         $this->mergeGuestCart($request, $user);
 
         $token = $user->createToken('api')->plainTextToken;
@@ -79,6 +93,14 @@ final class AuthController extends Controller
                 'user' => new UserAuthResource($user),
             ],
         ]);
+    }
+
+    private function invalidCredentials(): JsonResponse
+    {
+        return response()->json([
+            'message' => __('auth.failed'),
+            'code' => 'INVALID_CREDENTIALS',
+        ], 401);
     }
 
     private function mergeGuestCart(Request $request, User $user): void

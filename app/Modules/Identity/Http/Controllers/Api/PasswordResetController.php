@@ -6,6 +6,7 @@ namespace App\Modules\Identity\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Modules\Identity\Application\Services\LegacyWordPressPasswordUpgradeService;
 use App\Modules\Identity\Http\Resources\UserAuthResource;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\JsonResponse;
@@ -17,6 +18,10 @@ use Illuminate\Validation\Rules\Password as PasswordRule;
 
 final class PasswordResetController extends Controller
 {
+    public function __construct(
+        private readonly LegacyWordPressPasswordUpgradeService $legacyPasswordUpgrade,
+    ) {}
+
     public function forgotPassword(Request $request): JsonResponse
     {
         $request->validate([
@@ -45,6 +50,9 @@ final class PasswordResetController extends Controller
                     'password' => Hash::make($password),
                     'remember_token' => Str::random(60),
                 ])->save();
+
+                // Revoke legacy WP fallback in the same logical password-reset operation.
+                $this->legacyPasswordUpgrade->revokeAfterPasswordReset($user);
 
                 $user->tokens()->delete();
 
