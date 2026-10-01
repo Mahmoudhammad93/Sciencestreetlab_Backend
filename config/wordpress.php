@@ -229,4 +229,23 @@ return [
     */
     'competition_decision' => env('WORDPRESS_COMPETITION_DECISION'),
     'competition_existing_local_id' => env('WORDPRESS_COMPETITION_EXISTING_LOCAL_ID'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Historical media M2 (R8.7+)
+    |--------------------------------------------------------------------------
+    |
+    | WORDPRESS_MEDIA_SOURCE_ROOT — absolute path to extracted approved archive
+    |   (contains files/{attachment_id}/{basename}). Required for dry-run/import.
+    | WORDPRESS_MEDIA_HASH_MANIFEST — optional path to media-sha256.manifest.
+    |   Defaults to sibling manifests/media-sha256.manifest near source root.
+    | WORDPRESS_MEDIA_ALLOW_HTTP — MUST remain false in production. No network
+    |   fallback for approved M2 files.
+    |
+    */
+    'media' => [
+        'source_root' => env('WORDPRESS_MEDIA_SOURCE_ROOT'),
+        'hash_manifest' => env('WORDPRESS_MEDIA_HASH_MANIFEST'),
+        'allow_http' => filter_var(env('WORDPRESS_MEDIA_ALLOW_HTTP', false), FILTER_VALIDATE_BOOLEAN),
+    ],
 ];

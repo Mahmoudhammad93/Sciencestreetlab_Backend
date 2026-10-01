@@ -1,0 +1,4297 @@
+{
+  "lessons_total": 266,
+  "topics_total": 1,
+  "lesson_stats": {
+    "NO_VIDEO": 140,
+    "ONE_CLEAR_VIDEO": 125,
+    "MULTIPLE_DISTINCT_VIDEOS": 1,
+    "AMBIGUOUS": 0
+  },
+  "topic_stats": {
+    "NO_VIDEO": 0,
+    "ONE_CLEAR_VIDEO": 1,
+    "MULTIPLE_DISTINCT_VIDEOS": 0,
+    "AMBIGUOUS": 0
+  },
+  "course_level_video_entities": 1,
+  "course_level_unique_video_urls": 1,
+  "course_level_urls": [
+    "https://www.youtube.com/watch?v=ZfUfU5To4QY"
+  ],
+  "provider_convention": "youtube (frontend VideoProvider includes youtube; backend topics also accept string providers including bunny/external/s3/interactive_package)",
+  "priority_rules": [
+    "1 structured LearnDash video field (_sfwd-*) when non-empty extractable URL",
+    "2 explicit video embed/code meta",
+    "3 YouTube URL/embed in post_content",
+    "4 oEmbed cache as supporting / fallback only"
+  ],
+  "entities": [
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8575,
+      "local_entity_id": 93,
+      "local_slug": "%d8%a7%d9%84%d9%85%d9%82%d8%af%d9%85%d8%a9-10",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "DwNTfebU9es"
+      ],
+      "all_source_unique_video_ids": [
+        "DwNTfebU9es"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=DwNTfebU9es",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8573,
+      "local_entity_id": 94,
+      "local_slug": "%d9%82%d8%a7%d9%86%d9%88%d9%86-%d8%a7%d9%84%d8%aa%d8%b3%d8%a7%d8%b1%d8%b9",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "-R1TldeSzTc"
+      ],
+      "all_source_unique_video_ids": [
+        "-R1TldeSzTc"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=-R1TldeSzTc",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8571,
+      "local_entity_id": 95,
+      "local_slug": "%d8%b3%d8%b1-%d8%a7%d9%84%d8%b1%d8%a7%d9%81%d8%b9%d8%a7%d8%aa",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "IfuQ_Vdhd7w"
+      ],
+      "all_source_unique_video_ids": [
+        "IfuQ_Vdhd7w"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=IfuQ_Vdhd7w",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8569,
+      "local_entity_id": 96,
+      "local_slug": "%d8%b2%d9%88%d8%a7%d9%8a%d8%a7-%d8%a7%d9%84%d8%a5%d8%b7%d9%84%d8%a7%d9%82-%d9%88%d8%ae%d8%a7%d8%aa%d9%85%d8%a9-%d8%a7%d9%84%d9%83%d9%88%d8%b1%d8%b3",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "Bv2CeDi9mH0"
+      ],
+      "all_source_unique_video_ids": [
+        "Bv2CeDi9mH0"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=Bv2CeDi9mH0",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8565,
+      "local_entity_id": 97,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%aa%d8%b5%d9%85%d9%8a%d9%85-17",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8563,
+      "local_entity_id": 98,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%a5%d8%a8%d8%af%d8%a7%d8%b9-18",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8591,
+      "local_entity_id": 99,
+      "local_slug": "%d8%a7%d9%84%d9%85%d9%82%d8%af%d9%85%d8%a9-9",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "qAg32mjPbAw"
+      ],
+      "all_source_unique_video_ids": [
+        "qAg32mjPbAw"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=qAg32mjPbAw",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8587,
+      "local_entity_id": 100,
+      "local_slug": "%d9%82%d9%88%d8%a9-%d8%a7%d9%84%d9%87%d9%88%d8%a7%d8%a1-%d8%a7%d9%84%d8%ae%d9%81%d9%8a%d8%a9",
+      "source_reference_count": 4,
+      "normalized_unique_video_ids": [
+        "--Uvuvdu6CU"
+      ],
+      "all_source_unique_video_ids": [
+        "--Uvuvdu6CU"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=--Uvuvdu6CU",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8585,
+      "local_entity_id": 101,
+      "local_slug": "%d9%84%d8%ba%d8%b2-%d9%81%d8%b1%d9%82-%d8%a7%d9%84%d8%b6%d8%ba%d8%b7",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "mEknitseeX4"
+      ],
+      "all_source_unique_video_ids": [
+        "mEknitseeX4"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=mEknitseeX4",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8583,
+      "local_entity_id": 102,
+      "local_slug": "%d9%82%d9%88%d8%a9-%d8%a7%d9%84%d9%85%d8%ad%d8%b1%d9%83",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "4jN_jMI2Y0w"
+      ],
+      "all_source_unique_video_ids": [
+        "4jN_jMI2Y0w"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=4jN_jMI2Y0w",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8581,
+      "local_entity_id": 103,
+      "local_slug": "%d8%ae%d8%b7%d8%b1-%d8%a7%d9%84%d8%ba%d8%a8%d8%a7%d8%b1",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "o5Kx9hGIUzc"
+      ],
+      "all_source_unique_video_ids": [
+        "o5Kx9hGIUzc"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=o5Kx9hGIUzc",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8589,
+      "local_entity_id": 104,
+      "local_slug": "%d8%a7%d9%84%d8%ae%d8%a7%d8%aa%d9%85%d8%a9-4",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38353,
+      "local_entity_id": 105,
+      "local_slug": "%d8%b1%d9%83%d8%a8-%d9%85%d9%83%d9%86%d8%b3%d8%a9-%d8%a7%d9%84%d9%8a%d8%af",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "LY3a9CKg9cg"
+      ],
+      "all_source_unique_video_ids": [
+        "LY3a9CKg9cg"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=LY3a9CKg9cg",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8579,
+      "local_entity_id": 106,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%aa%d8%b5%d9%85%d9%8a%d9%85-16",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8577,
+      "local_entity_id": 107,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%a5%d8%a8%d8%af%d8%a7%d8%b9-17",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8735,
+      "local_entity_id": 108,
+      "local_slug": "%d8%a7%d9%84%d9%85%d9%84%d8%ad",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8733,
+      "local_entity_id": 109,
+      "local_slug": "%d8%a7%d9%84%d9%83%d9%87%d8%b1%d8%a8%d8%a7%d8%a1-%d9%88%d8%a7%d9%84%d9%85%d9%88%d8%b5%d9%84%d8%a7%d8%aa",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8731,
+      "local_entity_id": 110,
+      "local_slug": "%d8%aa%d9%81%d8%a7%d8%b9%d9%84%d8%a7%d8%aa-%d8%a7%d9%84%d8%a3%d9%83%d8%b3%d8%af%d8%a9-%d9%88%d8%a7%d9%84%d8%a7%d8%ae%d8%aa%d8%b2%d8%a7%d9%84",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8729,
+      "local_entity_id": 111,
+      "local_slug": "%d8%b3%d8%b1-%d9%85%d9%88%d9%84%d8%af-%d8%a7%d9%84%d8%b7%d8%a7%d9%82%d8%a9-%d8%a7%d9%84%d9%85%d8%a7%d9%84%d8%ad%d8%a9",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 49080,
+      "local_entity_id": 112,
+      "local_slug": "%d8%b1%d9%83%d8%a8-%d9%85%d9%88%d9%84%d8%af-%d8%a7%d9%84%d8%b7%d8%a7%d9%82%d8%a9-%d8%a7%d9%84%d9%85%d8%a7%d9%84%d8%ad%d8%a9",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "cbpRC9y66ZM"
+      ],
+      "all_source_unique_video_ids": [
+        "cbpRC9y66ZM"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=cbpRC9y66ZM",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8727,
+      "local_entity_id": 113,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%aa%d8%b5%d9%85%d9%8a%d9%85-8",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8725,
+      "local_entity_id": 114,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%a5%d8%a8%d8%af%d8%a7%d8%b9-9",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8691,
+      "local_entity_id": 115,
+      "local_slug": "%d9%85%d9%82%d8%af%d9%85%d8%a9-%d8%a7%d9%84%d8%a8%d9%8a%d8%b1%d9%88%d8%b3%d9%83%d9%88%d8%a8",
+      "source_reference_count": 2,
+      "normalized_unique_video_ids": [
+        "bDE6v9ZR9OA"
+      ],
+      "all_source_unique_video_ids": [
+        "bDE6v9ZR9OA"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=bDE6v9ZR9OA",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "oembed_fallback",
+      "notes": "canonical from oembed fallback; structured/content empty or non-extractable"
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8689,
+      "local_entity_id": 116,
+      "local_slug": "%d8%b3%d8%b1-%d8%a7%d9%84%d8%b6%d9%88%d8%a1-%d8%a7%d9%84%d8%a3%d8%a8%d9%8a%d8%b6",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8687,
+      "local_entity_id": 117,
+      "local_slug": "%d9%83%d9%8a%d9%81-%d9%86%d8%b1%d9%89-%d8%a7%d9%84%d8%a3%d9%84%d9%88%d8%a7%d9%86%d8%9f",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "gNGR-Lp_WUk"
+      ],
+      "all_source_unique_video_ids": [
+        "gNGR-Lp_WUk"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=gNGR-Lp_WUk",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8685,
+      "local_entity_id": 118,
+      "local_slug": "%d8%a7%d9%84%d8%a3%d8%a8%d9%8a%d8%b6-%d9%88%d8%a7%d9%84%d8%a3%d8%b3%d9%88%d8%af",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "dSuQdjxuFk8"
+      ],
+      "all_source_unique_video_ids": [
+        "dSuQdjxuFk8"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=dSuQdjxuFk8",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8683,
+      "local_entity_id": 119,
+      "local_slug": "%d8%a7%d9%84%d9%85%d8%b1%d8%a7%d9%8a%d8%a7",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "uJCptySIB00"
+      ],
+      "all_source_unique_video_ids": [
+        "uJCptySIB00"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=uJCptySIB00",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8681,
+      "local_entity_id": 120,
+      "local_slug": "%d8%a7%d9%84%d9%81%d8%b1%d9%82-%d8%a8%d9%8a%d9%86-%d8%a7%d9%84%d9%85%d8%b1%d8%a7%d9%8a%d8%a7-%d9%88%d8%a7%d9%84%d9%84%d9%88%d9%86-%d8%a7%d9%84%d8%a3%d8%a8%d9%8a%d8%b6",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "Y7J1VuYcAa0"
+      ],
+      "all_source_unique_video_ids": [
+        "Y7J1VuYcAa0"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=Y7J1VuYcAa0",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8679,
+      "local_entity_id": 121,
+      "local_slug": "%d8%b2%d9%88%d8%a7%d9%8a%d8%a7-%d8%a7%d9%84%d8%a7%d9%86%d8%b9%d9%83%d8%a7%d8%b3",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "5eDlcwrS53M"
+      ],
+      "all_source_unique_video_ids": [
+        "5eDlcwrS53M"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=5eDlcwrS53M",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8677,
+      "local_entity_id": 122,
+      "local_slug": "%d9%83%d9%8a%d9%81-%d9%8a%d8%b9%d9%85%d9%84-%d8%a7%d9%84%d8%a8%d9%8a%d8%b1%d9%88%d8%b3%d9%83%d9%88%d8%a8",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "OkCOoUQqjP0"
+      ],
+      "all_source_unique_video_ids": [
+        "OkCOoUQqjP0"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=OkCOoUQqjP0",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8673,
+      "local_entity_id": 123,
+      "local_slug": "%d8%aa%d8%b7%d8%a8%d9%8a%d9%82%d8%a7%d8%aa-%d8%a7%d9%84%d8%a8%d9%8a%d8%b1%d9%88%d8%b3%d9%83%d9%88%d8%a8",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "vyWWzVXWKxo"
+      ],
+      "all_source_unique_video_ids": [
+        "vyWWzVXWKxo"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=vyWWzVXWKxo",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8669,
+      "local_entity_id": 124,
+      "local_slug": "%d9%84%d9%85%d8%a7%d8%b0%d8%a7-%d9%86%d8%b1%d9%89-%d8%a7%d9%84%d8%b3%d9%85%d8%a7%d8%a1-%d8%b2%d8%b1%d9%82%d8%a7%d8%a1%d8%9f",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "MyMJz4y1teo"
+      ],
+      "all_source_unique_video_ids": [
+        "MyMJz4y1teo"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=MyMJz4y1teo",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 45304,
+      "local_entity_id": 125,
+      "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d8%a8%d9%8a%d8%b1%d9%88%d8%b3%d9%83%d9%88%d8%a8",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "Fdb2JEd0Xf8"
+      ],
+      "all_source_unique_video_ids": [
+        "Fdb2JEd0Xf8"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=Fdb2JEd0Xf8",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8721,
+      "local_entity_id": 126,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%aa%d8%b5%d9%85%d9%8a%d9%85-10",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8713,
+      "local_entity_id": 127,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%a5%d8%a8%d8%af%d8%a7%d8%b9-10",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 37853,
+      "local_entity_id": 128,
+      "local_slug": "%d9%85%d8%a7-%d9%87%d9%88-%d8%a7%d9%84%d8%b5%d9%88%d8%aa%d8%9f",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "V559f4qqn5U"
+      ],
+      "all_source_unique_video_ids": [
+        "V559f4qqn5U"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=V559f4qqn5U",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 37855,
+      "local_entity_id": 129,
+      "local_slug": "%d8%a7%d9%84%d8%aa%d8%b1%d8%af%d8%af-%d9%88%d8%a3%d9%86%d9%88%d8%a7%d8%b9-%d8%a7%d9%84%d9%85%d9%88%d8%ac%d8%a7%d8%aa",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "UnUQcH08-zA"
+      ],
+      "all_source_unique_video_ids": [
+        "UnUQcH08-zA"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=UnUQcH08-zA",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 37857,
+      "local_entity_id": 130,
+      "local_slug": "%d8%a7%d9%84%d9%85%d9%88%d8%ac%d8%a7%d8%aa-%d9%81%d9%88%d9%82-%d8%a7%d9%84%d8%b5%d9%88%d8%aa%d9%8a%d8%a9",
+      "source_reference_count": 4,
+      "normalized_unique_video_ids": [
+        "S6CwJElWjQw"
+      ],
+      "all_source_unique_video_ids": [
+        "S6CwJElWjQw"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=S6CwJElWjQw",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 37859,
+      "local_entity_id": 131,
+      "local_slug": "%d9%83%d9%8a%d9%81-%d9%8a%d8%b9%d9%85%d9%84-%d8%a7%d9%84%d8%b3%d9%88%d9%86%d8%a7%d8%b1%d8%9f",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "vl4IValsctw"
+      ],
+      "all_source_unique_video_ids": [
+        "vl4IValsctw"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=vl4IValsctw",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 37861,
+      "local_entity_id": 132,
+      "local_slug": "%d8%a7%d9%84%d8%b3%d9%8a%d8%a7%d8%b1%d8%a9-%d8%a7%d9%84%d8%b0%d9%83%d9%8a%d8%a9",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "F6WN-rbiue4"
+      ],
+      "all_source_unique_video_ids": [
+        "F6WN-rbiue4"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=F6WN-rbiue4",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38423,
+      "local_entity_id": 133,
+      "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d8%b3%d9%8a%d8%a7%d8%b1%d8%a9-%d8%a7%d9%84%d8%b0%d9%83%d9%8a%d8%a9-2",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "YQhEwkCOglI"
+      ],
+      "all_source_unique_video_ids": [
+        "YQhEwkCOglI"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=YQhEwkCOglI",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 37863,
+      "local_entity_id": 134,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%aa%d8%b5%d9%85%d9%8a%d9%85-21",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 37865,
+      "local_entity_id": 135,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%a5%d8%a8%d8%af%d8%a7%d8%b9-22",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8641,
+      "local_entity_id": 136,
+      "local_slug": "%d9%85%d9%82%d8%af%d9%85%d8%a9-2",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "6VqdYZU3EO0"
+      ],
+      "all_source_unique_video_ids": [
+        "6VqdYZU3EO0"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=6VqdYZU3EO0",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8639,
+      "local_entity_id": 137,
+      "local_slug": "%d9%85%d9%8a%d9%84%d8%a7%d8%af-%d8%a7%d9%84%d9%82%d9%85%d8%b1",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "vX-jnqdFRtc"
+      ],
+      "all_source_unique_video_ids": [
+        "vX-jnqdFRtc"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=vX-jnqdFRtc",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8637,
+      "local_entity_id": 138,
+      "local_slug": "%d8%a7%d9%84%d8%ac%d8%a7%d8%b0%d8%a8%d9%8a%d8%a9",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "AhWzdt1V5IM"
+      ],
+      "all_source_unique_video_ids": [
+        "AhWzdt1V5IM"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=AhWzdt1V5IM",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8635,
+      "local_entity_id": 139,
+      "local_slug": "%d8%a7%d9%84%d8%a8%d9%83%d8%b1%d8%a7%d8%aa-pulleys",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "ICUpAxCWxFM"
+      ],
+      "all_source_unique_video_ids": [
+        "ICUpAxCWxFM"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=ICUpAxCWxFM",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8633,
+      "local_entity_id": 140,
+      "local_slug": "%d8%a3%d8%b7%d9%88%d8%a7%d8%b1-%d8%a7%d9%84%d9%82%d9%85%d8%b1",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "Wlom_sJ0hto"
+      ],
+      "all_source_unique_video_ids": [
+        "Wlom_sJ0hto"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=Wlom_sJ0hto",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8631,
+      "local_entity_id": 141,
+      "local_slug": "%d8%a7%d9%84%d9%83%d8%b3%d9%88%d9%81-%d9%88%d8%a7%d9%84%d8%ae%d8%b3%d9%88%d9%81",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "UMrYVUq9tCM"
+      ],
+      "all_source_unique_video_ids": [
+        "UMrYVUq9tCM"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=UMrYVUq9tCM",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8629,
+      "local_entity_id": 142,
+      "local_slug": "%d9%85%d8%af%d8%a7%d8%b1-%d8%a7%d9%84%d9%82%d9%85%d8%b1",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "ApIr9u5GBGg"
+      ],
+      "all_source_unique_video_ids": [
+        "ApIr9u5GBGg"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=ApIr9u5GBGg",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8627,
+      "local_entity_id": 143,
+      "local_slug": "%d8%a7%d9%84%d8%a3%d8%b1%d8%b6-%d9%88%d8%a7%d9%84%d9%82%d9%85%d8%b1",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "sBCtHCALoVg"
+      ],
+      "all_source_unique_video_ids": [
+        "sBCtHCALoVg"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=sBCtHCALoVg",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8625,
+      "local_entity_id": 144,
+      "local_slug": "%d9%83%d9%8a%d9%81-%d9%86%d8%ad%d8%b3%d8%a8-%d8%a7%d9%84%d9%85%d8%b3%d8%a7%d9%81%d8%a7%d8%aa-%d9%81%d9%8a-%d8%a7%d9%84%d9%81%d8%b6%d8%a7%d8%a1%d8%9f",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "sR-g55XdOp0"
+      ],
+      "all_source_unique_video_ids": [
+        "sR-g55XdOp0"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=sR-g55XdOp0",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8607,
+      "local_entity_id": 145,
+      "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d9%83%d8%b3%d9%88%d9%81-%d9%88%d8%a7%d9%84%d8%ae%d8%b3%d9%88%d9%81",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "_JLG-VeJFRU"
+      ],
+      "all_source_unique_video_ids": [
+        "_JLG-VeJFRU"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=_JLG-VeJFRU",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8649,
+      "local_entity_id": 146,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%aa%d8%b5%d9%85%d9%8a%d9%85-14",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8643,
+      "local_entity_id": 147,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%a5%d8%a8%d8%af%d8%a7%d8%b9-16",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8755,
+      "local_entity_id": 148,
+      "local_slug": "%d9%85%d9%82%d8%af%d9%85%d8%a9",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "acoz51BBOEI"
+      ],
+      "all_source_unique_video_ids": [
+        "acoz51BBOEI"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=acoz51BBOEI",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8595,
+      "local_entity_id": 149,
+      "local_slug": "%d9%83%d9%8a%d9%81-%d8%aa%d8%ba%d9%8a%d8%b1-%d8%a7%d9%84%d8%a2%d9%84%d8%a7%d8%aa-%d8%a7%d8%aa%d8%ac%d8%a7%d9%87%d8%a7%d8%aa%d9%87%d8%a7%d8%9f",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "zXpxyBJJ58A"
+      ],
+      "all_source_unique_video_ids": [
+        "zXpxyBJJ58A"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=zXpxyBJJ58A",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8753,
+      "local_entity_id": 150,
+      "local_slug": "%d8%b3%d9%84%d8%b3%d9%84%d8%a9-%d8%a7%d9%84%d8%aa%d8%b1%d9%88%d8%b3-2",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "UqWMTKTh5kE"
+      ],
+      "all_source_unique_video_ids": [
+        "UqWMTKTh5kE"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=UqWMTKTh5kE",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8751,
+      "local_entity_id": 151,
+      "local_slug": "%d8%af%d8%a7%d8%ae%d9%84-%d8%b5%d9%86%d8%af%d9%88%d9%82-%d8%a7%d9%84%d8%aa%d8%b1%d9%88%d8%b3",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "XgG55QUk4uE"
+      ],
+      "all_source_unique_video_ids": [
+        "XgG55QUk4uE"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=XgG55QUk4uE",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8749,
+      "local_entity_id": 152,
+      "local_slug": "%d9%83%d9%8a%d9%81-%d8%aa%d8%ba%d9%8a%d8%b1-%d8%b4%d8%a7%d8%ad%d9%86%d8%a9-%d8%a7%d9%84%d8%aa%d8%b1%d9%88%d8%b3-%d8%a7%d8%aa%d8%ac%d8%a7%d9%87%d9%87%d8%a7%d8%9f",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "TMb32Itfg0k"
+      ],
+      "all_source_unique_video_ids": [
+        "TMb32Itfg0k"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=TMb32Itfg0k",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8523,
+      "local_entity_id": 153,
+      "local_slug": "%d8%b1%d9%83%d8%a8-%d8%b4%d8%a7%d8%ad%d9%86%d8%a9-%d8%a7%d9%84%d8%aa%d8%b1%d9%88%d8%b3",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "vIHT8i1LipE"
+      ],
+      "all_source_unique_video_ids": [
+        "vIHT8i1LipE"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=vIHT8i1LipE",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8741,
+      "local_entity_id": 154,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%aa%d8%b5%d9%85%d9%8a%d9%85-6",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8739,
+      "local_entity_id": 155,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%a5%d8%a8%d8%af%d8%a7%d8%b9-8",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8771,
+      "local_entity_id": 156,
+      "local_slug": "%d8%a7%d9%84%d9%85%d9%82%d8%af%d9%85%d8%a9-5",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "EaYOj0ssajM"
+      ],
+      "all_source_unique_video_ids": [
+        "EaYOj0ssajM"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=EaYOj0ssajM",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8769,
+      "local_entity_id": 157,
+      "local_slug": "%d9%82%d9%88%d8%a7%d9%86%d9%8a%d9%86-%d8%a7%d9%84%d8%ad%d8%b1%d9%83%d8%a9-%d9%88%d8%a7%d9%84%d8%ac%d8%a7%d8%b0%d8%a8%d9%8a%d8%a9",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "-R1TldeSzTc"
+      ],
+      "all_source_unique_video_ids": [
+        "-R1TldeSzTc"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=-R1TldeSzTc",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8767,
+      "local_entity_id": 158,
+      "local_slug": "%d9%83%d9%8a%d9%81-%d9%8a%d8%b9%d9%85%d9%84-%d8%a7%d9%84%d9%85%d9%86%d8%ac%d9%86%d9%8a%d9%82-%d9%88%d8%a7%d9%84%d8%b1%d8%a7%d9%81%d8%b9%d8%a7%d8%aa%d8%9f",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "IfuQ_Vdhd7w"
+      ],
+      "all_source_unique_video_ids": [
+        "IfuQ_Vdhd7w"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=IfuQ_Vdhd7w",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8765,
+      "local_entity_id": 159,
+      "local_slug": "%d8%a7%d9%84%d8%b2%d8%a7%d9%88%d9%8a%d8%a9-%d8%a7%d9%84%d8%b0%d9%87%d8%a8%d9%8a%d8%a9",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "rmqgr0BZjmI"
+      ],
+      "all_source_unique_video_ids": [
+        "rmqgr0BZjmI"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=rmqgr0BZjmI",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8763,
+      "local_entity_id": 160,
+      "local_slug": "%d8%a7%d9%84%d8%ae%d8%a7%d8%aa%d9%85%d8%a9-3",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "0Dr3EuJbqFI"
+      ],
+      "all_source_unique_video_ids": [
+        "0Dr3EuJbqFI"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=0Dr3EuJbqFI",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8603,
+      "local_entity_id": 161,
+      "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d9%85%d9%86%d8%ac%d9%86%d9%8a%d9%82",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "fbh_DmPm10c"
+      ],
+      "all_source_unique_video_ids": [
+        "fbh_DmPm10c"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=fbh_DmPm10c",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8659,
+      "local_entity_id": 162,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%aa%d8%b5%d9%85%d9%8a%d9%85-12",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8657,
+      "local_entity_id": 163,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%a5%d8%a8%d8%af%d8%a7%d8%b9-14",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8919,
+      "local_entity_id": 164,
+      "local_slug": "%d8%a7%d9%84%d9%85%d9%82%d8%af%d9%85%d8%a9-4",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "WOBNHWulN4k"
+      ],
+      "all_source_unique_video_ids": [
+        "WOBNHWulN4k"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=WOBNHWulN4k",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8917,
+      "local_entity_id": 165,
+      "local_slug": "%d8%b3%d8%b1-%d8%a7%d9%84%d9%83%d8%ab%d8%a7%d9%81%d8%a9",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "rups9WJwos8"
+      ],
+      "all_source_unique_video_ids": [
+        "rups9WJwos8"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=rups9WJwos8",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8907,
+      "local_entity_id": 166,
+      "local_slug": "%d9%82%d8%a7%d8%b9%d8%af%d8%a9-%d8%a3%d8%b1%d8%ae%d9%85%d9%8a%d8%af%d8%b3",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "iF7N27WcGmc"
+      ],
+      "all_source_unique_video_ids": [
+        "iF7N27WcGmc"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=iF7N27WcGmc",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8905,
+      "local_entity_id": 167,
+      "local_slug": "%d8%aa%d8%b7%d8%a8%d9%8a%d9%82%d8%a7%d8%aa-%d8%a7%d9%84%d8%b7%d9%81%d9%88",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "jgndEGbH0Ro"
+      ],
+      "all_source_unique_video_ids": [
+        "jgndEGbH0Ro"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=jgndEGbH0Ro",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8899,
+      "local_entity_id": 168,
+      "local_slug": "%d9%83%d9%8a%d9%81-%d9%86%d8%aa%d8%ad%d9%83%d9%85-%d9%81%d9%8a-%d8%a7%d9%84%d8%b9%d9%85%d9%82",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "vVlBea__xbM"
+      ],
+      "all_source_unique_video_ids": [
+        "vVlBea__xbM"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=vVlBea__xbM",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8889,
+      "local_entity_id": 169,
+      "local_slug": "%d9%84%d9%85%d8%a7%d8%b0%d8%a7-%d8%a7%d9%84%d8%b3%d8%a8%d8%a7%d8%ad%d8%a9-%d9%81%d9%8a-%d8%a7%d9%84%d8%a8%d8%ad%d8%b1-%d8%a3%d8%b3%d9%87%d9%84",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "eDtTLL2i3es"
+      ],
+      "all_source_unique_video_ids": [
+        "eDtTLL2i3es"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=eDtTLL2i3es",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8875,
+      "local_entity_id": 170,
+      "local_slug": "%d9%82%d8%a7%d9%86%d9%88%d9%86-%d9%86%d9%8a%d9%88%d8%aa%d9%86-%d8%a7%d9%84%d8%ab%d8%a7%d9%84%d8%ab",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "kNuPnG3urvY"
+      ],
+      "all_source_unique_video_ids": [
+        "kNuPnG3urvY"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=kNuPnG3urvY",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8859,
+      "local_entity_id": 171,
+      "local_slug": "%d8%b7%d8%a7%d9%82%d8%a9-%d8%a7%d9%84%d9%87%d9%88%d8%a7%d8%a1",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "4lMasvF6cCs"
+      ],
+      "all_source_unique_video_ids": [
+        "4lMasvF6cCs"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=4lMasvF6cCs",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8601,
+      "local_entity_id": 172,
+      "local_slug": "%d8%b1%d9%83%d8%a8-%d9%82%d8%a7%d8%b1%d8%a8-%d8%a7%d9%84%d8%aa%d8%ac%d8%af%d9%8a%d9%81",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "HaOW6WRUTCg"
+      ],
+      "all_source_unique_video_ids": [
+        "HaOW6WRUTCg"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=HaOW6WRUTCg",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8829,
+      "local_entity_id": 173,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%aa%d8%b5%d9%85%d9%8a%d9%85-4",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8827,
+      "local_entity_id": 174,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%a5%d8%a8%d8%af%d8%a7%d8%b9-4",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8717,
+      "local_entity_id": 175,
+      "local_slug": "%d8%a7%d9%84%d9%85%d9%82%d8%af%d9%85%d8%a9-6",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8715,
+      "local_entity_id": 176,
+      "local_slug": "%d8%aa%d9%83%d9%88%d9%91%d9%86-%d8%a7%d9%84%d9%85%d8%ac%d9%85%d9%88%d8%b9%d8%a9-%d8%a7%d9%84%d8%b4%d9%85%d8%b3%d9%8a%d8%a9",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "OMCFyu8hH-Q"
+      ],
+      "all_source_unique_video_ids": [
+        "OMCFyu8hH-Q"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=OMCFyu8hH-Q",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8711,
+      "local_entity_id": 177,
+      "local_slug": "%d8%a7%d9%84%d8%b3%d9%86%d8%a9-%d8%a7%d9%84%d8%b6%d9%88%d8%a6%d9%8a%d8%a9",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "XlgTbOBL4z4"
+      ],
+      "all_source_unique_video_ids": [
+        "XlgTbOBL4z4"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=XlgTbOBL4z4",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8709,
+      "local_entity_id": 178,
+      "local_slug": "%d9%85%d8%b1%d9%83%d8%b2-%d8%a7%d9%84%d9%83%d9%88%d9%86",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "Tce8d7xtcOw"
+      ],
+      "all_source_unique_video_ids": [
+        "Tce8d7xtcOw"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=Tce8d7xtcOw",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8707,
+      "local_entity_id": 179,
+      "local_slug": "%d9%85%d8%b9%d9%86%d9%8a-%d8%a7%d9%84%d8%ac%d8%a7%d8%b0%d8%a8%d9%8a%d8%a9",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "s4ifj6WzCfU"
+      ],
+      "all_source_unique_video_ids": [
+        "s4ifj6WzCfU"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=s4ifj6WzCfU",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8705,
+      "local_entity_id": 180,
+      "local_slug": "%d8%aa%d8%a3%d8%ab%d9%8a%d8%b1-%d8%a7%d9%84%d9%83%d8%aa%d9%84%d8%a9-%d8%b9%d9%84%d9%89-%d8%a7%d9%84%d8%b2%d9%85%d9%83%d8%a7%d9%86",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "ETiA0gofw7M"
+      ],
+      "all_source_unique_video_ids": [
+        "ETiA0gofw7M"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=ETiA0gofw7M",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8703,
+      "local_entity_id": 181,
+      "local_slug": "%d8%aa%d8%a3%d8%ab%d9%8a%d8%b1-%d8%a7%d9%84%d8%ac%d8%a7%d8%b0%d8%a8%d9%8a%d8%a9-%d8%b9%d9%84%d9%8a-%d8%a7%d9%84%d8%b3%d8%b1%d8%b9%d8%a9",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "kg7c9rS38S4"
+      ],
+      "all_source_unique_video_ids": [
+        "kg7c9rS38S4"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=kg7c9rS38S4",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8701,
+      "local_entity_id": 182,
+      "local_slug": "%d8%a7%d9%84%d9%82%d8%b5%d9%88%d8%b1-%d8%a7%d9%84%d8%b0%d8%a7%d8%aa%d9%8a-%d9%88%d8%a7%d9%84%d8%ad%d8%b1%d9%83%d8%a9",
+      "source_reference_count": 6,
+      "normalized_unique_video_ids": [
+        "JA8-6L2o8Jk",
+        "Btx3F9FLIyc"
+      ],
+      "all_source_unique_video_ids": [
+        "JA8-6L2o8Jk",
+        "Btx3F9FLIyc"
+      ],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "MULTIPLE_DISTINCT_VIDEOS",
+      "source_evidence": "post_content",
+      "notes": "multiple distinct youtube ids from post_content: ['JA8-6L2o8Jk', 'Btx3F9FLIyc']"
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8699,
+      "local_entity_id": 183,
+      "local_slug": "%d8%a7%d9%84%d8%aa%d8%b1%d9%88%d8%b3-%d9%88%d9%85%d8%ad%d8%a7%d9%83%d8%a7%d8%a9-%d8%a7%d9%84%d9%83%d9%88%d9%86",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8697,
+      "local_entity_id": 184,
+      "local_slug": "%d8%a7%d9%84%d9%85%d9%86%d8%b7%d9%82%d8%a9-%d8%a7%d9%84%d8%b5%d8%a7%d9%84%d8%ad%d8%a9-%d9%84%d9%84%d8%ad%d9%8a%d8%a7%d8%a9",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38407,
+      "local_entity_id": 185,
+      "local_slug": "%d8%b1%d9%83%d8%a8-%d9%85%d8%ad%d8%b1%d9%83-%d8%a7%d9%84%d9%81%d8%b6%d8%a7%d8%a1",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "ckqT1cNIwNc"
+      ],
+      "all_source_unique_video_ids": [
+        "ckqT1cNIwNc"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=ckqT1cNIwNc",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8695,
+      "local_entity_id": 186,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%aa%d8%b5%d9%85%d9%8a%d9%85-11",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8693,
+      "local_entity_id": 187,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%a5%d8%a8%d8%af%d8%a7%d8%b9-11",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8957,
+      "local_entity_id": 188,
+      "local_slug": "%d8%a7%d9%84%d9%85%d9%82%d8%af%d9%85%d8%a9-3",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "k2yVrUAGRRA"
+      ],
+      "all_source_unique_video_ids": [
+        "k2yVrUAGRRA"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=k2yVrUAGRRA",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 55889,
+      "local_entity_id": 189,
+      "local_slug": "%d8%aa%d8%b1%d9%83%d9%8a%d8%a8-%d8%a7%d9%84%d8%a8%d8%b1%d8%a7%d9%83%d9%8a%d9%88%d8%b5%d9%88%d8%b1%d8%b3-%d8%a7%d9%84%d9%85%d8%ba%d8%a7%d9%85%d8%b1",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38375,
+      "local_entity_id": 190,
+      "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d8%a8%d8%b1%d8%a7%d9%83%d9%8a%d9%88%d8%b5%d9%88%d8%b1%d8%b3-%d8%a7%d9%84%d9%85%d8%ba%d8%a7%d9%85%d8%b1",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8955,
+      "local_entity_id": 191,
+      "local_slug": "%d8%b9%d9%85%d9%84%d8%a7%d9%82-%d8%a7%d9%84%d8%b9%d8%b5%d8%b1-%d8%a7%d9%84%d8%ac%d9%88%d8%b1%d8%a7%d8%b3%d9%8a",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "dPEJOAQ1myU"
+      ],
+      "all_source_unique_video_ids": [
+        "dPEJOAQ1myU"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=dPEJOAQ1myU",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8953,
+      "local_entity_id": 192,
+      "local_slug": "%d8%a3%d8%b3%d8%b1%d8%a7%d8%b1-%d8%a7%d9%84%d9%87%d8%b6%d9%85-%d8%a7%d9%84%d8%b9%d8%ac%d9%8a%d8%a8%d8%a9",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "zg6fErCHpBM"
+      ],
+      "all_source_unique_video_ids": [
+        "zg6fErCHpBM"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=zg6fErCHpBM",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8951,
+      "local_entity_id": 193,
+      "local_slug": "%d8%b1%d8%b3%d8%a7%d8%a6%d9%84-%d9%85%d9%86-%d8%a8%d8%a7%d8%b7%d9%86-%d8%a7%d9%84%d8%a3%d8%b1%d8%b6",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "382veAvomr0"
+      ],
+      "all_source_unique_video_ids": [
+        "382veAvomr0"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=382veAvomr0",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8949,
+      "local_entity_id": 194,
+      "local_slug": "%d8%a7%d9%84%d8%b1%d9%88%d8%a7%d8%a8%d8%b7-%d8%a7%d9%84%d9%85%d9%8a%d9%83%d8%a7%d9%86%d9%8a%d9%83%d9%8a%d8%a9",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "CG40i6mxWbQ"
+      ],
+      "all_source_unique_video_ids": [
+        "CG40i6mxWbQ"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=CG40i6mxWbQ",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8947,
+      "local_entity_id": 195,
+      "local_slug": "%d8%a7%d9%84%d8%ae%d8%a7%d8%aa%d9%85%d8%a9-2",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "QvEy3bilpJA"
+      ],
+      "all_source_unique_video_ids": [
+        "QvEy3bilpJA"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=QvEy3bilpJA",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8945,
+      "local_entity_id": 196,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%aa%d8%b5%d9%85%d9%8a%d9%85-7",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8653,
+      "local_entity_id": 197,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%a5%d8%a8%d8%af%d8%a7%d8%b9-15",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8825,
+      "local_entity_id": 198,
+      "local_slug": "%d8%b3%d8%b1-%d8%a7%d9%84%d8%b4%d9%85%d8%b3-%d9%83%d9%8a%d9%81-%d8%aa%d9%88%d9%84%d8%af-%d8%a7%d9%84%d8%b1%d9%8a%d8%a7%d8%ad%d8%9f",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "Sekesq-HamQ"
+      ],
+      "all_source_unique_video_ids": [
+        "Sekesq-HamQ"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=Sekesq-HamQ",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8823,
+      "local_entity_id": 199,
+      "local_slug": "%d9%83%d8%ab%d8%a7%d9%81%d8%a9-%d8%a7%d9%84%d9%87%d9%88%d8%a7%d8%a1",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "-GzvcZZBAeQ"
+      ],
+      "all_source_unique_video_ids": [
+        "-GzvcZZBAeQ"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=-GzvcZZBAeQ",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8819,
+      "local_entity_id": 200,
+      "local_slug": "%d8%aa%d9%88%d8%b1%d8%a8%d9%8a%d9%86%d8%a7%d8%aa-%d8%a7%d9%84%d8%b1%d9%8a%d8%a7%d8%ad",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "EXFjgdSSUuQ"
+      ],
+      "all_source_unique_video_ids": [
+        "EXFjgdSSUuQ"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=EXFjgdSSUuQ",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8817,
+      "local_entity_id": 201,
+      "local_slug": "%d8%a7%d9%84%d9%85%d9%86%d8%b2%d9%84-%d8%a7%d9%84%d8%b0%d9%83%d9%8a-%d9%88%d8%aa%d8%ad%d8%af%d9%8a%d8%a7%d8%aa-%d8%a7%d9%84%d9%85%d8%b3%d8%aa%d9%82%d8%a8%d9%84",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "Rdon_daTtpg"
+      ],
+      "all_source_unique_video_ids": [
+        "Rdon_daTtpg"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=Rdon_daTtpg",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 46551,
+      "local_entity_id": 202,
+      "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d9%85%d9%86%d8%b2%d9%84-%d8%a7%d9%84%d8%b0%d9%83%d9%8a-2",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "6i9bI7gvAQ0"
+      ],
+      "all_source_unique_video_ids": [
+        "6i9bI7gvAQ0"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=6i9bI7gvAQ0",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8815,
+      "local_entity_id": 203,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%aa%d8%b5%d9%85%d9%8a%d9%85-5",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8813,
+      "local_entity_id": 204,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%a5%d8%a8%d8%af%d8%a7%d8%b9-5",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8943,
+      "local_entity_id": 205,
+      "local_slug": "%d9%85%d9%82%d8%af%d9%85%d8%a9-%d8%a7%d9%84%d8%aa%d8%b1%d9%88%d8%b3",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "vSXLxMjNnRs"
+      ],
+      "all_source_unique_video_ids": [
+        "vSXLxMjNnRs"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=vSXLxMjNnRs",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8941,
+      "local_entity_id": 206,
+      "local_slug": "%d8%b3%d9%84%d8%b3%d9%84%d8%a9-%d8%a7%d9%84%d8%aa%d8%b1%d9%88%d8%b3",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "wnlXiQFoKVo"
+      ],
+      "all_source_unique_video_ids": [
+        "wnlXiQFoKVo"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=wnlXiQFoKVo",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8939,
+      "local_entity_id": 207,
+      "local_slug": "%d9%86%d8%b3%d8%a8%d8%a9-%d8%a7%d9%84%d8%aa%d8%b1%d9%88%d8%b3",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "ySRIjQr6FjU"
+      ],
+      "all_source_unique_video_ids": [
+        "ySRIjQr6FjU"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=ySRIjQr6FjU",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8933,
+      "local_entity_id": 208,
+      "local_slug": "%d8%a7%d9%84%d8%b3%d8%b1%d8%b9%d8%a9-%d9%85%d9%82%d8%a7%d8%a8%d9%84-%d8%a7%d9%84%d9%82%d9%88%d8%a9-%d8%a3%d9%8a-%d8%aa%d8%b1%d8%b3-%d9%86%d8%ae%d8%aa%d8%a7%d8%b1%d8%9f",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "nT5uvQ5_Y8k"
+      ],
+      "all_source_unique_video_ids": [
+        "nT5uvQ5_Y8k"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=nT5uvQ5_Y8k",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8923,
+      "local_entity_id": 209,
+      "local_slug": "%d9%83%d9%8a%d9%81-%d8%aa%d8%aa%d8%ad%d8%b1%d9%83-%d8%a7%d9%84%d8%b9%d8%ac%d9%84%d8%a9%d8%9f",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "U-EC1Wp8sVQ"
+      ],
+      "all_source_unique_video_ids": [
+        "U-EC1Wp8sVQ"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=U-EC1Wp8sVQ",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8921,
+      "local_entity_id": 210,
+      "local_slug": "%d9%83%d9%8a%d9%81-%d9%8a%d8%b9%d9%85%d9%84-%d8%b1%d9%88%d8%a8%d9%88%d8%aa-%d8%a7%d9%84%d8%b1%d8%b3%d9%85-%d8%a7%d9%84%d8%af%d9%88%d8%a7%d8%b1%d8%9f",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "3-6SN3-ZB_0"
+      ],
+      "all_source_unique_video_ids": [
+        "3-6SN3-ZB_0"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=3-6SN3-ZB_0",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38420,
+      "local_entity_id": 211,
+      "local_slug": "%d8%b1%d9%83%d8%a8-%d8%b1%d9%88%d8%a8%d9%88%d8%aa-%d8%a7%d9%84%d8%b1%d8%b3%d9%85-%d8%a7%d9%84%d8%af%d9%88%d8%a7%d8%b1",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "8Y4Uw5lUgKg"
+      ],
+      "all_source_unique_video_ids": [
+        "8Y4Uw5lUgKg"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=8Y4Uw5lUgKg",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8913,
+      "local_entity_id": 212,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%aa%d8%b5%d9%85%d9%8a%d9%85-2",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8909,
+      "local_entity_id": 213,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%a5%d8%a8%d8%af%d8%a7%d8%b9-2",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8897,
+      "local_entity_id": 214,
+      "local_slug": "%d9%87%d9%8a%d8%a7-%d9%86%d8%a8%d8%af%d8%a3-3",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8895,
+      "local_entity_id": 215,
+      "local_slug": "%d9%83%d9%8a%d9%81-%d8%a7%d8%b3%d8%aa%d8%ae%d8%af%d9%85-%d8%a7%d9%84%d9%85%d9%8a%d9%83%d8%b1%d9%88%d8%b3%d9%83%d9%88%d8%a8%d8%9f",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8893,
+      "local_entity_id": 216,
+      "local_slug": "%d9%83%d9%8a%d9%81-%d8%a7%d8%b3%d8%aa%d8%ae%d8%af%d9%85-%d8%a7%d9%84%d9%85%d9%8a%d9%83%d8%b1%d9%88%d8%b3%d9%83%d9%88%d8%a8%d8%9f-%d8%a7%d9%84%d8%ac%d8%b2%d8%a1-%d8%a7%d9%84%d8%ab%d8%a7%d9%86%d9%8a",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8619,
+      "local_entity_id": 217,
+      "local_slug": "%d9%83%d9%8a%d9%81-%d8%a7%d8%b3%d8%aa%d8%ae%d8%af%d9%85-%d8%a7%d9%84%d9%85%d9%8a%d9%83%d8%b1%d9%88%d8%b3%d9%83%d9%88%d8%a8%d8%9f-%d8%a7%d9%84%d8%ac%d8%b2%d8%a1-%d8%a7%d9%84%d8%ab%d8%a7%d9%84%d8%ab",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8559,
+      "local_entity_id": 218,
+      "local_slug": "%d9%85%d9%82%d8%af%d9%85%d8%a9-%d8%a7%d9%84%d9%85%d9%85%d8%a7%d9%84%d9%83",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8887,
+      "local_entity_id": 219,
+      "local_slug": "%d9%87%d9%8a%d8%a7-%d9%86%d8%aa%d8%b9%d8%b1%d9%91%d9%81-%d8%b9%d9%84%d9%89-%d9%85%d9%85%d9%84%d9%83%d8%a9-%d8%a7%d9%84%d8%ad%d9%8a%d9%88%d8%a7%d9%86",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8881,
+      "local_entity_id": 220,
+      "local_slug": "%d9%83%d9%8a%d9%81-%d8%a7%d8%b5%d8%b7%d8%a7%d8%af-%d8%a7%d9%84%d8%ad%d8%b4%d8%b1%d8%a7%d8%aa%d8%9f-%d8%a7%d9%84%d8%ac%d8%b2%d8%a1-%d8%a7%d9%84%d8%a7%d9%88%d9%84",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8617,
+      "local_entity_id": 221,
+      "local_slug": "%d9%83%d9%8a%d9%81-%d8%a7%d8%b5%d8%b7%d8%a7%d8%af-%d8%a7%d9%84%d8%ad%d8%b4%d8%b1%d8%a7%d8%aa%d8%9f-%d8%a7%d9%84%d8%ac%d8%b2%d8%a1-%d8%a7%d9%84%d8%ab%d8%a7%d9%86%d9%8a",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8615,
+      "local_entity_id": 222,
+      "local_slug": "%d9%83%d9%8a%d9%81-%d8%a7%d8%b5%d8%b7%d8%a7%d8%af-%d8%a7%d9%84%d8%ad%d8%b4%d8%b1%d8%a7%d8%aa%d8%9f-%d8%a7%d9%84%d8%ac%d8%b2%d8%a1-%d8%a7%d9%84%d8%ab%d8%a7%d9%84%d8%ab",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8879,
+      "local_entity_id": 223,
+      "local_slug": "%d9%85%d8%a7-%d9%87%d9%8a-%d8%a7%d9%84%d8%ad%d8%b4%d8%b1%d8%a9%d8%9f",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8873,
+      "local_entity_id": 224,
+      "local_slug": "%d8%a7%d9%84%d9%86%d9%85%d9%84%d8%a9-%d8%ad%d8%b4%d8%b1%d8%a9-%d8%a3%d9%85-%d9%84%d8%a7%d8%9f",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8871,
+      "local_entity_id": 225,
+      "local_slug": "%d8%a7%d9%84%d8%b9%d9%86%d9%83%d8%a8%d9%88%d8%aa-%d8%ad%d8%b4%d8%b1%d8%a9-%d8%a3%d9%85-%d9%84%d8%a7%d8%9f",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8869,
+      "local_entity_id": 226,
+      "local_slug": "%d9%86%d8%ad%d9%86-%d9%88%d8%a7%d9%84%d8%ad%d8%b4%d8%b1%d8%a7%d8%aa",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8867,
+      "local_entity_id": 227,
+      "local_slug": "%d8%a7%d9%84%d8%ad%d9%8a%d8%a7%d8%a9-%d8%a8%d8%af%d9%88%d9%86-%d8%ad%d8%b4%d8%b1%d8%a7%d8%aa",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8865,
+      "local_entity_id": 228,
+      "local_slug": "%d9%87%d9%8a%d8%a7-%d9%86%d8%a8%d8%af%d8%a3",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8863,
+      "local_entity_id": 229,
+      "local_slug": "%d8%ac%d9%84%d8%af%d9%86%d8%a7-%d8%aa%d8%ad%d8%aa-%d8%a7%d9%84%d9%85%d9%8a%d9%83%d8%b1%d9%88%d8%b3%d9%83%d9%88%d8%a8",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8861,
+      "local_entity_id": 230,
+      "local_slug": "%d8%b3%d8%b1-%d9%84%d9%88%d9%86-%d8%a7%d9%84%d8%ac%d9%84%d8%af",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8857,
+      "local_entity_id": 231,
+      "local_slug": "%d8%a7%d9%84%d8%a3%d8%b8%d8%a7%d9%81%d8%b1-%d8%aa%d8%ad%d8%aa-%d8%a7%d9%84%d9%85%d9%8a%d9%83%d8%b1%d9%88%d8%b3%d9%83%d9%88%d8%a8",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8855,
+      "local_entity_id": 232,
+      "local_slug": "%d9%86%d8%b8%d8%a7%d9%85-%d8%af%d9%81%d8%a7%d8%b9-%d8%ac%d9%84%d8%af%d9%86%d8%a7",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8853,
+      "local_entity_id": 233,
+      "local_slug": "%d8%a7%d9%84%d8%b4%d8%b9%d8%b1-%d8%aa%d8%ad%d8%aa-%d8%a7%d9%84%d9%85%d9%8a%d9%83%d8%b1%d9%88%d8%b3%d9%83%d9%88%d8%a8",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8851,
+      "local_entity_id": 234,
+      "local_slug": "%d8%ae%d8%b7-%d8%af%d9%81%d8%a7%d8%b9-%d8%a7%d9%84%d8%a3%d9%86%d9%81",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8847,
+      "local_entity_id": 235,
+      "local_slug": "%d8%ae%d8%b7-%d8%af%d9%81%d8%a7%d8%b9-%d8%a7%d9%84%d8%a3%d8%b0%d9%86",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8845,
+      "local_entity_id": 236,
+      "local_slug": "%d8%a7%d8%ac%d8%b2%d8%a7%d8%a1-%d8%a7%d9%84%d9%86%d8%a8%d8%a7%d8%aa",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8843,
+      "local_entity_id": 237,
+      "local_slug": "%d8%a7%d8%ac%d8%b2%d8%a7%d8%a1-%d8%a7%d9%84%d9%86%d8%a8%d8%a7%d8%aa-%d8%a7%d9%84%d8%ac%d8%b2%d8%a1-%d8%a7%d9%84%d8%ab%d8%a7%d9%86%d9%8a",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8841,
+      "local_entity_id": 238,
+      "local_slug": "%d9%85%d8%a7%d8%b0%d8%a7-%d8%b3%d9%86%d8%b1%d9%89-%d8%af%d8%a7%d8%ae%d9%84-%d8%a7%d9%84%d8%b2%d9%87%d9%88%d8%b1%d8%9f",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8839,
+      "local_entity_id": 239,
+      "local_slug": "%d8%b9%d9%85%d9%84%d9%8a%d8%a9-%d8%a7%d9%84%d8%aa%d9%85%d8%ab%d9%8a%d9%84-%d8%a7%d9%84%d8%b6%d9%88%d8%a6%d9%8a",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8837,
+      "local_entity_id": 240,
+      "local_slug": "%d8%a7%d8%ad%d8%aa%d9%8a%d8%a7%d8%ac%d8%a7%d8%aa-%d8%a7%d9%84%d9%86%d8%a8%d8%a7%d8%aa",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8835,
+      "local_entity_id": 241,
+      "local_slug": "%d8%af%d9%88%d8%b1%d8%a9-%d8%ad%d9%8a%d8%a7%d8%a9-%d8%a7%d9%84%d9%86%d8%a8%d8%a7%d8%aa",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8833,
+      "local_entity_id": 242,
+      "local_slug": "%d9%85%d8%a7%d8%b0%d8%a7-%d9%86%d8%a3%d9%83%d9%84-%d9%85%d9%86-%d8%a7%d9%84%d9%86%d8%a8%d8%a7%d8%aa%d8%9f",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8831,
+      "local_entity_id": 243,
+      "local_slug": "%d9%85%d9%82%d8%af%d9%85%d8%a9-%d8%a5%d9%84%d9%89-%d8%a7%d9%84%d8%b9%d8%a7%d9%84%d9%85-%d8%a7%d9%84%d8%b5%d8%ba%d9%8a%d8%b1",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8811,
+      "local_entity_id": 244,
+      "local_slug": "%d9%85%d9%85%d9%84%d9%83%d8%a9-%d8%a7%d9%84%d8%a8%d8%af%d8%a7%d8%a6%d9%8a%d8%a7%d8%aa-%d8%a7%d9%84%d8%a8%d9%83%d8%aa%d9%8a%d8%b1%d9%8a%d8%a7",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8809,
+      "local_entity_id": 245,
+      "local_slug": "%d9%85%d9%85%d9%84%d9%83%d8%a9-%d8%a7%d9%84%d8%a8%d8%af%d8%a7%d8%a6%d9%8a%d8%a7%d8%aa-%d8%a7%d9%84%d8%a8%d9%83%d8%aa%d9%8a%d8%b1%d9%8a%d8%a7-%d8%a7%d9%84%d8%ac%d8%b2%d8%a1-%d8%a7%d9%84%d8%ab%d8%a7",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8807,
+      "local_entity_id": 246,
+      "local_slug": "%d9%85%d9%85%d9%84%d9%83%d8%a9-%d8%a7%d9%84%d9%81%d8%b7%d8%b1%d9%8a%d8%a7%d8%aa",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8805,
+      "local_entity_id": 247,
+      "local_slug": "%d9%85%d9%85%d9%84%d9%83%d8%a9-%d8%a7%d9%84%d9%81%d8%b7%d8%b1%d9%8a%d8%a7%d8%aa-%d8%a7%d9%84%d8%ac%d8%b2%d8%a1-%d8%a7%d9%84%d8%ab%d8%a7%d9%86%d9%8a",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8803,
+      "local_entity_id": 248,
+      "local_slug": "%d9%85%d9%85%d9%83%d9%84%d8%a9-%d8%a7%d9%84%d9%81%d8%b7%d8%b1%d9%8a%d8%a7%d8%aa-%d9%83%d9%8a%d9%81-%d8%aa%d8%aa%d9%83%d8%a7%d8%ab%d8%b1-%d8%a7%d9%84%d9%81%d8%b7%d8%b1%d9%8a%d8%a7%d8%aa%d8%9f",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "z3uPTRn9eLk"
+      ],
+      "all_source_unique_video_ids": [
+        "z3uPTRn9eLk"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=z3uPTRn9eLk",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8797,
+      "local_entity_id": 249,
+      "local_slug": "%d8%a7%d9%84%d9%81%d9%8a%d8%b1%d9%88%d8%b3%d8%a7%d8%aa",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8795,
+      "local_entity_id": 250,
+      "local_slug": "%d8%a7%d9%84%d9%82%d8%b7%d9%86",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8667,
+      "local_entity_id": 251,
+      "local_slug": "%d8%a7%d9%84%d8%a8%d9%88%d9%84%d9%8a%d8%b3%d8%aa%d8%b1",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8665,
+      "local_entity_id": 252,
+      "local_slug": "%d9%84%d9%85%d8%a7%d8%b0%d8%a7-%d8%aa%d8%ad%d8%a8-%d8%a8%d8%b9%d8%b6-%d8%a7%d9%84%d8%a3%d9%82%d9%85%d8%b4%d8%a9-%d8%a7%d9%84%d9%85%d8%a7%d8%a1-%d9%88%d8%aa%d9%83%d8%b1%d9%87%d9%87-%d8%a3%d8%ae%d8%b1",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8663,
+      "local_entity_id": 253,
+      "local_slug": "%d9%84%d8%b9%d8%a8%d8%a9-%d8%a7%d9%84%d8%a3%d9%82%d9%85%d8%b4%d8%a9",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8785,
+      "local_entity_id": 254,
+      "local_slug": "%d8%a7%d9%84%d8%a8%d9%84%d9%88%d8%b1%d8%a7%d8%aa-%d9%81%d9%8a-%d8%a8%d9%8a%d8%aa%d9%86%d8%a7",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8783,
+      "local_entity_id": 255,
+      "local_slug": "%d8%a7%d9%84%d8%a8%d9%84%d9%88%d8%b1%d8%a9-%d9%88%d8%a7%d9%84%d9%85%d8%b3%d8%ad%d9%88%d9%82",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8789,
+      "local_entity_id": 256,
+      "local_slug": "%d8%a7%d9%84%d8%b5%d8%ae%d9%88%d8%b1-%d9%88%d8%a3%d9%86%d9%88%d8%a7%d8%b9%d9%87%d8%a7",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8781,
+      "local_entity_id": 257,
+      "local_slug": "%d8%a7%d9%84%d8%ae%d8%a7%d8%aa%d9%85%d8%a9",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8937,
+      "local_entity_id": 258,
+      "local_slug": "%d8%a7%d9%84%d9%85%d9%82%d8%af%d9%85%d8%a9-2",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "EcjFOLXKphU"
+      ],
+      "all_source_unique_video_ids": [
+        "EcjFOLXKphU"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=EcjFOLXKphU",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8935,
+      "local_entity_id": 259,
+      "local_slug": "%d8%a7%d9%84%d9%83%d8%aa%d9%84%d8%a9",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "MQQpYVM7qxo"
+      ],
+      "all_source_unique_video_ids": [
+        "MQQpYVM7qxo"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=MQQpYVM7qxo",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8931,
+      "local_entity_id": 260,
+      "local_slug": "%d8%aa%d8%ad%d8%af%d9%8a%d8%af-%d9%85%d8%b1%d9%83%d8%b2-%d8%a7%d9%84%d8%aa%d9%88%d8%a7%d8%b2%d9%86",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "K3dWbfihSy0"
+      ],
+      "all_source_unique_video_ids": [
+        "K3dWbfihSy0"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=K3dWbfihSy0",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8929,
+      "local_entity_id": 261,
+      "local_slug": "%d9%85%d8%b1%d9%83%d8%b2-%d8%a7%d9%84%d8%af%d8%b9%d9%85",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "977kSKuJiTI"
+      ],
+      "all_source_unique_video_ids": [
+        "977kSKuJiTI"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=977kSKuJiTI",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8927,
+      "local_entity_id": 262,
+      "local_slug": "%d8%ae%d8%b5%d8%a7%d8%a6%d8%b5-%d9%85%d8%b1%d9%83%d8%b2-%d8%a7%d9%84%d9%83%d8%aa%d9%84%d8%a9",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "06guvF-UIcw"
+      ],
+      "all_source_unique_video_ids": [
+        "06guvF-UIcw"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=06guvF-UIcw",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8777,
+      "local_entity_id": 263,
+      "local_slug": "%d9%85%d8%b1%d9%83%d8%b2-%d9%83%d8%aa%d9%84%d8%a9-%d8%a7%d9%84%d8%b1%d9%88%d8%a8%d9%88%d8%aa-%d8%a7%d9%84%d9%85%d8%aa%d9%88%d8%a7%d8%b2%d9%86-%d8%a7%d9%84%d8%b9%d8%ac%d9%8a%d8%a8",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "8g3qwsEdyoc"
+      ],
+      "all_source_unique_video_ids": [
+        "8g3qwsEdyoc"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=8g3qwsEdyoc",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8773,
+      "local_entity_id": 264,
+      "local_slug": "%d9%85%d8%b1%d9%83%d8%b2-%d8%a7%d9%84%d8%aa%d8%ad%d9%83%d9%85-%d8%b9%d9%86-%d8%a8%d8%b9%d8%af",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "Eh4G10axgu8"
+      ],
+      "all_source_unique_video_ids": [
+        "Eh4G10axgu8"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=Eh4G10axgu8",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8521,
+      "local_entity_id": 265,
+      "local_slug": "%d8%b1%d9%83%d8%a8-%d8%b1%d9%88%d8%a8%d9%88%d8%aa-%d8%a7%d9%84%d8%a7%d8%aa%d8%b2%d8%a7%d9%86-%d8%a7%d9%84%d8%b9%d8%ac%d9%8a%d8%a8",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "81xcVclg6fo"
+      ],
+      "all_source_unique_video_ids": [
+        "81xcVclg6fo"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=81xcVclg6fo",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 36667,
+      "local_entity_id": 266,
+      "local_slug": "%d8%a7%d9%83%d8%aa%d8%b4%d8%a7%d9%81-%d9%88%d8%ad%d9%84-%d9%85%d8%b4%d8%a7%d9%83%d9%84-%d8%a7%d9%84%d8%aa%d8%b1%d9%83%d9%8a%d8%a8",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "34CTPuRWwO8"
+      ],
+      "all_source_unique_video_ids": [
+        "34CTPuRWwO8"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=34CTPuRWwO8",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8903,
+      "local_entity_id": 267,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%aa%d8%b5%d9%85%d9%8a%d9%85-3",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8901,
+      "local_entity_id": 268,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%a5%d8%a8%d8%af%d8%a7%d8%b9-3",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 9029,
+      "local_entity_id": 269,
+      "local_slug": "%d8%a7%d9%84%d9%85%d9%82%d8%af%d9%85%d8%a9",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "Hz648DxOACw"
+      ],
+      "all_source_unique_video_ids": [
+        "Hz648DxOACw"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=Hz648DxOACw",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 9035,
+      "local_entity_id": 270,
+      "local_slug": "%d8%a7%d9%84%d8%b3%d8%b1%d8%b9%d8%a9",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "mC1Im6EgtcM"
+      ],
+      "all_source_unique_video_ids": [
+        "mC1Im6EgtcM"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=mC1Im6EgtcM",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 9015,
+      "local_entity_id": 271,
+      "local_slug": "%d8%aa%d8%ac%d8%b1%d8%a8%d8%a9-%d8%a7%d9%84%d8%a7%d8%ad%d8%aa%d9%83%d8%a7%d9%83",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "g7-bFceBmVc"
+      ],
+      "all_source_unique_video_ids": [
+        "g7-bFceBmVc"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=g7-bFceBmVc",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8991,
+      "local_entity_id": 272,
+      "local_slug": "%d8%a7%d9%84%d8%af%d9%8a%d9%86%d8%a7%d9%85%d9%8a%d9%83%d8%a7-%d8%a7%d9%84%d9%87%d9%88%d8%a7%d8%a6%d9%8a%d8%a9",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "EMYQNfNHZ-4"
+      ],
+      "all_source_unique_video_ids": [
+        "EMYQNfNHZ-4"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=EMYQNfNHZ-4",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8981,
+      "local_entity_id": 273,
+      "local_slug": "%d9%82%d9%88%d8%a9-%d8%a7%d9%84%d8%ac%d8%b0%d8%a8-%d8%a7%d9%84%d9%85%d8%b1%d9%83%d8%b2%d9%8a%d8%a9",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "N1BRpR-v8Po"
+      ],
+      "all_source_unique_video_ids": [
+        "N1BRpR-v8Po"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=N1BRpR-v8Po",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8737,
+      "local_entity_id": 274,
+      "local_slug": "%d8%a7%d9%84%d8%b1%d9%8a%d8%a7%d8%b6%d9%8a-%d8%a7%d9%84%d8%ae%d8%a7%d8%b1%d9%82",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "CCfwsZAqch0"
+      ],
+      "all_source_unique_video_ids": [
+        "CCfwsZAqch0"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=CCfwsZAqch0",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8599,
+      "local_entity_id": 275,
+      "local_slug": "%d8%b1%d9%83%d8%a8-%d8%b3%d9%8a%d8%a7%d8%b1%d8%a9-%d8%a7%d9%84%d8%b3%d8%a8%d8%a7%d9%82",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "OWxAvOxUiGk"
+      ],
+      "all_source_unique_video_ids": [
+        "OWxAvOxUiGk"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=OWxAvOxUiGk",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8723,
+      "local_entity_id": 276,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%aa%d8%b5%d9%85%d9%8a%d9%85-9",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8671,
+      "local_entity_id": 277,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%a5%d8%a8%d8%af%d8%a7%d8%b9-12",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8621,
+      "local_entity_id": 278,
+      "local_slug": "%d8%a7%d9%84%d9%85%d9%82%d8%af%d9%85%d8%a9-8",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "F9wOSWAX35k"
+      ],
+      "all_source_unique_video_ids": [
+        "F9wOSWAX35k"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=F9wOSWAX35k",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 9011,
+      "local_entity_id": 279,
+      "local_slug": "%d8%a7%d8%b3%d8%aa%d9%83%d8%b4%d8%a7%d9%81-%d8%a7%d9%84%d9%81%d8%b6%d8%a7%d8%a1-%d9%88%d8%aa%d8%ad%d8%af%d9%8a%d8%a7%d8%aa-%d8%a7%d9%84%d8%b7%d8%a7%d9%82%d8%a9",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "5lW8SnyRY1s"
+      ],
+      "all_source_unique_video_ids": [
+        "5lW8SnyRY1s"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=5lW8SnyRY1s",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8983,
+      "local_entity_id": 280,
+      "local_slug": "%d8%a7%d9%84%d8%b7%d8%a7%d9%82%d8%a9-%d8%a7%d9%84%d9%85%d8%aa%d8%ac%d8%af%d8%af%d8%a9",
+      "source_reference_count": 9,
+      "normalized_unique_video_ids": [
+        "BKPY_3LOaDE"
+      ],
+      "all_source_unique_video_ids": [
+        "BKPY_3LOaDE",
+        "5lW8SnyRY1s"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=BKPY_3LOaDE",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8979,
+      "local_entity_id": 281,
+      "local_slug": "%d8%ae%d9%88%d8%a7%d8%b5-%d8%a7%d9%84%d9%85%d9%88%d8%a7%d8%af-%d9%88%d8%a3%d8%b4%d8%a8%d8%a7%d9%87-%d8%a7%d9%84%d9%85%d9%88%d8%b5%d9%84%d8%a7%d8%aa",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "Hzp_iCrsIUQ"
+      ],
+      "all_source_unique_video_ids": [
+        "Hzp_iCrsIUQ"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=Hzp_iCrsIUQ",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8975,
+      "local_entity_id": 282,
+      "local_slug": "%d8%a7%d9%84%d8%ae%d9%84%d8%a7%d9%8a%d8%a7-%d8%a7%d9%84%d8%b4%d9%85%d8%b3%d9%8a%d8%a9-%d9%88%d8%aa%d8%ad%d9%88%d9%8a%d9%84-%d8%a7%d9%84%d8%b7%d8%a7%d9%82%d8%a9",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "zMmDRlnQXSc"
+      ],
+      "all_source_unique_video_ids": [
+        "zMmDRlnQXSc"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=zMmDRlnQXSc",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8973,
+      "local_entity_id": 283,
+      "local_slug": "%d9%85%d8%b3%d8%aa%d9%82%d8%a8%d9%84-%d8%a7%d9%84%d8%b7%d8%a7%d9%82%d8%a9-%d8%a7%d9%84%d9%86%d8%b8%d9%8a%d9%81%d8%a9",
+      "source_reference_count": 7,
+      "normalized_unique_video_ids": [
+        "A3s5FyBm9x0"
+      ],
+      "all_source_unique_video_ids": [
+        "A3s5FyBm9x0"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=A3s5FyBm9x0",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8611,
+      "local_entity_id": 284,
+      "local_slug": "%d8%b1%d9%83%d8%a8-%d9%85%d8%b3%d8%aa%d9%83%d8%b4%d9%81-%d8%a7%d9%84%d9%83%d9%88%d8%a7%d9%83%d8%a8",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "HwRjn0TyrXg"
+      ],
+      "all_source_unique_video_ids": [
+        "HwRjn0TyrXg"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=HwRjn0TyrXg",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8969,
+      "local_entity_id": 285,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%aa%d8%b5%d9%85%d9%8a%d9%85",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 8967,
+      "local_entity_id": 286,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%a5%d8%a8%d8%af%d8%a7%d8%b9",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 9045,
+      "local_entity_id": 287,
+      "local_slug": "%d8%a7%d9%84%d9%85%d9%82%d8%af%d9%85%d8%a9-14",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 9027,
+      "local_entity_id": 288,
+      "local_slug": "%d9%82%d8%a7%d9%86%d9%88%d9%86-%d9%86%d9%8a%d9%88%d8%aa%d9%86",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 9025,
+      "local_entity_id": 289,
+      "local_slug": "%d9%85%d8%a8%d8%af%d8%a3-%d8%a8%d8%b1%d9%88%d9%86%d9%84%d9%84%d9%8a",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 9023,
+      "local_entity_id": 290,
+      "local_slug": "%d8%aa%d8%b7%d8%a8%d9%8a%d9%82%d8%a7%d8%aa-%d8%a8%d8%b1%d9%88%d9%86%d9%84%d9%84%d9%8a",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 9021,
+      "local_entity_id": 291,
+      "local_slug": "%d8%aa%d8%b5%d9%85%d9%8a%d9%85-%d8%a7%d9%84%d9%80-airfoil-%d9%88%d9%82%d9%88%d8%a9-%d8%a7%d9%84%d8%b1%d9%81%d8%b9",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 9019,
+      "local_entity_id": 292,
+      "local_slug": "%d8%aa%d8%a3%d8%ab%d9%8a%d8%b1-%d9%83%d9%88%d8%a7%d9%86%d8%af%d8%a7",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 9017,
+      "local_entity_id": 293,
+      "local_slug": "%d8%a7%d9%84%d8%b7%d9%8a%d8%b1%d8%a7%d9%86-%d8%a8%d9%8a%d9%86-%d8%a8%d8%b1%d9%88%d9%86%d9%84%d9%84%d9%8a-%d9%88%d9%83%d9%88%d8%a7%d9%86%d8%af%d8%a7",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 9013,
+      "local_entity_id": 294,
+      "local_slug": "%d8%b1%d9%83%d8%a8-%d9%83%d8%b1%d8%a9-%d8%a8%d8%b1%d9%86%d9%88%d9%84%d9%84%d9%89-%d8%a7%d9%84%d8%b7%d8%a7%d8%a6%d8%b1%d8%a9",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "iUSQTUEqYiU"
+      ],
+      "all_source_unique_video_ids": [
+        "iUSQTUEqYiU"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=iUSQTUEqYiU",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 37782,
+      "local_entity_id": 295,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%aa%d8%b5%d9%85%d9%8a%d9%85-19",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 37784,
+      "local_entity_id": 296,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%a5%d8%a8%d8%af%d8%a7%d8%b9-20",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 37549,
+      "local_entity_id": 297,
+      "local_slug": "%d8%a7%d9%84%d9%85%d9%82%d8%af%d9%85%d8%a9-13",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 37561,
+      "local_entity_id": 298,
+      "local_slug": "%d8%aa%d9%86%d9%88%d8%b9-%d8%a7%d9%84%d8%b2%d9%88%d8%a7%d8%ad%d9%81",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 37639,
+      "local_entity_id": 299,
+      "local_slug": "%d8%a7%d9%84%d9%85%d8%ad%d8%a7%d9%83%d8%a7%d8%a9-%d8%a7%d9%84%d8%ad%d9%8a%d9%88%d9%8a%d8%a9-biomimicry",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 37649,
+      "local_entity_id": 300,
+      "local_slug": "%d8%af%d9%88%d8%b1-%d8%a7%d9%84%d8%b2%d9%88%d8%a7%d8%ad%d9%81-%d9%81%d9%8a-%d8%a7%d9%84%d8%aa%d9%88%d8%a7%d8%b2%d9%86-%d8%a7%d9%84%d8%a8%d9%8a%d8%a6%d9%8a",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 37660,
+      "local_entity_id": 301,
+      "local_slug": "%d9%83%d9%8a%d9%81-%d9%8a%d8%b9%d9%85%d9%84-%d8%b1%d9%88%d8%a8%d9%88%d8%aa-%d8%a7%d9%84%d8%b2%d9%88%d8%a7%d8%ad%d9%81%d8%9f",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 47902,
+      "local_entity_id": 302,
+      "local_slug": "%d8%b1%d9%83%d8%a8-%d8%b1%d9%88%d8%a8%d9%88%d8%aa-%d8%a7%d9%84%d8%b2%d9%88%d8%a7%d8%ad%d9%81",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "wD5iyZvdrJM"
+      ],
+      "all_source_unique_video_ids": [
+        "wD5iyZvdrJM"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=wD5iyZvdrJM",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 44828,
+      "local_entity_id": 303,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%aa%d8%b5%d9%85%d9%8a%d9%85-27",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 44830,
+      "local_entity_id": 304,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%a5%d8%a8%d8%af%d8%a7%d8%b9-28",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38268,
+      "local_entity_id": 305,
+      "local_slug": "%d8%a7%d9%84%d9%85%d9%82%d8%af%d9%85%d8%a9-17",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "uUJ-_FYkdqg"
+      ],
+      "all_source_unique_video_ids": [
+        "uUJ-_FYkdqg"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=uUJ-_FYkdqg",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38270,
+      "local_entity_id": 306,
+      "local_slug": "%d8%a7%d9%84%d9%82%d9%88%d9%89-%d8%a7%d9%84%d8%a3%d8%b1%d8%a8%d8%b9-%d9%81%d9%8a-%d8%a7%d9%84%d9%87%d9%88%d8%a7%d8%a1",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "zNBHlixFAzQ"
+      ],
+      "all_source_unique_video_ids": [
+        "zNBHlixFAzQ"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=zNBHlixFAzQ",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38272,
+      "local_entity_id": 307,
+      "local_slug": "%d9%82%d8%a7%d9%86%d9%88%d9%86-%d9%86%d9%8a%d9%88%d8%aa%d9%86-%d8%a7%d9%84%d8%ab%d8%a7%d9%84%d8%ab-%d9%88%d8%ad%d8%b1%d9%83%d8%a9-%d8%b3%d9%8a%d8%a7%d8%b1%d8%a9-%d8%a7%d9%84%d9%87%d9%88%d8%a7%d8%a1",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "k1rMEw7nGdY"
+      ],
+      "all_source_unique_video_ids": [
+        "k1rMEw7nGdY"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=k1rMEw7nGdY",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38274,
+      "local_entity_id": 308,
+      "local_slug": "%d9%85%d9%82%d8%a7%d9%88%d9%85%d8%a9-%d8%a7%d9%84%d9%87%d9%88%d8%a7%d8%a1-%d9%88%d8%a7%d9%84%d8%a7%d8%ad%d8%aa%d9%83%d8%a7%d9%83",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "Buhzf7Jez6A"
+      ],
+      "all_source_unique_video_ids": [
+        "Buhzf7Jez6A"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=Buhzf7Jez6A",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38276,
+      "local_entity_id": 309,
+      "local_slug": "%d8%a7%d9%84%d8%af%d9%8a%d9%86%d8%a7%d9%85%d9%8a%d9%83%d8%a7-%d8%a7%d9%84%d9%87%d9%88%d8%a7%d8%a6%d9%8a%d8%a9-3",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "HLIGk0BN8k0"
+      ],
+      "all_source_unique_video_ids": [
+        "HLIGk0BN8k0"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=HLIGk0BN8k0",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38278,
+      "local_entity_id": 310,
+      "local_slug": "%d9%86%d9%81%d9%82-%d8%a7%d9%84%d9%87%d9%88%d8%a7%d8%a1-%d9%88%d8%b7%d8%a8%d9%82%d8%a9-%d8%a7%d9%84%d8%ad%d8%af%d9%88%d8%af",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "lnkGJYRa_aE"
+      ],
+      "all_source_unique_video_ids": [
+        "lnkGJYRa_aE"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=lnkGJYRa_aE",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38292,
+      "local_entity_id": 311,
+      "local_slug": "%d8%a7%d9%84%d8%aa%d8%b1%d9%83%d9%8a%d8%a8-3",
+      "source_reference_count": 4,
+      "normalized_unique_video_ids": [
+        "zrX7f6l5zA8"
+      ],
+      "all_source_unique_video_ids": [
+        "zrX7f6l5zA8"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=zrX7f6l5zA8",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38294,
+      "local_entity_id": 312,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%aa%d8%b5%d9%85%d9%8a%d9%85-24",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38296,
+      "local_entity_id": 313,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%a5%d8%a8%d8%af%d8%a7%d8%b9-25",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 44507,
+      "local_entity_id": 314,
+      "local_slug": "%d8%a7%d9%84%d9%85%d9%82%d8%af%d9%85%d8%a9-19",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 44509,
+      "local_entity_id": 315,
+      "local_slug": "%d8%a7%d9%84%d9%83%d9%87%d8%b1%d9%88%d9%85%d8%ba%d9%86%d8%a7%d8%b7%d9%8a%d8%b3%d9%8a%d8%a9-%d9%88%d8%b4%d9%81%d8%b1%d8%a9-%d9%85%d9%88%d8%b1%d8%b3",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 44511,
+      "local_entity_id": 316,
+      "local_slug": "%d8%a8%d8%af%d8%a7%d9%8a%d8%a9-%d8%a7%d9%84%d8%a7%d8%aa%d8%b5%d8%a7%d9%84%d8%a7%d8%aa-%d8%a7%d9%84%d9%84%d8%a7%d8%b3%d9%84%d9%83%d9%8a%d8%a9",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 44513,
+      "local_entity_id": 317,
+      "local_slug": "%d8%a7%d9%84%d9%85%d9%88%d8%ac%d8%a7%d8%aa-%d9%88%d8%a7%d9%84%d8%aa%d8%b1%d8%af%d8%af-%d9%88%d8%a7%d9%84%d8%b7%d9%88%d9%84-%d8%a7%d9%84%d9%85%d9%88%d8%ac%d9%8a",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 44515,
+      "local_entity_id": 318,
+      "local_slug": "%d9%83%d9%8a%d9%81-%d9%8a%d8%b9%d9%85%d9%84-%d9%85%d8%b4%d8%b1%d9%88%d8%b9-%d8%a7%d9%84%d8%aa%d9%84%d8%ba%d8%b1%d8%a7%d9%81-%d8%a7%d9%84%d9%84%d8%a7%d8%b3%d9%84%d9%83%d9%8a-%d8%b9%d9%85%d9%84%d9%8a",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 44568,
+      "local_entity_id": 319,
+      "local_slug": "%d8%a7%d9%84%d8%aa%d8%b1%d9%83%d9%8a%d8%a8-4",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "hnEl07ou6tw"
+      ],
+      "all_source_unique_video_ids": [
+        "hnEl07ou6tw"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=hnEl07ou6tw",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 44564,
+      "local_entity_id": 320,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%aa%d8%b5%d9%85%d9%8a%d9%85-26",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 44566,
+      "local_entity_id": 321,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%a5%d8%a8%d8%af%d8%a7%d8%b9-27",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38011,
+      "local_entity_id": 322,
+      "local_slug": "%d8%a7%d9%84%d9%85%d9%82%d8%af%d9%85%d8%a9-%d9%83%d9%8a%d9%81-%d9%86%d9%8f%d9%83%d8%a8%d9%91%d8%b1-%d8%a7%d9%84%d9%82%d9%88%d8%a9-%d8%af%d9%88%d9%86-%d9%85%d9%88%d8%aa%d9%88%d8%b1-%d8%b6%d8%ae%d9%85",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38013,
+      "local_entity_id": 323,
+      "local_slug": "%d8%b9%d8%a7%d9%84%d9%85-%d8%a7%d9%84%d9%85%d9%88%d8%a7%d8%a6%d8%b9-%d8%a7%d9%84%d9%83%d8%ab%d8%a7%d9%81%d8%a9-%d9%88%d8%a7%d9%84%d8%b6%d8%ba%d8%b7-%d9%88%d8%a7%d9%84%d8%b7%d9%81%d9%88",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38015,
+      "local_entity_id": 324,
+      "local_slug": "%d8%a7%d9%84%d8%b6%d8%ba%d8%b7-%d9%88%d9%85%d8%a8%d8%af%d8%a3-%d8%a8%d8%a7%d8%b3%d9%83%d8%a7%d9%84",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38017,
+      "local_entity_id": 325,
+      "local_slug": "%d8%a7%d9%84%d9%86%d8%b8%d8%a7%d9%85-%d8%a7%d9%84%d9%87%d9%8a%d8%af%d8%b1%d9%88%d9%84%d9%8a%d9%83%d9%8a-%d9%88%d8%a7%d9%84%d9%81%d8%a7%d8%a6%d8%af%d8%a9-%d8%a7%d9%84%d9%85%d9%8a%d9%83%d8%a7%d9%86",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38020,
+      "local_entity_id": 326,
+      "local_slug": "%d8%a7%d9%84%d8%b1%d9%88%d8%a7%d9%81%d8%b9-%d9%88%d8%a7%d9%84%d8%b9%d8%b2%d9%85",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38252,
+      "local_entity_id": 327,
+      "local_slug": "%d8%a7%d9%84%d8%aa%d8%b1%d9%83%d9%8a%d8%a8-2",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38254,
+      "local_entity_id": 328,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%aa%d8%b5%d9%85%d9%8a%d9%85-23",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38256,
+      "local_entity_id": 329,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%a5%d8%a8%d8%af%d8%a7%d8%b9-24",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 44637,
+      "local_entity_id": 330,
+      "local_slug": "%d8%a7%d9%84%d9%85%d9%82%d8%af%d9%85%d8%a9-20",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 44649,
+      "local_entity_id": 331,
+      "local_slug": "%d9%84%d9%85%d8%a7%d8%b0%d8%a7-%d8%a7%d9%84%d9%85%d8%a7%d8%a1-%d8%a3%d9%82%d9%88%d9%89-%d9%85%d9%86-%d8%a7%d9%84%d9%87%d9%88%d8%a7%d8%a1%d8%9f",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 44651,
+      "local_entity_id": 332,
+      "local_slug": "%d9%83%d9%8a%d9%81-%d8%aa%d8%b1%d9%81%d8%b9-%d8%a3%d8%b7%d9%86%d8%a7%d9%86%d9%8b%d8%a7-%d8%a8%d9%8a%d8%af%d9%83%d8%9f",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 44653,
+      "local_entity_id": 333,
+      "local_slug": "%d9%83%d9%81%d8%a7%d8%a1%d8%a9-%d8%a7%d9%84%d9%86%d8%b8%d8%a7%d9%85-%d8%a7%d9%84%d9%87%d9%8a%d8%af%d8%b1%d9%88%d9%84%d9%8a%d9%83%d9%8a",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 44919,
+      "local_entity_id": 334,
+      "local_slug": "%d8%a7%d9%84%d8%aa%d8%b1%d9%83%d9%8a%d8%a8-6",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 44915,
+      "local_entity_id": 335,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%aa%d8%b5%d9%85%d9%8a%d9%85-28",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 44917,
+      "local_entity_id": 336,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%a5%d8%a8%d8%af%d8%a7%d8%b9-29",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 37793,
+      "local_entity_id": 337,
+      "local_slug": "%d8%a7%d9%84%d9%85%d9%82%d8%af%d9%85%d8%a9-15",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 37809,
+      "local_entity_id": 338,
+      "local_slug": "%d8%a3%d8%b4%d9%83%d8%a7%d9%84-%d8%a7%d9%84%d8%b7%d8%a7%d9%82%d8%a9-%d9%88%d9%82%d8%a7%d9%86%d9%88%d9%86-%d8%a8%d9%82%d8%a7%d8%a6%d9%87%d8%a7",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 37821,
+      "local_entity_id": 339,
+      "local_slug": "%d8%a7%d9%84%d8%ad%d8%ab-%d8%a7%d9%84%d9%83%d9%87%d8%b1%d9%88%d9%85%d8%ba%d9%86%d8%a7%d8%b7%d9%8a%d8%b3%d9%8a-%d9%88%d8%aa%d9%88%d9%84%d9%8a%d8%af-%d8%a7%d9%84%d9%83%d9%87%d8%b1%d8%a8%d8%a7%d8%a1",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 37828,
+      "local_entity_id": 340,
+      "local_slug": "%d8%aa%d8%a7%d8%b1%d9%8a%d8%ae-%d8%a7%d9%84%d9%85%d9%88%d9%84%d8%af-%d8%a7%d9%84%d9%8a%d8%af%d9%88%d9%8a-%d9%88%d8%aa%d8%b7%d8%a8%d9%8a%d9%82%d8%a7%d8%aa-%d8%a7%d9%84%d8%a3%d8%b4%d8%b9%d8%a9-%d9%81",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 37988,
+      "local_entity_id": 341,
+      "local_slug": "%d8%a7%d9%84%d8%aa%d8%b1%d9%83%d9%8a%d8%a8",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "_yMFKh49G3c"
+      ],
+      "all_source_unique_video_ids": [
+        "_yMFKh49G3c"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=_yMFKh49G3c",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 37834,
+      "local_entity_id": 342,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%aa%d8%b5%d9%85%d9%8a%d9%85-20",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 37836,
+      "local_entity_id": 343,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%a5%d8%a8%d8%af%d8%a7%d8%b9-21",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 37928,
+      "local_entity_id": 344,
+      "local_slug": "%d8%a7%d9%84%d9%85%d9%82%d8%af%d9%85%d8%a9-16",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "V_e31YEEFqY"
+      ],
+      "all_source_unique_video_ids": [
+        "V_e31YEEFqY"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=V_e31YEEFqY",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 37930,
+      "local_entity_id": 345,
+      "local_slug": "%d9%84%d9%85%d8%a7%d8%b0%d8%a7-%d8%aa%d8%b3%d8%ad%d8%a8%d9%86%d8%a7-%d8%a7%d9%84%d8%a3%d8%b1%d8%b6%d8%9f",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "R7F4060XDNM"
+      ],
+      "all_source_unique_video_ids": [
+        "R7F4060XDNM"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=R7F4060XDNM",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 37947,
+      "local_entity_id": 346,
+      "local_slug": "%d8%a7%d9%84%d8%a2%d9%84%d8%a7%d8%aa-%d8%a7%d9%84%d8%a8%d8%b3%d9%8a%d8%b7%d8%a9",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "SjtGuJpIVHU"
+      ],
+      "all_source_unique_video_ids": [
+        "SjtGuJpIVHU"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=SjtGuJpIVHU",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 37958,
+      "local_entity_id": 347,
+      "local_slug": "%d8%b7%d8%a7%d9%82%d8%a9-%d8%a7%d9%84%d9%88%d8%b6%d8%b9-%d9%88%d8%a7%d9%84%d8%ad%d8%b1%d9%83%d8%a9",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "jvaSWUbCuZA"
+      ],
+      "all_source_unique_video_ids": [
+        "jvaSWUbCuZA"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=jvaSWUbCuZA",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38144,
+      "local_entity_id": 348,
+      "local_slug": "%d8%a7%d9%84%d8%ae%d8%a7%d8%aa%d9%85%d8%a9-7",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "lo2Fzqi44C8"
+      ],
+      "all_source_unique_video_ids": [
+        "lo2Fzqi44C8"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=lo2Fzqi44C8",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38391,
+      "local_entity_id": 349,
+      "local_slug": "%d8%b1%d9%83%d8%a8-%d8%b3%d9%8a%d8%a7%d8%b1%d8%a9-%d8%a7%d9%84%d8%ac%d8%a7%d8%b0%d8%a8%d9%8a%d8%a9",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "8gwltlfFQHM"
+      ],
+      "all_source_unique_video_ids": [
+        "8gwltlfFQHM"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=8gwltlfFQHM",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38171,
+      "local_entity_id": 350,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%aa%d8%b5%d9%85%d9%8a%d9%85-22",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38174,
+      "local_entity_id": 351,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%a5%d8%a8%d8%af%d8%a7%d8%b9-23",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38302,
+      "local_entity_id": 352,
+      "local_slug": "%d8%a7%d9%84%d9%85%d9%82%d8%af%d9%85%d8%a9-18",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38304,
+      "local_entity_id": 353,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%aa%d8%b5%d9%85%d9%8a%d9%85-25",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 38306,
+      "local_entity_id": 354,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%a5%d8%a8%d8%af%d8%a7%d8%b9-26",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 44968,
+      "local_entity_id": 355,
+      "local_slug": "%d9%85%d8%ba%d8%a7%d9%85%d8%b1%d8%a9-%d8%a7%d9%84%d8%b7%d8%a7%d9%82%d8%a9-%d8%a7%d9%84%d9%85%d8%b1%d9%86%d8%a9",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 47907,
+      "local_entity_id": 356,
+      "local_slug": "%d8%b1%d9%83%d8%a8-%d8%b3%d9%8a%d8%a7%d8%b1%d8%a9-%d8%a7%d9%84%d8%af%d9%81%d8%b9-%d8%a7%d9%84%d8%b9%d8%ac%d9%8a%d8%a8",
+      "source_reference_count": 3,
+      "normalized_unique_video_ids": [
+        "XIe7r8w0nxM"
+      ],
+      "all_source_unique_video_ids": [
+        "XIe7r8w0nxM"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=XIe7r8w0nxM",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "post_content",
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 44985,
+      "local_entity_id": 357,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%aa%d8%b5%d9%85%d9%8a%d9%85-29",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "lesson",
+      "legacy_entity_id": 44987,
+      "local_entity_id": 358,
+      "local_slug": "%d9%85%d8%ae%d8%aa%d8%a8%d8%b1-%d8%a7%d9%84%d8%a5%d8%a8%d8%af%d8%a7%d8%b9-30",
+      "source_reference_count": 0,
+      "normalized_unique_video_ids": [],
+      "all_source_unique_video_ids": [],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "NO_VIDEO",
+      "source_evidence": null,
+      "notes": null
+    },
+    {
+      "entity_type": "topic",
+      "legacy_entity_id": 9089,
+      "local_entity_id": 344,
+      "local_slug": "video",
+      "source_reference_count": 5,
+      "normalized_unique_video_ids": [
+        "tIzt3gb92Fw"
+      ],
+      "all_source_unique_video_ids": [
+        "tIzt3gb92Fw"
+      ],
+      "canonical_video_url": "https://www.youtube.com/watch?v=tIzt3gb92Fw",
+      "provider": "youtube",
+      "resolution_status": "MULTIPLE_REFERENCES_SAME_VIDEO",
+      "source_evidence": "structured",
+      "notes": null
+    },
+    {
+      "entity_type": "course",
+      "legacy_entity_id": 8515,
+      "local_entity_id": 49,
+      "local_slug": "ball-blower-kit-course",
+      "source_reference_count": 2,
+      "normalized_unique_video_ids": [
+        "ZfUfU5To4QY"
+      ],
+      "all_source_unique_video_ids": [
+        "ZfUfU5To4QY"
+      ],
+      "canonical_video_url": null,
+      "provider": null,
+      "resolution_status": "COURSE_VIDEO_TARGET_GAP",
+      "source_evidence": "postmeta:_learndash_course_grid_video_embed_code",
+      "notes": "Laravel Course has image_url only; no video target. Do not assign to lessons."
+    }
+  ]
+}

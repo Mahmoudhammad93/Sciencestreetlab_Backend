@@ -1,0 +1,1605 @@
+{
+    "inline_images": 23,
+    "courses_affected": 0,
+    "lessons_affected": 18,
+    "topics_affected": 0,
+    "srcset_entity_references": 0,
+    "target_content_fields": {
+        "lesson": "lessons.content (Spatie translatable JSON; locales ar\/en)",
+        "topic": "topics.content (Spatie translatable JSON; locales ar\/en)",
+        "course": "courses.description \/ courses.short_description if inline appears there (none expected for attachment set)"
+    },
+    "storage_convention": "public disk path migration\/wordpress-inline\/{attachment_id}\/{basename} matching ImageDropzone public disk pattern",
+    "no_rewrite_executed": true,
+    "items": [
+        {
+            "legacy_attachment_id": 38386,
+            "relative_path": "2026\/02\/Gemini_Generated_Image_i5kuhyi5kuhyi5ku.png",
+            "mime": "image\/png",
+            "old_wordpress_urls": [
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/02\/Gemini_Generated_Image_i5kuhyi5kuhyi5ku.png"
+            ],
+            "planned_laravel_storage_path": "migration\/wordpress-inline\/38386\/Gemini_Generated_Image_i5kuhyi5kuhyi5ku.png",
+            "planned_public_url_pattern": "\/storage\/migration\/wordpress-inline\/38386\/Gemini_Generated_Image_i5kuhyi5kuhyi5ku.png",
+            "affected_entities": [
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38353,
+                    "local_entity_id": 105,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d9%85%d9%83%d9%86%d8%b3%d8%a9-%d8%a7%d9%84%d9%8a%d8%af",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                }
+            ],
+            "src_reference_entities": 1,
+            "srcset_reference_entities": 0,
+            "rewrite_target_fields": [
+                "lessons.content (json ar\/en)",
+                "topics.content (json ar\/en)",
+                "courses.description\/short_description if present"
+            ],
+            "rewrite_now": false
+        },
+        {
+            "legacy_attachment_id": 38388,
+            "relative_path": "2026\/02\/image-9.png",
+            "mime": "image\/png",
+            "old_wordpress_urls": [
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/02\/image-9.png",
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/02\/image-9-1024x576.png"
+            ],
+            "planned_laravel_storage_path": "migration\/wordpress-inline\/38388\/image-9.png",
+            "planned_public_url_pattern": "\/storage\/migration\/wordpress-inline\/38388\/image-9.png",
+            "affected_entities": [
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11299,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38353,
+                    "local_entity_id": 105,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d9%85%d9%83%d9%86%d8%b3%d8%a9-%d8%a7%d9%84%d9%8a%d8%af",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                }
+            ],
+            "src_reference_entities": 1,
+            "srcset_reference_entities": 0,
+            "rewrite_target_fields": [
+                "lessons.content (json ar\/en)",
+                "topics.content (json ar\/en)",
+                "courses.description\/short_description if present"
+            ],
+            "rewrite_now": false
+        },
+        {
+            "legacy_attachment_id": 38428,
+            "relative_path": "2026\/02\/image-12.png",
+            "mime": "image\/png",
+            "old_wordpress_urls": [
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/02\/image-12.png"
+            ],
+            "planned_laravel_storage_path": "migration\/wordpress-inline\/38428\/image-12.png",
+            "planned_public_url_pattern": "\/storage\/migration\/wordpress-inline\/38428\/image-12.png",
+            "affected_entities": [
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11129,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38423,
+                    "local_entity_id": 133,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d8%b3%d9%8a%d8%a7%d8%b1%d8%a9-%d8%a7%d9%84%d8%b0%d9%83%d9%8a%d8%a9-2",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                }
+            ],
+            "src_reference_entities": 2,
+            "srcset_reference_entities": 0,
+            "rewrite_target_fields": [
+                "lessons.content (json ar\/en)",
+                "topics.content (json ar\/en)",
+                "courses.description\/short_description if present"
+            ],
+            "rewrite_now": false
+        },
+        {
+            "legacy_attachment_id": 38430,
+            "relative_path": "2026\/02\/image-13.png",
+            "mime": "image\/png",
+            "old_wordpress_urls": [
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/02\/image-13.png"
+            ],
+            "planned_laravel_storage_path": "migration\/wordpress-inline\/38430\/image-13.png",
+            "planned_public_url_pattern": "\/storage\/migration\/wordpress-inline\/38430\/image-13.png",
+            "affected_entities": [
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11395,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38423,
+                    "local_entity_id": 133,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d8%b3%d9%8a%d8%a7%d8%b1%d8%a9-%d8%a7%d9%84%d8%b0%d9%83%d9%8a%d8%a9-2",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                }
+            ],
+            "src_reference_entities": 1,
+            "srcset_reference_entities": 0,
+            "rewrite_target_fields": [
+                "lessons.content (json ar\/en)",
+                "topics.content (json ar\/en)",
+                "courses.description\/short_description if present"
+            ],
+            "rewrite_now": false
+        },
+        {
+            "legacy_attachment_id": 38431,
+            "relative_path": "2026\/02\/image-14.png",
+            "mime": "image\/png",
+            "old_wordpress_urls": [
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/02\/image-14.png"
+            ],
+            "planned_laravel_storage_path": "migration\/wordpress-inline\/38431\/image-14.png",
+            "planned_public_url_pattern": "\/storage\/migration\/wordpress-inline\/38431\/image-14.png",
+            "affected_entities": [
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38423,
+                    "local_entity_id": 133,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d8%b3%d9%8a%d8%a7%d8%b1%d8%a9-%d8%a7%d9%84%d8%b0%d9%83%d9%8a%d8%a9-2",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                }
+            ],
+            "src_reference_entities": 1,
+            "srcset_reference_entities": 0,
+            "rewrite_target_fields": [
+                "lessons.content (json ar\/en)",
+                "topics.content (json ar\/en)",
+                "courses.description\/short_description if present"
+            ],
+            "rewrite_now": false
+        },
+        {
+            "legacy_attachment_id": 36593,
+            "relative_path": "2026\/01\/image-4.png",
+            "mime": "image\/png",
+            "old_wordpress_urls": [
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/01\/image-4.png"
+            ],
+            "planned_laravel_storage_path": "migration\/wordpress-inline\/36593\/image-4.png",
+            "planned_public_url_pattern": "\/storage\/migration\/wordpress-inline\/36593\/image-4.png",
+            "affected_entities": [
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 8607,
+                    "local_entity_id": 145,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d9%83%d8%b3%d9%88%d9%81-%d9%88%d8%a7%d9%84%d8%ae%d8%b3%d9%88%d9%81",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 9055,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11453,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11541,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38311,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                }
+            ],
+            "src_reference_entities": 5,
+            "srcset_reference_entities": 0,
+            "rewrite_target_fields": [
+                "lessons.content (json ar\/en)",
+                "topics.content (json ar\/en)",
+                "courses.description\/short_description if present"
+            ],
+            "rewrite_now": false
+        },
+        {
+            "legacy_attachment_id": 36592,
+            "relative_path": "2026\/01\/image-3.png",
+            "mime": "image\/png",
+            "old_wordpress_urls": [
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/01\/image-3.png"
+            ],
+            "planned_laravel_storage_path": "migration\/wordpress-inline\/36592\/image-3.png",
+            "planned_public_url_pattern": "\/storage\/migration\/wordpress-inline\/36592\/image-3.png",
+            "affected_entities": [
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 8523,
+                    "local_entity_id": 153,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%b4%d8%a7%d8%ad%d9%86%d8%a9-%d8%a7%d9%84%d8%aa%d8%b1%d9%88%d8%b3",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 8599,
+                    "local_entity_id": 275,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%b3%d9%8a%d8%a7%d8%b1%d8%a9-%d8%a7%d9%84%d8%b3%d8%a8%d8%a7%d9%82",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 8601,
+                    "local_entity_id": 172,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d9%82%d8%a7%d8%b1%d8%a8-%d8%a7%d9%84%d8%aa%d8%ac%d8%af%d9%8a%d9%81",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 8607,
+                    "local_entity_id": 145,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d9%83%d8%b3%d9%88%d9%81-%d9%88%d8%a7%d9%84%d8%ae%d8%b3%d9%88%d9%81",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 8611,
+                    "local_entity_id": 284,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d9%85%d8%b3%d8%aa%d9%83%d8%b4%d9%81-%d8%a7%d9%84%d9%83%d9%88%d8%a7%d9%83%d8%a8",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 9055,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11225,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11453,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11541,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38311,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38353,
+                    "local_entity_id": 105,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d9%85%d9%83%d9%86%d8%b3%d8%a9-%d8%a7%d9%84%d9%8a%d8%af",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38375,
+                    "local_entity_id": 190,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d8%a8%d8%b1%d8%a7%d9%83%d9%8a%d9%88%d8%b5%d9%88%d8%b1%d8%b3-%d8%a7%d9%84%d9%85%d8%ba%d8%a7%d9%85%d8%b1",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38407,
+                    "local_entity_id": 185,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d9%85%d8%ad%d8%b1%d9%83-%d8%a7%d9%84%d9%81%d8%b6%d8%a7%d8%a1",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38420,
+                    "local_entity_id": 211,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%b1%d9%88%d8%a8%d9%88%d8%aa-%d8%a7%d9%84%d8%b1%d8%b3%d9%85-%d8%a7%d9%84%d8%af%d9%88%d8%a7%d8%b1",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38423,
+                    "local_entity_id": 133,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d8%b3%d9%8a%d8%a7%d8%b1%d8%a9-%d8%a7%d9%84%d8%b0%d9%83%d9%8a%d8%a9-2",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                }
+            ],
+            "src_reference_entities": 4,
+            "srcset_reference_entities": 0,
+            "rewrite_target_fields": [
+                "lessons.content (json ar\/en)",
+                "topics.content (json ar\/en)",
+                "courses.description\/short_description if present"
+            ],
+            "rewrite_now": false
+        },
+        {
+            "legacy_attachment_id": 36587,
+            "relative_path": "2026\/02\/image.png",
+            "mime": "image\/png",
+            "old_wordpress_urls": [
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/02\/image.png"
+            ],
+            "planned_laravel_storage_path": "migration\/wordpress-inline\/36587\/image.png",
+            "planned_public_url_pattern": "\/storage\/migration\/wordpress-inline\/36587\/image.png",
+            "affected_entities": [
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 8523,
+                    "local_entity_id": 153,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%b4%d8%a7%d8%ad%d9%86%d8%a9-%d8%a7%d9%84%d8%aa%d8%b1%d9%88%d8%b3",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 8599,
+                    "local_entity_id": 275,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%b3%d9%8a%d8%a7%d8%b1%d8%a9-%d8%a7%d9%84%d8%b3%d8%a8%d8%a7%d9%82",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 8601,
+                    "local_entity_id": 172,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d9%82%d8%a7%d8%b1%d8%a8-%d8%a7%d9%84%d8%aa%d8%ac%d8%af%d9%8a%d9%81",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 8607,
+                    "local_entity_id": 145,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d9%83%d8%b3%d9%88%d9%81-%d9%88%d8%a7%d9%84%d8%ae%d8%b3%d9%88%d9%81",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 8611,
+                    "local_entity_id": 284,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d9%85%d8%b3%d8%aa%d9%83%d8%b4%d9%81-%d8%a7%d9%84%d9%83%d9%88%d8%a7%d9%83%d8%a8",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 9055,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11129,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11225,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11299,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11395,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11453,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11541,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38311,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38353,
+                    "local_entity_id": 105,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d9%85%d9%83%d9%86%d8%b3%d8%a9-%d8%a7%d9%84%d9%8a%d8%af",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38375,
+                    "local_entity_id": 190,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d8%a8%d8%b1%d8%a7%d9%83%d9%8a%d9%88%d8%b5%d9%88%d8%b1%d8%b3-%d8%a7%d9%84%d9%85%d8%ba%d8%a7%d9%85%d8%b1",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38407,
+                    "local_entity_id": 185,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d9%85%d8%ad%d8%b1%d9%83-%d8%a7%d9%84%d9%81%d8%b6%d8%a7%d8%a1",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38420,
+                    "local_entity_id": 211,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%b1%d9%88%d8%a8%d9%88%d8%aa-%d8%a7%d9%84%d8%b1%d8%b3%d9%85-%d8%a7%d9%84%d8%af%d9%88%d8%a7%d8%b1",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38423,
+                    "local_entity_id": 133,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d8%b3%d9%8a%d8%a7%d8%b1%d8%a9-%d8%a7%d9%84%d8%b0%d9%83%d9%8a%d8%a9-2",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                }
+            ],
+            "src_reference_entities": 4,
+            "srcset_reference_entities": 0,
+            "rewrite_target_fields": [
+                "lessons.content (json ar\/en)",
+                "topics.content (json ar\/en)",
+                "courses.description\/short_description if present"
+            ],
+            "rewrite_now": false
+        },
+        {
+            "legacy_attachment_id": 36588,
+            "relative_path": "2026\/02\/image-1.png",
+            "mime": "image\/png",
+            "old_wordpress_urls": [
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/02\/image-1.png"
+            ],
+            "planned_laravel_storage_path": "migration\/wordpress-inline\/36588\/image-1.png",
+            "planned_public_url_pattern": "\/storage\/migration\/wordpress-inline\/36588\/image-1.png",
+            "affected_entities": [
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 8523,
+                    "local_entity_id": 153,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%b4%d8%a7%d8%ad%d9%86%d8%a9-%d8%a7%d9%84%d8%aa%d8%b1%d9%88%d8%b3",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 8611,
+                    "local_entity_id": 284,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d9%85%d8%b3%d8%aa%d9%83%d8%b4%d9%81-%d8%a7%d9%84%d9%83%d9%88%d8%a7%d9%83%d8%a8",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 9055,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11129,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11225,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11299,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11395,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11453,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11541,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38375,
+                    "local_entity_id": 190,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d8%a8%d8%b1%d8%a7%d9%83%d9%8a%d9%88%d8%b5%d9%88%d8%b1%d8%b3-%d8%a7%d9%84%d9%85%d8%ba%d8%a7%d9%85%d8%b1",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38407,
+                    "local_entity_id": 185,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d9%85%d8%ad%d8%b1%d9%83-%d8%a7%d9%84%d9%81%d8%b6%d8%a7%d8%a1",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38420,
+                    "local_entity_id": 211,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%b1%d9%88%d8%a8%d9%88%d8%aa-%d8%a7%d9%84%d8%b1%d8%b3%d9%85-%d8%a7%d9%84%d8%af%d9%88%d8%a7%d8%b1",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38423,
+                    "local_entity_id": 133,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d8%b3%d9%8a%d8%a7%d8%b1%d8%a9-%d8%a7%d9%84%d8%b0%d9%83%d9%8a%d8%a9-2",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                }
+            ],
+            "src_reference_entities": 4,
+            "srcset_reference_entities": 0,
+            "rewrite_target_fields": [
+                "lessons.content (json ar\/en)",
+                "topics.content (json ar\/en)",
+                "courses.description\/short_description if present"
+            ],
+            "rewrite_now": false
+        },
+        {
+            "legacy_attachment_id": 38324,
+            "relative_path": "2026\/01\/Gemini_Generated_Image_bvpyi1bvpyi1bvpy.png",
+            "mime": "image\/png",
+            "old_wordpress_urls": [
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/01\/Gemini_Generated_Image_bvpyi1bvpyi1bvpy.png",
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/01\/Gemini_Generated_Image_bvpyi1bvpyi1bvpy-1024x665.png"
+            ],
+            "planned_laravel_storage_path": "migration\/wordpress-inline\/38324\/Gemini_Generated_Image_bvpyi1bvpyi1bvpy.png",
+            "planned_public_url_pattern": "\/storage\/migration\/wordpress-inline\/38324\/Gemini_Generated_Image_bvpyi1bvpyi1bvpy.png",
+            "affected_entities": [
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 8601,
+                    "local_entity_id": 172,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d9%82%d8%a7%d8%b1%d8%a8-%d8%a7%d9%84%d8%aa%d8%ac%d8%af%d9%8a%d9%81",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                }
+            ],
+            "src_reference_entities": 0,
+            "srcset_reference_entities": 0,
+            "rewrite_target_fields": [
+                "lessons.content (json ar\/en)",
+                "topics.content (json ar\/en)",
+                "courses.description\/short_description if present"
+            ],
+            "rewrite_now": false
+        },
+        {
+            "legacy_attachment_id": 38418,
+            "relative_path": "2026\/02\/image-10.png",
+            "mime": "image\/png",
+            "old_wordpress_urls": [
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/02\/image-10.png"
+            ],
+            "planned_laravel_storage_path": "migration\/wordpress-inline\/38418\/image-10.png",
+            "planned_public_url_pattern": "\/storage\/migration\/wordpress-inline\/38418\/image-10.png",
+            "affected_entities": [
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38407,
+                    "local_entity_id": 185,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d9%85%d8%ad%d8%b1%d9%83-%d8%a7%d9%84%d9%81%d8%b6%d8%a7%d8%a1",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                }
+            ],
+            "src_reference_entities": 1,
+            "srcset_reference_entities": 0,
+            "rewrite_target_fields": [
+                "lessons.content (json ar\/en)",
+                "topics.content (json ar\/en)",
+                "courses.description\/short_description if present"
+            ],
+            "rewrite_now": false
+        },
+        {
+            "legacy_attachment_id": 38574,
+            "relative_path": "2026\/02\/J-23uDµIoAu-11.jpg",
+            "mime": "image\/jpeg",
+            "old_wordpress_urls": [
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/02\/J-23uD%C2%B5IoAu-11.jpg",
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/02\/J-23uDµIoAu-11.jpg"
+            ],
+            "planned_laravel_storage_path": "migration\/wordpress-inline\/38574\/J-23uDµIoAu-11.jpg",
+            "planned_public_url_pattern": "\/storage\/migration\/wordpress-inline\/38574\/J-23uDµIoAu-11.jpg",
+            "affected_entities": [
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38375,
+                    "local_entity_id": 190,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d8%a8%d8%b1%d8%a7%d9%83%d9%8a%d9%88%d8%b5%d9%88%d8%b1%d8%b3-%d8%a7%d9%84%d9%85%d8%ba%d8%a7%d9%85%d8%b1",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                }
+            ],
+            "src_reference_entities": 1,
+            "srcset_reference_entities": 0,
+            "rewrite_target_fields": [
+                "lessons.content (json ar\/en)",
+                "topics.content (json ar\/en)",
+                "courses.description\/short_description if present"
+            ],
+            "rewrite_now": false
+        },
+        {
+            "legacy_attachment_id": 38575,
+            "relative_path": "2026\/02\/J-23uDµIoAu-2-1و.jpg",
+            "mime": "image\/jpeg",
+            "old_wordpress_urls": [
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/02\/J-23uD%C2%B5IoAu-2-1%D9%88.jpg",
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/02\/J-23uDµIoAu-2-1و.jpg",
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/02\/J-23uDµIoAu-2-1و-1024x695.jpg"
+            ],
+            "planned_laravel_storage_path": "migration\/wordpress-inline\/38575\/J-23uDµIoAu-2-1و.jpg",
+            "planned_public_url_pattern": "\/storage\/migration\/wordpress-inline\/38575\/J-23uDµIoAu-2-1و.jpg",
+            "affected_entities": [
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38375,
+                    "local_entity_id": 190,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d8%a8%d8%b1%d8%a7%d9%83%d9%8a%d9%88%d8%b5%d9%88%d8%b1%d8%b3-%d8%a7%d9%84%d9%85%d8%ba%d8%a7%d9%85%d8%b1",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                }
+            ],
+            "src_reference_entities": 0,
+            "srcset_reference_entities": 0,
+            "rewrite_target_fields": [
+                "lessons.content (json ar\/en)",
+                "topics.content (json ar\/en)",
+                "courses.description\/short_description if present"
+            ],
+            "rewrite_now": false
+        },
+        {
+            "legacy_attachment_id": 38577,
+            "relative_path": "2026\/02\/image-17.png",
+            "mime": "image\/png",
+            "old_wordpress_urls": [
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/02\/image-17.png"
+            ],
+            "planned_laravel_storage_path": "migration\/wordpress-inline\/38577\/image-17.png",
+            "planned_public_url_pattern": "\/storage\/migration\/wordpress-inline\/38577\/image-17.png",
+            "affected_entities": [
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38375,
+                    "local_entity_id": 190,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d8%a8%d8%b1%d8%a7%d9%83%d9%8a%d9%88%d8%b5%d9%88%d8%b1%d8%b3-%d8%a7%d9%84%d9%85%d8%ba%d8%a7%d9%85%d8%b1",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                }
+            ],
+            "src_reference_entities": 1,
+            "srcset_reference_entities": 0,
+            "rewrite_target_fields": [
+                "lessons.content (json ar\/en)",
+                "topics.content (json ar\/en)",
+                "courses.description\/short_description if present"
+            ],
+            "rewrite_now": false
+        },
+        {
+            "legacy_attachment_id": 38578,
+            "relative_path": "2026\/02\/image-18.png",
+            "mime": "image\/png",
+            "old_wordpress_urls": [
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/02\/image-18.png"
+            ],
+            "planned_laravel_storage_path": "migration\/wordpress-inline\/38578\/image-18.png",
+            "planned_public_url_pattern": "\/storage\/migration\/wordpress-inline\/38578\/image-18.png",
+            "affected_entities": [
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38375,
+                    "local_entity_id": 190,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d8%a8%d8%b1%d8%a7%d9%83%d9%8a%d9%88%d8%b5%d9%88%d8%b1%d8%b3-%d8%a7%d9%84%d9%85%d8%ba%d8%a7%d9%85%d8%b1",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                }
+            ],
+            "src_reference_entities": 1,
+            "srcset_reference_entities": 0,
+            "rewrite_target_fields": [
+                "lessons.content (json ar\/en)",
+                "topics.content (json ar\/en)",
+                "courses.description\/short_description if present"
+            ],
+            "rewrite_now": false
+        },
+        {
+            "legacy_attachment_id": 38579,
+            "relative_path": "2026\/02\/unnamed-file.jpg",
+            "mime": "image\/jpeg",
+            "old_wordpress_urls": [
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/02\/unnamed-file.jpg",
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/02\/unnamed-file-1024x690.jpg"
+            ],
+            "planned_laravel_storage_path": "migration\/wordpress-inline\/38579\/unnamed-file.jpg",
+            "planned_public_url_pattern": "\/storage\/migration\/wordpress-inline\/38579\/unnamed-file.jpg",
+            "affected_entities": [
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38375,
+                    "local_entity_id": 190,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d8%a8%d8%b1%d8%a7%d9%83%d9%8a%d9%88%d8%b5%d9%88%d8%b1%d8%b3-%d8%a7%d9%84%d9%85%d8%ba%d8%a7%d9%85%d8%b1",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                }
+            ],
+            "src_reference_entities": 0,
+            "srcset_reference_entities": 0,
+            "rewrite_target_fields": [
+                "lessons.content (json ar\/en)",
+                "topics.content (json ar\/en)",
+                "courses.description\/short_description if present"
+            ],
+            "rewrite_now": false
+        },
+        {
+            "legacy_attachment_id": 38441,
+            "relative_path": "2026\/02\/image-15.png",
+            "mime": "image\/png",
+            "old_wordpress_urls": [
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/02\/image-15.png"
+            ],
+            "planned_laravel_storage_path": "migration\/wordpress-inline\/38441\/image-15.png",
+            "planned_public_url_pattern": "\/storage\/migration\/wordpress-inline\/38441\/image-15.png",
+            "affected_entities": [
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 9055,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11225,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11541,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38420,
+                    "local_entity_id": 211,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%b1%d9%88%d8%a8%d9%88%d8%aa-%d8%a7%d9%84%d8%b1%d8%b3%d9%85-%d8%a7%d9%84%d8%af%d9%88%d8%a7%d8%b1",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                }
+            ],
+            "src_reference_entities": 2,
+            "srcset_reference_entities": 0,
+            "rewrite_target_fields": [
+                "lessons.content (json ar\/en)",
+                "topics.content (json ar\/en)",
+                "courses.description\/short_description if present"
+            ],
+            "rewrite_now": false
+        },
+        {
+            "legacy_attachment_id": 38442,
+            "relative_path": "2026\/02\/image-16.png",
+            "mime": "image\/png",
+            "old_wordpress_urls": [
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/02\/image-16.png"
+            ],
+            "planned_laravel_storage_path": "migration\/wordpress-inline\/38442\/image-16.png",
+            "planned_public_url_pattern": "\/storage\/migration\/wordpress-inline\/38442\/image-16.png",
+            "affected_entities": [
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38420,
+                    "local_entity_id": 211,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%b1%d9%88%d8%a8%d9%88%d8%aa-%d8%a7%d9%84%d8%b1%d8%b3%d9%85-%d8%a7%d9%84%d8%af%d9%88%d8%a7%d8%b1",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                }
+            ],
+            "src_reference_entities": 1,
+            "srcset_reference_entities": 0,
+            "rewrite_target_fields": [
+                "lessons.content (json ar\/en)",
+                "topics.content (json ar\/en)",
+                "courses.description\/short_description if present"
+            ],
+            "rewrite_now": false
+        },
+        {
+            "legacy_attachment_id": 38366,
+            "relative_path": "2026\/01\/C-26B-儿童版说明书-1ن.jpg",
+            "mime": "image\/jpeg",
+            "old_wordpress_urls": [
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/01\/C-26B-%E5%84%BF%E7%AB%A5%E7%89%88%E8%AF%B4%E6%98%8E%E4%B9%A6-1%D9%86.jpg",
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/01\/C-26B-儿童版说明书-1ن.jpg",
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/01\/C-26B-儿童版说明书-1ن-1024x680.jpg"
+            ],
+            "planned_laravel_storage_path": "migration\/wordpress-inline\/38366\/C-26B-儿童版说明书-1ن.jpg",
+            "planned_public_url_pattern": "\/storage\/migration\/wordpress-inline\/38366\/C-26B-儿童版说明书-1ن.jpg",
+            "affected_entities": [
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 8599,
+                    "local_entity_id": 275,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%b3%d9%8a%d8%a7%d8%b1%d8%a9-%d8%a7%d9%84%d8%b3%d8%a8%d8%a7%d9%82",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                }
+            ],
+            "src_reference_entities": 0,
+            "srcset_reference_entities": 0,
+            "rewrite_target_fields": [
+                "lessons.content (json ar\/en)",
+                "topics.content (json ar\/en)",
+                "courses.description\/short_description if present"
+            ],
+            "rewrite_now": false
+        },
+        {
+            "legacy_attachment_id": 38372,
+            "relative_path": "2026\/01\/C-26B-儿童版说明书-1ة.jpg",
+            "mime": "image\/jpeg",
+            "old_wordpress_urls": [
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/01\/C-26B-%E5%84%BF%E7%AB%A5%E7%89%88%E8%AF%B4%E6%98%8E%E4%B9%A6-1%D8%A9.jpg",
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/01\/C-26B-儿童版说明书-1ة.jpg"
+            ],
+            "planned_laravel_storage_path": "migration\/wordpress-inline\/38372\/C-26B-儿童版说明书-1ة.jpg",
+            "planned_public_url_pattern": "\/storage\/migration\/wordpress-inline\/38372\/C-26B-儿童版说明书-1ة.jpg",
+            "affected_entities": [
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 8599,
+                    "local_entity_id": 275,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%b3%d9%8a%d8%a7%d8%b1%d8%a9-%d8%a7%d9%84%d8%b3%d8%a8%d8%a7%d9%82",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                }
+            ],
+            "src_reference_entities": 1,
+            "srcset_reference_entities": 0,
+            "rewrite_target_fields": [
+                "lessons.content (json ar\/en)",
+                "topics.content (json ar\/en)",
+                "courses.description\/short_description if present"
+            ],
+            "rewrite_now": false
+        },
+        {
+            "legacy_attachment_id": 36582,
+            "relative_path": "2026\/01\/image.png",
+            "mime": "image\/png",
+            "old_wordpress_urls": [
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/01\/image.png"
+            ],
+            "planned_laravel_storage_path": "migration\/wordpress-inline\/36582\/image.png",
+            "planned_public_url_pattern": "\/storage\/migration\/wordpress-inline\/36582\/image.png",
+            "affected_entities": [
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 8523,
+                    "local_entity_id": 153,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%b4%d8%a7%d8%ad%d9%86%d8%a9-%d8%a7%d9%84%d8%aa%d8%b1%d9%88%d8%b3",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 8599,
+                    "local_entity_id": 275,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%b3%d9%8a%d8%a7%d8%b1%d8%a9-%d8%a7%d9%84%d8%b3%d8%a8%d8%a7%d9%82",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 8601,
+                    "local_entity_id": 172,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d9%82%d8%a7%d8%b1%d8%a8-%d8%a7%d9%84%d8%aa%d8%ac%d8%af%d9%8a%d9%81",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 8607,
+                    "local_entity_id": 145,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d9%83%d8%b3%d9%88%d9%81-%d9%88%d8%a7%d9%84%d8%ae%d8%b3%d9%88%d9%81",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 8611,
+                    "local_entity_id": 284,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d9%85%d8%b3%d8%aa%d9%83%d8%b4%d9%81-%d8%a7%d9%84%d9%83%d9%88%d8%a7%d9%83%d8%a8",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 9055,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11129,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11225,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11299,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11395,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11453,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11541,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38311,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38353,
+                    "local_entity_id": 105,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d9%85%d9%83%d9%86%d8%b3%d8%a9-%d8%a7%d9%84%d9%8a%d8%af",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38375,
+                    "local_entity_id": 190,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d8%a8%d8%b1%d8%a7%d9%83%d9%8a%d9%88%d8%b5%d9%88%d8%b1%d8%b3-%d8%a7%d9%84%d9%85%d8%ba%d8%a7%d9%85%d8%b1",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38407,
+                    "local_entity_id": 185,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d9%85%d8%ad%d8%b1%d9%83-%d8%a7%d9%84%d9%81%d8%b6%d8%a7%d8%a1",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38420,
+                    "local_entity_id": 211,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%b1%d9%88%d8%a8%d9%88%d8%aa-%d8%a7%d9%84%d8%b1%d8%b3%d9%85-%d8%a7%d9%84%d8%af%d9%88%d8%a7%d8%b1",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38423,
+                    "local_entity_id": 133,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d8%b3%d9%8a%d8%a7%d8%b1%d8%a9-%d8%a7%d9%84%d8%b0%d9%83%d9%8a%d8%a9-2",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                }
+            ],
+            "src_reference_entities": 4,
+            "srcset_reference_entities": 0,
+            "rewrite_target_fields": [
+                "lessons.content (json ar\/en)",
+                "topics.content (json ar\/en)",
+                "courses.description\/short_description if present"
+            ],
+            "rewrite_now": false
+        },
+        {
+            "legacy_attachment_id": 36583,
+            "relative_path": "2026\/01\/image-1.png",
+            "mime": "image\/png",
+            "old_wordpress_urls": [
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/01\/image-1.png"
+            ],
+            "planned_laravel_storage_path": "migration\/wordpress-inline\/36583\/image-1.png",
+            "planned_public_url_pattern": "\/storage\/migration\/wordpress-inline\/36583\/image-1.png",
+            "affected_entities": [
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 8523,
+                    "local_entity_id": 153,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%b4%d8%a7%d8%ad%d9%86%d8%a9-%d8%a7%d9%84%d8%aa%d8%b1%d9%88%d8%b3",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 8611,
+                    "local_entity_id": 284,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d9%85%d8%b3%d8%aa%d9%83%d8%b4%d9%81-%d8%a7%d9%84%d9%83%d9%88%d8%a7%d9%83%d8%a8",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 9055,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11129,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11225,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11299,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11395,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11453,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11541,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38375,
+                    "local_entity_id": 190,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d8%a8%d8%b1%d8%a7%d9%83%d9%8a%d9%88%d8%b5%d9%88%d8%b1%d8%b3-%d8%a7%d9%84%d9%85%d8%ba%d8%a7%d9%85%d8%b1",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38407,
+                    "local_entity_id": 185,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d9%85%d8%ad%d8%b1%d9%83-%d8%a7%d9%84%d9%81%d8%b6%d8%a7%d8%a1",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38420,
+                    "local_entity_id": 211,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%b1%d9%88%d8%a8%d9%88%d8%aa-%d8%a7%d9%84%d8%b1%d8%b3%d9%85-%d8%a7%d9%84%d8%af%d9%88%d8%a7%d8%b1",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 38423,
+                    "local_entity_id": 133,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d8%a7%d9%84%d8%b3%d9%8a%d8%a7%d8%b1%d8%a9-%d8%a7%d9%84%d8%b0%d9%83%d9%8a%d8%a9-2",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                }
+            ],
+            "src_reference_entities": 4,
+            "srcset_reference_entities": 0,
+            "rewrite_target_fields": [
+                "lessons.content (json ar\/en)",
+                "topics.content (json ar\/en)",
+                "courses.description\/short_description if present"
+            ],
+            "rewrite_now": false
+        },
+        {
+            "legacy_attachment_id": 36584,
+            "relative_path": "2026\/01\/image-2.png",
+            "mime": "image\/png",
+            "old_wordpress_urls": [
+                "https:\/\/sciencestreetlab.com\/wp-content\/uploads\/2026\/01\/image-2.png"
+            ],
+            "planned_laravel_storage_path": "migration\/wordpress-inline\/36584\/image-2.png",
+            "planned_public_url_pattern": "\/storage\/migration\/wordpress-inline\/36584\/image-2.png",
+            "affected_entities": [
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 8611,
+                    "local_entity_id": 284,
+                    "local_slug": "%d8%b1%d9%83%d8%a8-%d9%85%d8%b3%d8%aa%d9%83%d8%b4%d9%81-%d8%a7%d9%84%d9%83%d9%88%d8%a7%d9%83%d8%a8",
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 9055,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11129,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11225,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11299,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11395,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": false,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11453,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                },
+                {
+                    "entity_type": "lesson",
+                    "legacy_entity_id": 11541,
+                    "local_entity_id": null,
+                    "local_slug": null,
+                    "legacy_post_type": "sfwd-lessons",
+                    "content_field": "content",
+                    "has_src": true,
+                    "has_srcset": false
+                }
+            ],
+            "src_reference_entities": 4,
+            "srcset_reference_entities": 0,
+            "rewrite_target_fields": [
+                "lessons.content (json ar\/en)",
+                "topics.content (json ar\/en)",
+                "courses.description\/short_description if present"
+            ],
+            "rewrite_now": false
+        }
+    ]
+}

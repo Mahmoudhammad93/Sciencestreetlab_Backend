@@ -8,16 +8,22 @@ use App\Modules\Catalog\Infrastructure\Persistence\Models\Product;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Lesson;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Topic;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 use Throwable;
 
 /**
- * Controlled WordPress media M2 import.
+ * Controlled WordPress media M2 import (production-safe).
  *
- * Dry-run by default. Real mutation requires REAL_PERSIST + active MEDIA_RUN_ID.
+ * Destination authority: legacy entity ID → Run-scoped legacy_import_maps → local_id.
+ * Staging plan local_entity_id values are diagnostic only and NEVER write targets.
+ *
+ * Transfer: local approved archive only (WORDPRESS_MEDIA_SOURCE_ROOT). No HTTP fallback
+ * unless wordpress.media.allow_http is explicitly true (forbidden in production).
+ *
+ * Dry-run by default. Real mutation requires REAL_PERSIST + active migration run.
  * Processes ONLY the 148-file M1 transfer manifest (+ video/inline plans).
+ * Competition physical media is out of scope.
  */
 final class WordPressMediaImporter
 {
@@ -29,13 +35,13 @@ final class WordPressMediaImporter
 
     private const INLINE_PLAN = 'docs/media-m1/inline-image-rewrite-plan.json';
 
-    private const ALLOWED_HOSTS = ['sciencestreetlab.com', 'www.sciencestreetlab.com'];
-
     public function __construct(
         private readonly WordPressRealPersistGate $persistGate,
         private readonly MigrationRunService $runs,
         private readonly WordPressMediaTransferPlanner $planner,
         private readonly LegacyImportMapRepository $maps,
+        private readonly WordPressMediaOwnershipResolver $ownership,
+        private readonly WordPressMediaLocalSource $localSource,
     ) {}
 
     /**
@@ -73,41 +79,79 @@ final class WordPressMediaImporter
             }
         }
 
+        $sourceRoot = $this->localSource->sourceRoot();
+        $hashManifest = $this->localSource->hashManifestPath();
+
         $report = [
             'status' => $dryRun ? 'dry_run' : 'executed',
             'entity_type' => 'media',
             'dry_run' => $dryRun,
             'migration_run_id' => $migrationRunId,
             'wrote_to_database' => false,
+            'destination_resolution' => 'legacy_id -> run_scoped_map -> production local_id',
+            'staging_local_id_authority' => false,
+            'http_fallback_enabled' => $this->localSource->allowHttp(),
+            'media_source_root' => $sourceRoot,
+            'hash_manifest_path' => $hashManifest,
             'files_expected' => 148,
+            'files_present' => 0,
+            'files_hash_verified' => 0,
+            'files_hash_mismatch' => 0,
+            'files_missing' => 0,
             'files_downloaded' => 0,
             'files_reused' => 0,
             'files_failed' => 0,
+            'files_to_create' => 0,
+            'files_already_identical' => 0,
+            'files_collision' => 0,
             'bytes_downloaded' => 0,
             'files_to_download' => 0,
+            'external_downloads' => 0,
             'product_featured_attached' => 0,
             'product_gallery_attached' => 0,
             'product_media_to_attach' => 0,
+            'product_featured_planned' => 0,
+            'product_gallery_planned' => 0,
             'product_6912_skipped_usages' => 0,
             'course_images_local' => 0,
             'course_images_to_change' => 0,
+            'course_images_planned' => 0,
             'lesson_video_imported' => 0,
             'lesson_videos_to_change' => 0,
+            'lesson_videos_planned' => 0,
             'lesson_video_deferred' => 0,
             'lesson_no_video' => 0,
             'topic_video_imported' => 0,
             'topic_videos_to_change' => 0,
+            'topic_videos_planned' => 0,
             'course_video_deferred' => 1,
             'inline_images_stored' => 0,
+            'inline_replacements_planned' => 0,
             'lessons_rewritten' => 0,
             'content_fields_changed' => 0,
             'url_replacements' => 0,
             'unresolved_rewrites' => 0,
+            'unresolved_targets' => 0,
+            'staging_destination_mismatches' => 0,
+            'native_overwrites_planned' => 0,
+            'competition_media_import' => 0,
+            'db_writes' => 0,
+            'live_file_writes' => 0,
+            'http_requests' => 0,
             'conflicts' => [],
             'failures' => [],
             'skipped' => [],
+            'deferred' => [],
             'transfer_records' => [],
         ];
+
+        if ($sourceRoot === null || $hashManifest === null || ! is_file((string) $hashManifest)) {
+            $report['status'] = $dryRun ? 'dry_run_blocked' : 'blocked';
+            $report['message'] = 'WORDPRESS_MEDIA_SOURCE_ROOT and approved hash manifest are required (local archive ingest; no HTTP fallback).';
+            $report['files_missing'] = 148;
+
+            return $report;
+        }
 
         $ownership = [
             'migration_run_id' => $migrationRunId,
@@ -119,6 +163,7 @@ final class WordPressMediaImporter
             'content_rewrites' => [],
             'skipped_product_6912' => [],
             'physical_paths' => [],
+            'resolved_destinations' => [],
         ];
 
         $workRoot = $this->workRoot($migrationRunId);
@@ -136,17 +181,37 @@ final class WordPressMediaImporter
                 $result = $this->transferOne($item, $migrationRunId, $dryRun, $workRoot);
                 if ($result['status'] === 'failed') {
                     $report['files_failed']++;
+                    if (($result['code'] ?? null) === 'HASH_MISMATCH' || ($result['code'] ?? null) === 'SIZE_MISMATCH') {
+                        $report['files_hash_mismatch']++;
+                    }
+                    if (($result['code'] ?? null) === 'MISSING_LOCAL_SOURCE' || ($result['code'] ?? null) === 'HASH_MANIFEST_ENTRY_MISSING') {
+                        $report['files_missing']++;
+                    }
                     $report['failures'][] = $result;
                     $transferred[$aid] = $result;
                     continue;
                 }
+                if (in_array($result['status'], ['reused', 'verified_local', 'would_use_local'], true)) {
+                    $report['files_present']++;
+                    if (! empty($result['sha256'])) {
+                        $report['files_hash_verified']++;
+                    }
+                }
                 if ($result['status'] === 'reused') {
                     $report['files_reused']++;
-                } elseif ($result['status'] === 'downloaded') {
-                    $report['files_downloaded']++;
+                    $report['files_already_identical']++;
+                } elseif ($result['status'] === 'copied_local') {
+                    $report['files_downloaded']++; // historical counter name: local copy
+                    $report['files_to_create']++;
+                    if (! $dryRun) {
+                        $report['live_file_writes']++;
+                    }
                     $report['bytes_downloaded'] += (int) ($result['actual_bytes'] ?? 0);
-                } elseif ($result['status'] === 'would_download') {
-                    $report['files_to_download']++;
+                } elseif ($result['status'] === 'would_use_local') {
+                    $report['files_to_download']++; // planned local ingest
+                    $report['files_to_create']++;
+                } elseif ($result['status'] === 'verified_local') {
+                    $report['files_reused']++;
                 }
                 $transferred[$aid] = $result;
                 $report['transfer_records'][] = [
@@ -189,6 +254,7 @@ final class WordPressMediaImporter
                     continue;
                 }
                 $legacyProductId = (int) ($usage['legacy_entity_id'] ?? 0);
+                $stagingLocalId = (int) ($usage['local_entity_id'] ?? 0);
                 if ($legacyProductId === self::SKIPPED_LEGACY_PRODUCT_ID) {
                     $report['product_6912_skipped_usages']++;
                     $report['skipped'][] = [
@@ -196,6 +262,7 @@ final class WordPressMediaImporter
                         'legacy_attachment_id' => $aid,
                         'legacy_product_id' => $legacyProductId,
                         'action' => $action,
+                        'staging_local_id_ignored' => $stagingLocalId > 0 ? $stagingLocalId : null,
                     ];
                     $ownership['skipped_product_6912'][] = [
                         'legacy_attachment_id' => $aid,
@@ -203,7 +270,28 @@ final class WordPressMediaImporter
                     ];
                     continue;
                 }
-                $localProductId = (int) ($usage['local_entity_id'] ?? 0);
+
+                $resolved = $this->ownership->resolve($migrationRunId, 'product', (string) $legacyProductId);
+                if ($resolved['status'] !== WordPressMediaOwnershipResolver::STATUS_OK) {
+                    $report['unresolved_targets']++;
+                    $report['deferred'][] = [
+                        'reason' => $resolved['code'] ?? $resolved['status'],
+                        'entity_type' => 'product',
+                        'legacy_entity_id' => $legacyProductId,
+                        'legacy_attachment_id' => $aid,
+                        'staging_local_id_ignored' => $stagingLocalId > 0 ? $stagingLocalId : null,
+                    ];
+                    continue;
+                }
+                $localProductId = (int) $resolved['local_id'];
+                if ($stagingLocalId > 0 && $stagingLocalId !== $localProductId) {
+                    $report['staging_destination_mismatches']++;
+                }
+                $this->ownership->assertStagingIdNotAuthoritative(
+                    $stagingLocalId > 0 ? $stagingLocalId : null,
+                    $localProductId,
+                );
+
                 $collection = $action === 'PRODUCT_IMAGE_ATTACH' ? 'image' : 'gallery';
                 $order = (int) ($usage['planned_order'] ?? 0);
 
@@ -216,6 +304,12 @@ final class WordPressMediaImporter
                         'legacy_attachment_id' => $aid,
                     ];
                     continue;
+                }
+
+                if ($action === 'PRODUCT_IMAGE_ATTACH') {
+                    $report['product_featured_planned']++;
+                } else {
+                    $report['product_gallery_planned']++;
                 }
 
                 if ($this->planner->alreadyAttached($product->getMedia($collection), $aid)) {
@@ -250,12 +344,19 @@ final class WordPressMediaImporter
                 }
 
                 $ownership['spatie_media_ids'][] = $media->id;
+                $ownership['resolved_destinations'][] = [
+                    'entity_type' => 'product',
+                    'legacy_id' => $legacyProductId,
+                    'local_id' => $localProductId,
+                    'staging_local_id_ignored' => $stagingLocalId > 0 ? $stagingLocalId : null,
+                ];
                 if ($action === 'PRODUCT_IMAGE_ATTACH') {
                     $report['product_featured_attached']++;
                 } else {
                     $report['product_gallery_attached']++;
                 }
                 $report['wrote_to_database'] = true;
+                $report['db_writes']++;
 
                 $this->maps->upsertMapping('media_attachment', 'product:'.$legacyProductId.':'.$collection.':'.$aid, [
                     'local_id' => $media->id,
@@ -279,7 +380,29 @@ final class WordPressMediaImporter
                     continue;
                 }
                 $aid = (int) $item['legacy_attachment_id'];
-                $localCourseId = (int) ($usage['local_entity_id'] ?? 0);
+                $legacyCourseId = (int) ($usage['legacy_entity_id'] ?? 0);
+                $stagingLocalId = (int) ($usage['local_entity_id'] ?? 0);
+                $resolved = $this->ownership->resolve($migrationRunId, 'course', (string) $legacyCourseId);
+                if ($resolved['status'] !== WordPressMediaOwnershipResolver::STATUS_OK) {
+                    $report['unresolved_targets']++;
+                    $report['deferred'][] = [
+                        'reason' => $resolved['code'] ?? $resolved['status'],
+                        'entity_type' => 'course',
+                        'legacy_entity_id' => $legacyCourseId,
+                        'legacy_attachment_id' => $aid,
+                        'staging_local_id_ignored' => $stagingLocalId > 0 ? $stagingLocalId : null,
+                    ];
+                    continue;
+                }
+                $localCourseId = (int) $resolved['local_id'];
+                if ($stagingLocalId > 0 && $stagingLocalId !== $localCourseId) {
+                    $report['staging_destination_mismatches']++;
+                }
+                $this->ownership->assertStagingIdNotAuthoritative(
+                    $stagingLocalId > 0 ? $stagingLocalId : null,
+                    $localCourseId,
+                );
+
                 $course = Course::query()->find($localCourseId);
                 if ($course === null) {
                     $report['conflicts'][] = [
@@ -289,6 +412,7 @@ final class WordPressMediaImporter
                     ];
                     continue;
                 }
+                $report['course_images_planned']++;
                 $plan = $this->planner->courseImagePlan($aid, (string) $item['relative_path']);
                 $relative = $plan['planned_relative_path'];
                 $current = (string) ($course->image_url ?? '');
@@ -305,6 +429,8 @@ final class WordPressMediaImporter
                             'current' => $current,
                             'planned' => $relative,
                         ];
+                        $report['files_collision']++;
+                        $report['native_overwrites_planned']++;
                         continue;
                     }
                 }
@@ -324,23 +450,41 @@ final class WordPressMediaImporter
                 if (! is_dir($destDir) && ! mkdir($destDir, 0755, true) && ! is_dir($destDir)) {
                     throw new RuntimeException("Cannot create {$destDir}");
                 }
-                if (! copy($src, $destAbs)) {
-                    throw new RuntimeException("Failed copying course image to {$destAbs}");
+                if (is_file($destAbs)) {
+                    $existingHash = hash_file('sha256', $destAbs);
+                    $srcHash = hash_file('sha256', $src);
+                    if ($existingHash !== $srcHash) {
+                        $report['conflicts'][] = [
+                            'type' => 'COURSE_IMAGE_HASH_COLLISION',
+                            'course_id' => $course->id,
+                            'path' => $destAbs,
+                        ];
+                        $report['files_collision']++;
+                        continue;
+                    }
+                } else {
+                    if (! copy($src, $destAbs)) {
+                        throw new RuntimeException("Failed copying course image to {$destAbs}");
+                    }
+                    $report['live_file_writes']++;
                 }
                 $before = $course->image_url;
                 $course->image_url = $relative;
                 $course->save();
                 $ownership['course_image_changes'][] = [
                     'course_id' => $course->id,
+                    'legacy_course_id' => $legacyCourseId,
                     'before' => $before,
                     'after' => $relative,
                     'absolute_path' => $destAbs,
+                    'staging_local_id_ignored' => $stagingLocalId > 0 ? $stagingLocalId : null,
                 ];
                 $ownership['physical_paths'][] = $destAbs;
                 $report['course_images_local']++;
                 $report['wrote_to_database'] = true;
+                $report['db_writes']++;
 
-                $this->maps->upsertMapping('media_course_image', 'course:'.(int) $usage['legacy_entity_id'].':'.$aid, [
+                $this->maps->upsertMapping('media_course_image', 'course:'.$legacyCourseId.':'.$aid, [
                     'local_id' => $course->id,
                     'migration_run_id' => $migrationRunId,
                     'imported_at' => now(),
@@ -362,7 +506,7 @@ final class WordPressMediaImporter
             }
             $status = $entity['resolution_status'] ?? '';
             $legacyId = (int) ($entity['legacy_entity_id'] ?? 0);
-            $localId = (int) ($entity['local_entity_id'] ?? 0);
+            $stagingLocalId = (int) ($entity['local_entity_id'] ?? 0);
 
             if ($status === 'NO_VIDEO') {
                 $report['lesson_no_video']++;
@@ -370,11 +514,33 @@ final class WordPressMediaImporter
             }
             if ($status === 'MULTIPLE_DISTINCT_VIDEOS' || $legacyId === 8701) {
                 $report['lesson_video_deferred']++;
+                $report['deferred'][] = [
+                    'reason' => 'MULTIPLE_DISTINCT_VIDEOS',
+                    'entity_type' => 'lesson',
+                    'legacy_entity_id' => $legacyId,
+                    'staging_local_id_ignored' => $stagingLocalId > 0 ? $stagingLocalId : null,
+                ];
                 continue;
             }
             if (! in_array($status, ['ONE_CLEAR_VIDEO', 'MULTIPLE_REFERENCES_SAME_VIDEO'], true)) {
                 $report['lesson_video_deferred']++;
                 continue;
+            }
+
+            $resolved = $this->ownership->resolve($migrationRunId, 'lesson', (string) $legacyId);
+            if ($resolved['status'] !== WordPressMediaOwnershipResolver::STATUS_OK) {
+                $report['unresolved_targets']++;
+                $report['deferred'][] = [
+                    'reason' => $resolved['code'] ?? $resolved['status'],
+                    'entity_type' => 'lesson',
+                    'legacy_entity_id' => $legacyId,
+                    'staging_local_id_ignored' => $stagingLocalId > 0 ? $stagingLocalId : null,
+                ];
+                continue;
+            }
+            $localId = (int) $resolved['local_id'];
+            if ($stagingLocalId > 0 && $stagingLocalId !== $localId) {
+                $report['staging_destination_mismatches']++;
             }
 
             $lesson = Lesson::query()->find($localId);
@@ -390,6 +556,8 @@ final class WordPressMediaImporter
                 continue;
             }
 
+            $report['lesson_videos_planned']++;
+
             $existingUrl = $lesson->video_url;
             $existingProvider = $lesson->video_provider;
             if ($existingUrl !== null && $existingUrl !== '' && $existingUrl !== $canonical) {
@@ -399,6 +567,7 @@ final class WordPressMediaImporter
                     'existing_url' => $existingUrl,
                     'planned_url' => $canonical,
                 ];
+                $report['native_overwrites_planned']++;
                 continue;
             }
             if ($existingProvider !== null && $existingProvider !== '' && $existingProvider !== $provider) {
@@ -426,13 +595,16 @@ final class WordPressMediaImporter
             $lesson->save();
             $ownership['lesson_video_changes'][] = [
                 'lesson_id' => $lesson->id,
+                'legacy_lesson_id' => $legacyId,
                 'before_url' => $beforeUrl,
                 'before_provider' => $beforeProvider,
                 'after_url' => $canonical,
                 'after_provider' => $provider,
+                'staging_local_id_ignored' => $stagingLocalId > 0 ? $stagingLocalId : null,
             ];
             $report['lesson_video_imported']++;
             $report['wrote_to_database'] = true;
+            $report['db_writes']++;
 
             $this->maps->upsertMapping('media_lesson_video', 'lesson:'.$legacyId, [
                 'local_id' => $lesson->id,
@@ -456,13 +628,31 @@ final class WordPressMediaImporter
             if (! in_array($entity['resolution_status'] ?? '', ['ONE_CLEAR_VIDEO', 'MULTIPLE_REFERENCES_SAME_VIDEO'], true)) {
                 continue;
             }
-            $topic = Topic::query()->find((int) ($entity['local_entity_id'] ?? 0));
+            $legacyTopicId = (int) ($entity['legacy_entity_id'] ?? 0);
+            $stagingLocalId = (int) ($entity['local_entity_id'] ?? 0);
+            $resolved = $this->ownership->resolve($migrationRunId, 'topic', (string) $legacyTopicId);
+            if ($resolved['status'] !== WordPressMediaOwnershipResolver::STATUS_OK) {
+                $report['unresolved_targets']++;
+                $report['deferred'][] = [
+                    'reason' => $resolved['code'] ?? $resolved['status'],
+                    'entity_type' => 'topic',
+                    'legacy_entity_id' => $legacyTopicId,
+                    'staging_local_id_ignored' => $stagingLocalId > 0 ? $stagingLocalId : null,
+                ];
+                continue;
+            }
+            $topicLocalId = (int) $resolved['local_id'];
+            if ($stagingLocalId > 0 && $stagingLocalId !== $topicLocalId) {
+                $report['staging_destination_mismatches']++;
+            }
+            $topic = Topic::query()->find($topicLocalId);
             if ($topic === null) {
-                $report['conflicts'][] = ['type' => 'MISSING_TOPIC', 'local_id' => $entity['local_entity_id'] ?? null];
+                $report['conflicts'][] = ['type' => 'MISSING_TOPIC', 'local_id' => $topicLocalId];
                 continue;
             }
             $canonical = (string) ($entity['canonical_video_url'] ?? '');
             $provider = (string) ($entity['provider'] ?? 'youtube');
+            $report['topic_videos_planned']++;
             $existingUrl = $topic->video_url;
             $existingProvider = $topic->video_provider;
             if ($existingUrl !== null && $existingUrl !== '' && $existingUrl !== $canonical) {
@@ -472,6 +662,7 @@ final class WordPressMediaImporter
                     'existing_url' => $existingUrl,
                     'planned_url' => $canonical,
                 ];
+                $report['native_overwrites_planned']++;
                 continue;
             }
             if ($existingProvider !== null && $existingProvider !== '' && ! in_array($existingProvider, [$provider, 'youtube'], true) && $existingUrl !== $canonical) {
@@ -508,15 +699,18 @@ final class WordPressMediaImporter
             $topic->save();
             $ownership['topic_video_changes'][] = [
                 'topic_id' => $topic->id,
+                'legacy_topic_id' => $legacyTopicId,
                 'before_url' => $beforeUrl,
                 'before_provider' => $beforeProvider,
                 'after_url' => $topic->video_url,
                 'after_provider' => $topic->video_provider,
+                'staging_local_id_ignored' => $stagingLocalId > 0 ? $stagingLocalId : null,
             ];
             $report['topic_video_imported']++;
             $report['wrote_to_database'] = true;
+            $report['db_writes']++;
 
-            $this->maps->upsertMapping('media_topic_video', 'topic:'.(int) $entity['legacy_entity_id'], [
+            $this->maps->upsertMapping('media_topic_video', 'topic:'.$legacyTopicId, [
                 'local_id' => $topic->id,
                 'migration_run_id' => $migrationRunId,
                 'imported_at' => now(),
@@ -530,8 +724,26 @@ final class WordPressMediaImporter
             ]);
         }
 
-        // Course-level video: explicitly deferred
-        $report['course_video_deferred'] = 1;
+        // Course-level video: explicitly deferred (legacy 8515 / COURSE_VIDEO_TARGET_GAP).
+        $report['course_video_deferred'] = 0;
+        foreach ($videos['entities'] ?? [] as $entity) {
+            if (($entity['entity_type'] ?? '') !== 'course') {
+                continue;
+            }
+            if (($entity['resolution_status'] ?? '') === 'COURSE_VIDEO_TARGET_GAP'
+                || (int) ($entity['legacy_entity_id'] ?? 0) === 8515) {
+                $report['course_video_deferred']++;
+                $report['deferred'][] = [
+                    'reason' => 'COURSE_VIDEO_TARGET_GAP',
+                    'entity_type' => 'course',
+                    'legacy_entity_id' => (int) ($entity['legacy_entity_id'] ?? 0),
+                    'staging_local_id_ignored' => (int) ($entity['local_entity_id'] ?? 0) ?: null,
+                ];
+            }
+        }
+        if ($report['course_video_deferred'] === 0) {
+            $report['course_video_deferred'] = (int) ($videos['course_level_video_entities'] ?? 1);
+        }
 
         // ---- Phase F: inline store + rewrite ----
         $urlMap = []; // old url variants => public storage url path
@@ -578,29 +790,34 @@ final class WordPressMediaImporter
                     throw new RuntimeException("Failed copying inline image {$destAbs}");
                 }
                 $ownership['physical_paths'][] = $destAbs;
+                $report['live_file_writes']++;
             }
             $report['inline_images_stored']++;
         }
 
-        // Rewrite lesson content (resolve local ids via import maps when plan omits them)
+        // Rewrite lesson content — destination ONLY via Run-scoped LESSON maps (never staging local_entity_id).
         $lessonsTouched = [];
         $skippedUnimportedLessons = [];
         foreach ($inline['items'] ?? [] as $inlineItem) {
+            $report['inline_replacements_planned']++;
             foreach ($inlineItem['affected_entities'] ?? [] as $ent) {
                 if (($ent['entity_type'] ?? '') !== 'lesson') {
                     continue;
                 }
-                $lessonId = (int) ($ent['local_entity_id'] ?? 0);
+                $stagingLocalId = (int) ($ent['local_entity_id'] ?? 0);
                 $legacyLessonId = (int) ($ent['legacy_entity_id'] ?? 0);
-                if ($lessonId <= 0 && $legacyLessonId > 0) {
-                    $map = $this->maps->find('lesson', (string) $legacyLessonId);
-                    $lessonId = (int) ($map?->local_id ?? 0);
-                }
-                if ($lessonId <= 0) {
-                    if ($legacyLessonId > 0) {
-                        $skippedUnimportedLessons[$legacyLessonId] = true;
-                    }
+                if ($legacyLessonId <= 0) {
                     continue;
+                }
+                $resolved = $this->ownership->resolve($migrationRunId, 'lesson', (string) $legacyLessonId);
+                if ($resolved['status'] !== WordPressMediaOwnershipResolver::STATUS_OK) {
+                    $skippedUnimportedLessons[$legacyLessonId] = true;
+                    $report['unresolved_targets']++;
+                    continue;
+                }
+                $lessonId = (int) $resolved['local_id'];
+                if ($stagingLocalId > 0 && $stagingLocalId !== $lessonId) {
+                    $report['staging_destination_mismatches']++;
                 }
                 $lessonsTouched[$lessonId] = true;
             }
@@ -669,6 +886,7 @@ final class WordPressMediaImporter
                 ];
                 $report['lessons_rewritten']++;
                 $report['wrote_to_database'] = true;
+                $report['db_writes']++;
 
                 $this->maps->upsertMapping('media_inline_rewrite', 'lesson:'.$lesson->id, [
                     'local_id' => $lesson->id,
@@ -740,10 +958,7 @@ final class WordPressMediaImporter
     {
         $aid = (int) $item['legacy_attachment_id'];
         $relative = (string) $item['relative_path'];
-        $this->assertSafeRelativePath($relative);
-
-        $url = (string) $item['canonical_source_url'];
-        $this->assertAllowedUrl($url);
+        $this->localSource->assertSafeRelativePath($relative);
 
         $basename = basename(str_replace('\\', '/', $relative));
         $targetPath = rtrim($workRoot, '/').'/files/'.$aid.'/'.$basename;
@@ -751,34 +966,70 @@ final class WordPressMediaImporter
 
         if (is_file($targetPath) && is_file($metaPath)) {
             $meta = json_decode((string) file_get_contents($metaPath), true) ?: [];
-            $sha = hash_file('sha256', $targetPath);
-            if (($meta['sha256'] ?? null) === $sha && filesize($targetPath) > 0) {
+            $verify = $this->localSource->verifyFile($aid, $basename, $targetPath);
+            if ($verify['ok'] && ($meta['sha256'] ?? null) === $verify['sha256']) {
                 return [
-                    'status' => $dryRun ? 'reused' : 'reused',
+                    'status' => 'reused',
                     'legacy_attachment_id' => $aid,
-                    'source_url' => $url,
                     'relative_path' => $relative,
                     'expected_mime' => $item['mime'] ?? null,
-                    'actual_mime' => $meta['actual_mime'] ?? null,
-                    'expected_length' => $item['content_length'] ?? null,
-                    'actual_bytes' => filesize($targetPath),
-                    'sha256' => $sha,
+                    'actual_bytes' => $verify['actual_bytes'],
+                    'sha256' => $verify['sha256'],
                     'target_path' => $targetPath,
                     'migration_run_id' => $runId,
+                    'code' => null,
                 ];
             }
         }
 
+        $sourcePath = $this->localSource->resolveSourceFile($aid, $basename);
+        if ($sourcePath === null) {
+            if ($this->localSource->allowHttp()) {
+                return [
+                    'status' => 'failed',
+                    'legacy_attachment_id' => $aid,
+                    'error' => 'HTTP fallback is disabled for historical M2 media (local source missing).',
+                    'code' => 'HTTP_FALLBACK_FORBIDDEN',
+                    'source_url' => $item['canonical_source_url'] ?? null,
+                ];
+            }
+
+            return [
+                'status' => 'failed',
+                'legacy_attachment_id' => $aid,
+                'error' => 'Missing local source file',
+                'code' => 'MISSING_LOCAL_SOURCE',
+                'relative_path' => $relative,
+            ];
+        }
+
+        $verify = $this->localSource->verifyFile($aid, $basename, $sourcePath);
+        if (! $verify['ok']) {
+            return [
+                'status' => 'failed',
+                'legacy_attachment_id' => $aid,
+                'error' => $verify['code'] ?? 'VERIFY_FAILED',
+                'code' => $verify['code'],
+                'expected_sha256' => $verify['expected_sha256'],
+                'sha256' => $verify['sha256'],
+                'actual_bytes' => $verify['actual_bytes'],
+                'source_path' => $sourcePath,
+            ];
+        }
+
         if ($dryRun) {
             return [
-                'status' => 'would_download',
+                'status' => 'would_use_local',
                 'legacy_attachment_id' => $aid,
-                'source_url' => $url,
                 'relative_path' => $relative,
                 'expected_mime' => $item['mime'] ?? null,
                 'expected_length' => $item['content_length'] ?? null,
+                'actual_bytes' => $verify['actual_bytes'],
+                'sha256' => $verify['sha256'],
+                'source_path' => $sourcePath,
                 'target_path' => $targetPath,
                 'migration_run_id' => $runId,
+                'code' => null,
             ];
         }
 
@@ -787,103 +1038,25 @@ final class WordPressMediaImporter
             throw new RuntimeException("Cannot create {$dir}");
         }
 
-        $tmp = $targetPath.'.part';
-        if (is_file($tmp)) {
-            @unlink($tmp);
-        }
-
-        $response = Http::withHeaders(['User-Agent' => 'ScienceStreetLab-M2-MediaTransfer/1.0'])
-            ->withOptions([
-                'sink' => $tmp,
-                'allow_redirects' => ['max' => 5, 'track_redirects' => true],
-            ])
-            ->timeout(120)
-            ->get($url);
-
-        if (! $response->successful()) {
-            @unlink($tmp);
-
-            return [
-                'status' => 'failed',
-                'legacy_attachment_id' => $aid,
-                'error' => 'HTTP '.$response->status(),
-                'source_url' => $url,
-            ];
-        }
-
-        $finalUrl = (string) ($response->effectiveUri() ?? $url);
-        $this->assertAllowedUrl($finalUrl);
-
-        if (! is_file($tmp) || filesize($tmp) <= 0) {
-            @unlink($tmp);
-
-            return [
-                'status' => 'failed',
-                'legacy_attachment_id' => $aid,
-                'error' => 'Empty download',
-                'source_url' => $url,
-            ];
-        }
-
-        $actualBytes = filesize($tmp) ?: 0;
-        $expected = $item['content_length'] ?? null;
-        if (is_numeric($expected) && (int) $expected > 0 && (int) $expected !== $actualBytes) {
-            @unlink($tmp);
-
-            return [
-                'status' => 'failed',
-                'legacy_attachment_id' => $aid,
-                'error' => "Content-Length mismatch expected={$expected} actual={$actualBytes}",
-                'source_url' => $url,
-            ];
-        }
-
-        $ctype = strtolower(trim(explode(';', (string) $response->header('Content-Type'))[0]));
-        $expectedMime = strtolower((string) ($item['mime'] ?? ''));
-        if (str_starts_with($ctype, 'text/html')) {
-            @unlink($tmp);
-
-            return [
-                'status' => 'failed',
-                'legacy_attachment_id' => $aid,
-                'error' => 'HTML content-type rejected',
-                'source_url' => $url,
-            ];
-        }
-        if ($expectedMime !== '' && $ctype !== '') {
-            $expMain = explode('/', $expectedMime)[0] ?? '';
-            $gotMain = explode('/', $ctype)[0] ?? '';
-            if ($expMain !== '' && $gotMain !== '' && $expMain !== $gotMain) {
-                @unlink($tmp);
-
-                return [
-                    'status' => 'failed',
-                    'legacy_attachment_id' => $aid,
-                    'error' => "MIME mismatch expected={$expectedMime} actual={$ctype}",
-                    'source_url' => $url,
-                ];
-            }
-        }
-
-        $sha = hash_file('sha256', $tmp);
-        if (! rename($tmp, $targetPath)) {
-            @unlink($tmp);
-            throw new RuntimeException("Atomic move failed for {$targetPath}");
+        if (! copy($sourcePath, $targetPath)) {
+            throw new RuntimeException("Failed copying local media source to {$targetPath}");
         }
 
         $record = [
-            'status' => 'downloaded',
+            'status' => 'copied_local',
             'legacy_attachment_id' => $aid,
-            'source_url' => $url,
-            'final_source_url' => $finalUrl,
+            'source_path' => $sourcePath,
+            'source_url' => $item['canonical_source_url'] ?? null,
             'relative_path' => $relative,
             'expected_mime' => $item['mime'] ?? null,
-            'actual_mime' => $ctype ?: ($item['mime'] ?? null),
+            'actual_mime' => $item['mime'] ?? null,
             'expected_length' => $item['content_length'] ?? null,
-            'actual_bytes' => $actualBytes,
-            'sha256' => $sha,
+            'actual_bytes' => $verify['actual_bytes'],
+            'sha256' => $verify['sha256'],
             'target_path' => $targetPath,
             'migration_run_id' => $runId,
+            'http_used' => false,
+            'code' => null,
         ];
         file_put_contents($metaPath, json_encode($record, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
@@ -921,37 +1094,6 @@ final class WordPressMediaImporter
         }
 
         return $out;
-    }
-
-    private function assertSafeRelativePath(string $relative): void
-    {
-        if ($relative === '' || str_contains($relative, "\0")) {
-            throw new RuntimeException('Unsafe relative path');
-        }
-        if (str_starts_with($relative, '/') || preg_match('#^[a-zA-Z]:[\\\\/]#', $relative) === 1) {
-            throw new RuntimeException('Absolute paths rejected');
-        }
-        $parts = explode('/', str_replace('\\', '/', $relative));
-        foreach ($parts as $part) {
-            if ($part === '..') {
-                throw new RuntimeException('Path traversal rejected');
-            }
-        }
-    }
-
-    private function assertAllowedUrl(string $url): void
-    {
-        $parts = parse_url($url);
-        if ($parts === false || ($parts['scheme'] ?? '') !== 'https') {
-            throw new RuntimeException("Only https URLs allowed: {$url}");
-        }
-        $host = strtolower((string) ($parts['host'] ?? ''));
-        foreach (self::ALLOWED_HOSTS as $allowed) {
-            if ($host === $allowed) {
-                return;
-            }
-        }
-        throw new RuntimeException("Disallowed source host: {$host}");
     }
 
     private function workRoot(int $runId): string
