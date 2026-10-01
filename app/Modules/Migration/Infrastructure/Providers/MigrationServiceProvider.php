@@ -21,6 +21,8 @@ use App\Modules\Migration\Application\Services\WordPress\WordPressMediaOwnership
 use App\Modules\Migration\Application\Services\WordPress\WordPressMediaTransferPlanner;
 use App\Modules\Migration\Application\Services\WordPress\WordPressOrderImporter;
 use App\Modules\Migration\Application\Services\WordPress\WordPressProductImporter;
+use App\Modules\Migration\Application\Services\WordPress\WordPressQuizImporter;
+use App\Modules\Migration\Application\Services\WordPress\WordPressProQuizAnswerDecoder;
 use App\Modules\Migration\Application\Services\WordPress\WordPressRealPersistGate;
 use App\Modules\Migration\Application\Services\WordPress\WordPressUserImporter;
 use App\Modules\Migration\Application\Services\WordPress\WordPressVariableProductAnalyzer;
@@ -51,6 +53,8 @@ final class MigrationServiceProvider extends ModuleServiceProvider
         $this->app->singleton(WordPressEnrollmentImporter::class);
         $this->app->singleton(WordPressOrderImporter::class);
         $this->app->singleton(WordPressProductImporter::class);
+        $this->app->singleton(WordPressProQuizAnswerDecoder::class);
+        $this->app->singleton(WordPressQuizImporter::class);
         $this->app->singleton(WordPressCompetitionImporter::class);
         $this->app->singleton(WordPressMediaOwnershipResolver::class);
         $this->app->singleton(WordPressMediaLocalSource::class);
