@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\QuizResource\Pages;
+use App\Filament\Resources\QuizResource\RelationManagers;
 use App\Modules\Assessment\Domain\Enums\QuizSelectionMode;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\Quiz;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Lesson;
@@ -107,7 +108,9 @@ class QuizResource extends Resource
             Tables\Columns\TextColumn::make('selection_mode')->label(__('admin.quizzes.fields.selection_mode'))->badge(),
             Tables\Columns\TextColumn::make('passing_score')->label(__('admin.quizzes.fields.passing_score')),
             Tables\Columns\IconColumn::make('is_required')->label(__('admin.quizzes.fields.is_required'))->boolean(),
-            Tables\Columns\TextColumn::make('questions_count')->counts('questions')->label(__('admin.nav.questions')),
+            Tables\Columns\TextColumn::make('questions_count')
+                ->counts('questions')
+                ->label(__('admin.quizzes.table.questions')),
         ])->actions([
             Tables\Actions\EditAction::make(),
         ]);
@@ -119,6 +122,13 @@ class QuizResource extends Resource
             'index' => Pages\ListQuizzes::route('/'),
             'create' => Pages\CreateQuiz::route('/create'),
             'edit' => Pages\EditQuiz::route('/{record}/edit'),
+        ];
+    }
+
+    public static function getRelations(): array
+    {
+        return [
+            RelationManagers\QuestionsRelationManager::class,
         ];
     }
 
