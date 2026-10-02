@@ -146,12 +146,22 @@ return [
                 'note' => 'Approved simple MAP_EXISTING; keep local SKU/course_id; map-only',
             ],
         ],
+        /*
+        | C-A APPROVED (WORDPRESS-FINAL-HUMAN-DECISIONS):
+        | AQ competition 4 ≡ Laravel competitions.id=1 (transliterated production slug).
+        | Do NOT seed microscope-100-challenge. Do NOT create a second competition.
+        | Rollback: unmap only — never delete competition id 1 or its participant/submission graph.
+        */
         'competitions' => [
             [
                 'legacy_id' => '4',
-                'local_slug' => 'microscope-100-challenge',
+                'local_id' => 1,
+                'local_slug' => null,
                 'decision' => 'MAP_EXISTING',
-                'note' => 'AQ 100-photo challenge → existing Laravel competition; rollback unmaps only',
+                'authoritative_accepted' => true,
+                'protect_participant_submission_graph' => true,
+                'rollback_policy' => 'unmap_only_never_delete_competition_or_graph',
+                'note' => 'C-A: AQ4 → Laravel competition id 1; accept existing CREATE_NEW row; never seed microscope-100-challenge',
             ],
         ],
         /*
@@ -238,13 +248,63 @@ return [
     | MAP_EXISTING — legacy_import_maps → existing Laravel competition (no overwrite)
     | CREATE_NEW   — create Competition via migration-safe persistence
     |
-    | Approved default for staging is recorded under approved_map_existing.competitions.
-    | Operator must still pass --decision=MAP_EXISTING (or env) for real persist.
-    | Optional WORDPRESS_COMPETITION_EXISTING_LOCAL_ID when MAP_EXISTING.
+    | C-A approved authority: AQ 4 → local competitions.id=1
+    | (see approved_map_existing.competitions). Default env may still override.
     |
     */
-    'competition_decision' => env('WORDPRESS_COMPETITION_DECISION'),
-    'competition_existing_local_id' => env('WORDPRESS_COMPETITION_EXISTING_LOCAL_ID'),
+    'competition_decision' => env('WORDPRESS_COMPETITION_DECISION', 'MAP_EXISTING'),
+    'competition_existing_local_id' => env('WORDPRESS_COMPETITION_EXISTING_LOCAL_ID', 1),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Approved explicit user resolutions (narrow, auditable)
+    |--------------------------------------------------------------------------
+    |
+    | Generic soft-deleted email collisions remain AMBIGUOUS.
+    | Only entries listed here may authorize restore + MAP_EXISTING.
+    |
+    | U5-A APPROVED: WP 5 → restore Laravel user 3 → map existing.
+    |
+    */
+    'approved_user_resolutions' => [
+        [
+            'legacy_id' => '5',
+            'action' => 'RESTORE_AND_MAP_EXISTING',
+            'local_user_id' => 3,
+            'requires_soft_deleted' => true,
+            'approval' => 'USER_5_RESTORE_AND_MAP_EXISTING_HIGH_CONFIDENCE',
+            'never_copy_password' => true,
+            'never_overwrite_profile' => true,
+            'mapped_to_existing' => true,
+            'created_by_migration' => false,
+            'note' => 'U5-A: restore soft-deleted Laravel user 3; map WP 5 → local 3; revoke tokens first',
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Historical product reviews (WP comments comment_type=review)
+    |--------------------------------------------------------------------------
+    |
+    | All legacy reviews currently target skipped variable product 6912.
+    | Reviews attach to the existing flagged Laravel kit (same business identity),
+    | without importing/flattening the variable parent into the catalog.
+    |
+    | Guest strategy Option A: nullable product_reviews.user_id + guest_display_name.
+    | Live POST /products/{slug}/reviews remains auth:sanctum only.
+    |
+    */
+    'reviews' => [
+        'source_product_legacy_id' => '6912',
+        'destination_product_slug' => 'science-street-microscope-2',
+        'destination_policy' => 'REVIEWS_MAP_TO_EXISTING_KIT_WITHOUT_IMPORTING_VARIABLE_PARENT',
+        'guest_strategy' => 'NULLABLE_USER_WITH_DISPLAY_NAME',
+        'entity_type' => 'product_review',
+        'preserve_source_language' => true,
+        'never_auto_translate' => true,
+        'never_create_synthetic_users' => true,
+        'skip_missing_rating' => true,
+    ],
 
     /*
     |--------------------------------------------------------------------------

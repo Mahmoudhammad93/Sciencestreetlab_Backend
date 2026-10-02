@@ -71,10 +71,11 @@ final class ProductPresenter
                 ->map(fn ($review) => [
                     'id' => $review->id,
                     'user' => [
-                        'name' => $review->user?->name ?? 'Customer',
+                        'name' => $review->publicReviewerName(),
                     ],
                     'rating' => $review->rating,
                     'review' => $review->review,
+                    'is_verified_purchase' => $review->is_verified_purchase,
                     'created_at' => optional($review->created_at)?->toIso8601String(),
                 ])
                 ->all();

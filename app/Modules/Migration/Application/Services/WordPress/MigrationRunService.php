@@ -23,6 +23,10 @@ final class MigrationRunService
 
     public const STATUS_ROLLED_BACK = 'rolled_back';
 
+    public function __construct(
+        private readonly ?WordPressApprovedCollisionMapper $approvedCollisions = null,
+    ) {}
+
     public function start(string $environment = 'staging', array $notes = []): LegacyMigrationRun
     {
         $run = LegacyMigrationRun::query()->create([
@@ -154,7 +158,7 @@ final class MigrationRunService
                 if ($map->local_id === null) {
                     continue;
                 }
-                if ($map->wasCreatedByMigration()) {
+                if ($map->wasCreatedByMigration() && ! $this->isAuthoritativeCompetitionGraphProtected($map)) {
                     $wouldDelete[$type][] = (int) $map->local_id;
                 } else {
                     $wouldUnmapOnly[$type][] = (int) $map->local_id;
@@ -185,6 +189,7 @@ final class MigrationRunService
                 'competition_submission',
                 'competition_participant',
                 'competition',
+                'product_review',
                 'order',
                 'enrollment',
                 'product',
@@ -202,8 +207,9 @@ final class MigrationRunService
                     if ($map->local_id === null) {
                         continue;
                     }
-                    // Critical: never delete pre-existing Laravel rows linked via MAP_EXISTING.
-                    if (! $map->wasCreatedByMigration()) {
+                    // Critical: never delete pre-existing Laravel rows linked via MAP_EXISTING
+                    // or C-A authoritative competition (+ participant/submission graph).
+                    if (! $map->wasCreatedByMigration() || $this->isAuthoritativeCompetitionGraphProtected($map)) {
                         continue;
                     }
                     $this->deleteLocalIfExists($type, (int) $map->local_id);
@@ -242,6 +248,7 @@ final class MigrationRunService
             'topic' => 'topics',
             'enrollment' => 'enrollments',
             'order' => 'orders',
+            'product_review' => 'product_reviews',
             'competition' => 'competitions',
             'competition_participant' => 'competition_participants',
             'competition_submission' => 'competition_submissions',
@@ -258,5 +265,46 @@ final class MigrationRunService
         } else {
             DB::table($table)->where('id', $localId)->delete();
         }
+    }
+
+    /**
+     * C-A: never delete accepted AQ competition id or its imported participant/submission graph.
+     */
+    private function isAuthoritativeCompetitionGraphProtected(LegacyImportMap $map): bool
+    {
+        $mapper = $this->approvedCollisions ?? app(WordPressApprovedCollisionMapper::class);
+
+        if ($map->entity_type === 'competition' && $map->local_id !== null) {
+            return $mapper->isAuthoritativeAcceptedCompetitionLocalId((int) $map->local_id);
+        }
+
+        if (! in_array($map->entity_type, ['competition_participant', 'competition_submission'], true)) {
+            return false;
+        }
+
+        $meta = is_array($map->metadata) ? $map->metadata : [];
+        $competitionLocalId = isset($meta['competition_local_id']) ? (int) $meta['competition_local_id'] : 0;
+        if ($competitionLocalId > 0 && $mapper->protectsCompetitionParticipantSubmissionGraph($competitionLocalId)) {
+            return true;
+        }
+
+        if ($map->entity_type === 'competition_participant' && $map->local_id !== null) {
+            $compId = (int) (DB::table('competition_participants')->where('id', $map->local_id)->value('competition_id') ?? 0);
+            if ($compId > 0 && $mapper->protectsCompetitionParticipantSubmissionGraph($compId)) {
+                return true;
+            }
+        }
+
+        if ($map->entity_type === 'competition_submission' && $map->local_id !== null) {
+            $participantId = (int) (DB::table('competition_submissions')->where('id', $map->local_id)->value('participant_id') ?? 0);
+            if ($participantId > 0) {
+                $compId = (int) (DB::table('competition_participants')->where('id', $participantId)->value('competition_id') ?? 0);
+                if ($compId > 0 && $mapper->protectsCompetitionParticipantSubmissionGraph($compId)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

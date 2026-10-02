@@ -77,10 +77,28 @@ final class WordPressCompetitionImporter
         $decision = $this->normalizeDecision(
             $competitionDecision ?? config('wordpress.competition_decision'),
         );
-        // Approved registry informs dry-run prediction only; real persist still requires
-        // explicit --decision / WORDPRESS_COMPETITION_DECISION (never silent auto-choice).
-        $approvedDecision = $this->approvedCollisions->competitionDecision('4');
-        $predictedDecision = $decision ?? $approvedDecision;
+        // Config registry (authoritative human approval) vs effective (only when target exists).
+        $approvedRegistryDecision = null;
+        $approvedLocalId = $this->approvedCollisions->approvedCompetitionLocalId('4');
+        $approvedSlug = $this->approvedCollisions->approvedCompetitionLocalSlug('4');
+        foreach ($this->approvedCollisions->approvedCompetitionEntries() as $entry) {
+            if ((string) ($entry['legacy_id'] ?? '') === '4'
+                && ($entry['decision'] ?? null) === self::DECISION_MAP_EXISTING) {
+                $approvedRegistryDecision = self::DECISION_MAP_EXISTING;
+                break;
+            }
+        }
+        $approvedDecision = $this->approvedCollisions->competitionDecision('4'); // null if target missing
+        $predictedDecision = $decision ?? $approvedDecision ?? $approvedRegistryDecision;
+        $approvedTargetId = null;
+        if ($approvedLocalId !== null && Competition::query()->whereKey($approvedLocalId)->exists()) {
+            $approvedTargetId = $approvedLocalId;
+        } elseif ($approvedSlug !== null) {
+            $found = Competition::query()->where('slug', $approvedSlug)->value('id');
+            $approvedTargetId = $found !== null ? (int) $found : null;
+        }
+        $approvedTargetMissing = $approvedRegistryDecision === self::DECISION_MAP_EXISTING
+            && $approvedTargetId === null;
 
         $existingLocalId = $existingLocalId
             ?? (config('wordpress.competition_existing_local_id') !== null
@@ -89,11 +107,9 @@ final class WordPressCompetitionImporter
         if ($existingLocalId !== null && $existingLocalId <= 0) {
             $existingLocalId = null;
         }
-        if ($existingLocalId === null && ($decision === self::DECISION_MAP_EXISTING || $predictedDecision === self::DECISION_MAP_EXISTING)) {
-            $approvedSlug = $this->approvedCollisions->approvedCompetitionLocalSlug('4');
-            if ($approvedSlug !== null) {
-                $existingLocalId = Competition::query()->where('slug', $approvedSlug)->value('id');
-                $existingLocalId = $existingLocalId !== null ? (int) $existingLocalId : null;
+        if ($existingLocalId === null && ($decision === self::DECISION_MAP_EXISTING || $approvedDecision === self::DECISION_MAP_EXISTING || $approvedRegistryDecision === self::DECISION_MAP_EXISTING)) {
+            if ($approvedTargetId !== null) {
+                $existingLocalId = (int) $approvedTargetId;
             }
         }
 
@@ -347,6 +363,17 @@ final class WordPressCompetitionImporter
             'competition_decision' => $decision,
             'competition_decision_required' => $decision === null,
             'supported_decisions' => [self::DECISION_MAP_EXISTING, self::DECISION_CREATE_NEW],
+            'approved_registry_decision' => $approvedRegistryDecision,
+            'approved_effective_decision' => $approvedDecision,
+            'approved_registry_slug' => $approvedSlug,
+            'approved_registry_local_id' => $approvedLocalId,
+            'approved_map_existing_target_missing' => $approvedTargetMissing,
+            'identity_policy_conflict' => false,
+            'identity_policy_note' => $approvedTargetMissing
+                ? 'approved MAP_EXISTING target local_id/slug absent; do not CREATE_NEW a second competition without human confirmation'
+                : 'C-A: AQ4 authoritative Laravel competition id '.($approvedLocalId ?? $approvedTargetId ?? 'configured'),
+            'authoritative_accepted' => $approvedLocalId !== null
+                && $this->approvedCollisions->isAuthoritativeAcceptedCompetitionLocalId($approvedLocalId),
             'existing_local_id_option' => $existingLocalId,
             'would_create' => $dryRun
                 ? (($decision === self::DECISION_CREATE_NEW && $mergeRequired === 0) ? count($competitions) : 0)
@@ -578,6 +605,9 @@ final class WordPressCompetitionImporter
         if ($decision === self::DECISION_MAP_EXISTING) {
             $targetId = $existingLocalId;
             if ($targetId === null) {
+                $targetId = $this->approvedCollisions->approvedCompetitionLocalId($legacyId);
+            }
+            if ($targetId === null) {
                 $approvedSlug = $this->approvedCollisions->approvedCompetitionLocalSlug($legacyId);
                 if ($approvedSlug !== null) {
                     $targetId = Competition::query()->where('slug', $approvedSlug)->value('id');
@@ -595,6 +625,7 @@ final class WordPressCompetitionImporter
                 return ['status' => 'decision_required', 'code' => 'MAP_EXISTING_REQUIRES_LOCAL_ID'];
             }
 
+            $authoritative = $this->approvedCollisions->isAuthoritativeAcceptedCompetitionLocalId((int) $targetId);
             $this->maps->upsertMapping('competition', $legacyId, [
                 'local_id' => $targetId,
                 'imported_at' => now(),
@@ -604,7 +635,10 @@ final class WordPressCompetitionImporter
                     'overwrite' => false,
                     'required_course_legacy_id' => (string) ($comp->required_course_id ?? ''),
                     'source' => 'aq_competitions',
-                    'rollback_policy' => 'unmap_only_never_delete_competition',
+                    'authoritative_accepted' => $authoritative,
+                    'rollback_policy' => $authoritative
+                        ? 'unmap_only_never_delete_competition_or_graph'
+                        : 'unmap_only_never_delete_competition',
                 ]),
             ]);
 

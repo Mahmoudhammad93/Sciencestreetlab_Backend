@@ -105,6 +105,13 @@ final class WordPressApprovedCollisionMapper
                 continue;
             }
 
+            $localId = $this->entryLocalId($entry);
+            if ($localId !== null) {
+                return Competition::query()->whereKey($localId)->exists()
+                    ? self::DECISION_MAP_EXISTING
+                    : null;
+            }
+
             $slug = $entry['local_slug'] ?? null;
             if (! is_string($slug) || $slug === '') {
                 return null;
@@ -116,6 +123,70 @@ final class WordPressApprovedCollisionMapper
         }
 
         return null;
+    }
+
+    /**
+     * Approved authoritative local competitions.id for a legacy AQ competition, if configured.
+     */
+    public function approvedCompetitionLocalId(string $legacyId): ?int
+    {
+        foreach ($this->approvedCompetitionEntries() as $entry) {
+            if ((string) ($entry['legacy_id'] ?? '') !== $legacyId) {
+                continue;
+            }
+
+            return $this->entryLocalId($entry);
+        }
+
+        return null;
+    }
+
+    /**
+     * True when C-A (or similar) marks this local competition as rollback-protected authority.
+     */
+    public function isAuthoritativeAcceptedCompetitionLocalId(int $localId): bool
+    {
+        foreach ($this->approvedCompetitionEntries() as $entry) {
+            if (! ($entry['authoritative_accepted'] ?? false)) {
+                continue;
+            }
+            $approved = $this->entryLocalId($entry);
+            if ($approved !== null && $approved === $localId) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function protectsCompetitionParticipantSubmissionGraph(int $localCompetitionId): bool
+    {
+        foreach ($this->approvedCompetitionEntries() as $entry) {
+            if (! ($entry['protect_participant_submission_graph'] ?? false)
+                && ($entry['rollback_policy'] ?? null) !== 'unmap_only_never_delete_competition_or_graph') {
+                continue;
+            }
+            $approved = $this->entryLocalId($entry);
+            if ($approved !== null && $approved === $localCompetitionId) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $entry
+     */
+    private function entryLocalId(array $entry): ?int
+    {
+        if (! array_key_exists('local_id', $entry) || $entry['local_id'] === null || $entry['local_id'] === '') {
+            return null;
+        }
+
+        $id = (int) $entry['local_id'];
+
+        return $id > 0 ? $id : null;
     }
 
     public function courseDecision(string $legacyId): ?string
@@ -155,10 +226,21 @@ final class WordPressApprovedCollisionMapper
     public function approvedCompetitionLocalSlug(string $legacyId): ?string
     {
         foreach ($this->approvedCompetitionEntries() as $entry) {
-            if ((string) ($entry['legacy_id'] ?? '') === $legacyId) {
-                $slug = $entry['local_slug'] ?? null;
+            if ((string) ($entry['legacy_id'] ?? '') !== $legacyId) {
+                continue;
+            }
 
-                return is_string($slug) && $slug !== '' ? $slug : null;
+            $slug = $entry['local_slug'] ?? null;
+            if (is_string($slug) && $slug !== '') {
+                return $slug;
+            }
+
+            // Prefer actual slug of approved local_id when config omits local_slug (C-A).
+            $localId = $this->entryLocalId($entry);
+            if ($localId !== null) {
+                $actual = Competition::query()->whereKey($localId)->value('slug');
+
+                return is_string($actual) && $actual !== '' ? $actual : null;
             }
         }
 
@@ -299,33 +381,44 @@ final class WordPressApprovedCollisionMapper
 
         foreach ($this->approvedCompetitionEntries() as $entry) {
             $legacyId = (string) ($entry['legacy_id'] ?? '');
-            $localSlug = (string) ($entry['local_slug'] ?? '');
+            $localSlug = is_string($entry['local_slug'] ?? null) ? (string) $entry['local_slug'] : '';
+            $approvedLocalId = $this->entryLocalId($entry);
+            $rollbackPolicy = is_string($entry['rollback_policy'] ?? null)
+                ? (string) $entry['rollback_policy']
+                : 'unmap_only_never_delete_competition';
             $row = [
                 'entity_type' => 'competition',
                 'legacy_id' => $legacyId,
-                'local_slug' => $localSlug,
+                'local_slug' => $localSlug !== '' ? $localSlug : null,
+                'approved_local_id' => $approvedLocalId,
                 'decision' => self::DECISION_MAP_EXISTING,
+                'authoritative_accepted' => (bool) ($entry['authoritative_accepted'] ?? false),
                 'note' => $entry['note'] ?? null,
-                'rollback_policy' => 'unmap_only_never_delete_competition',
+                'rollback_policy' => $rollbackPolicy,
             ];
 
             $existingMap = $this->maps->find('competition', $legacyId);
             if ($existingMap?->local_id) {
                 $row['status'] = 'SKIPPED_MAPPED';
                 $row['local_id'] = $existingMap->local_id;
+                $row['accepted_authority'] = $approvedLocalId !== null
+                    && (int) $existingMap->local_id === $approvedLocalId;
                 $alreadyMappedCompetitions++;
                 $competitions[] = $row;
 
                 continue;
             }
 
-            $local = $localSlug !== ''
-                ? Competition::query()->where('slug', $localSlug)->first(['id', 'slug', 'status'])
-                : null;
+            $local = null;
+            if ($approvedLocalId !== null) {
+                $local = Competition::query()->whereKey($approvedLocalId)->first(['id', 'slug', 'status']);
+            } elseif ($localSlug !== '') {
+                $local = Competition::query()->where('slug', $localSlug)->first(['id', 'slug', 'status']);
+            }
 
             if ($local === null) {
                 $row['status'] = self::STATUS_UNRESOLVED;
-                $row['code'] = 'LOCAL_SLUG_NOT_FOUND';
+                $row['code'] = $approvedLocalId !== null ? 'LOCAL_ID_NOT_FOUND' : 'LOCAL_SLUG_NOT_FOUND';
                 $unresolvedCompetitions++;
                 $competitions[] = $row;
 
@@ -333,6 +426,7 @@ final class WordPressApprovedCollisionMapper
             }
 
             $row['local_id'] = $local->id;
+            $row['local_slug_actual'] = $local->slug;
             $row['local_status'] = $local->status;
             $row['status'] = $dryRun ? MigrationImportOutcome::WOULD_MAP_EXISTING : 'MAPPED_EXISTING';
             $row['ownership'] = [
@@ -348,10 +442,11 @@ final class WordPressApprovedCollisionMapper
                     'metadata' => LegacyImportMapRepository::ownershipMappedExisting([
                         'collision_decision' => self::DECISION_MAP_EXISTING,
                         'overwrite' => false,
-                        'local_slug' => $localSlug,
+                        'local_slug' => $local->slug,
+                        'authoritative_accepted' => (bool) ($entry['authoritative_accepted'] ?? false),
                         'note' => $entry['note'] ?? 'approved_map_existing',
                         'approval_source' => 'config:wordpress.approved_map_existing.competitions',
-                        'rollback_policy' => 'unmap_only_never_delete_competition',
+                        'rollback_policy' => $rollbackPolicy,
                     ]),
                 ]);
                 $mappedCompetitions++;

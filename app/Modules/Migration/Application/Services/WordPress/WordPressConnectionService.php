@@ -86,6 +86,8 @@ final class WordPressConnectionService
         $probes = [
             'users' => null,
             'posts' => null,
+            'comments' => null,
+            'commentmeta' => null,
             'wc_orders' => null,
             'woocommerce_order_items' => null,
             'learndash_user_activity' => null,

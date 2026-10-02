@@ -37,9 +37,17 @@ class LegacyImportMap extends Model
      *
      * Prefers explicit metadata.created_by_migration. Falls back to collision
      * markers so MAP_EXISTING maps never delete pre-seeded catalog/AQ shells.
+     *
+     * C-A: authoritative accepted competitions (and explicit unmap-only policies)
+     * are never treated as migration-deletable even if historical metadata still
+     * says created_by_migration=true.
      */
     public function wasCreatedByMigration(): bool
     {
+        if ($this->isRollbackProtected()) {
+            return false;
+        }
+
         $meta = is_array($this->metadata) ? $this->metadata : [];
 
         if (array_key_exists('created_by_migration', $meta)) {
@@ -52,6 +60,46 @@ class LegacyImportMap extends Model
 
         // Historical create maps without the flag: eligible when a local_id exists.
         return $this->local_id !== null;
+    }
+
+    /**
+     * Unmap-only / authoritative rows must survive migration rollback deletes.
+     */
+    public function isRollbackProtected(): bool
+    {
+        if ($this->wasMappedToExisting()) {
+            return true;
+        }
+
+        $meta = is_array($this->metadata) ? $this->metadata : [];
+        $policy = $meta['rollback_policy'] ?? null;
+        if (is_string($policy) && str_starts_with($policy, 'unmap_only')) {
+            return true;
+        }
+
+        if (($meta['authoritative_accepted'] ?? false) === true) {
+            return true;
+        }
+
+        if ($this->entity_type === 'competition' && $this->local_id !== null) {
+            $entries = config('wordpress.approved_map_existing.competitions', []);
+            if (is_array($entries)) {
+                foreach ($entries as $entry) {
+                    if (! is_array($entry)) {
+                        continue;
+                    }
+                    if (! ($entry['authoritative_accepted'] ?? false)) {
+                        continue;
+                    }
+                    $approvedId = isset($entry['local_id']) ? (int) $entry['local_id'] : 0;
+                    if ($approvedId > 0 && $approvedId === (int) $this->local_id) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     /**

@@ -14,6 +14,9 @@ class ProductReview extends Model
     protected $fillable = [
         'product_id',
         'user_id',
+        'is_legacy_guest',
+        'guest_display_name',
+        'is_verified_purchase',
         'rating',
         'review',
         'status',
@@ -27,6 +30,8 @@ class ProductReview extends Model
             'rating' => 'integer',
             'status' => ProductReviewStatus::class,
             'approved_at' => 'datetime',
+            'is_legacy_guest' => 'boolean',
+            'is_verified_purchase' => 'boolean',
         ];
     }
 
@@ -48,5 +53,16 @@ class ProductReview extends Model
     public function isApproved(): bool
     {
         return $this->status === ProductReviewStatus::Approved;
+    }
+
+    public function publicReviewerName(): string
+    {
+        if ($this->user?->name) {
+            return (string) $this->user->name;
+        }
+
+        $guest = trim((string) ($this->guest_display_name ?? ''));
+
+        return $guest !== '' ? $guest : 'Customer';
     }
 }
