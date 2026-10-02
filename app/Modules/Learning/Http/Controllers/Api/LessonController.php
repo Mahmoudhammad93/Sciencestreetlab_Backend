@@ -9,6 +9,7 @@ use App\Modules\Assessment\Application\Services\InteractiveActivityPackageServic
 use App\Modules\Assessment\Application\Services\QuizAttemptService;
 use App\Modules\Learning\Application\Services\CourseAccessService;
 use App\Modules\Learning\Application\Services\CoursePresenter;
+use App\Modules\Learning\Application\Support\CourseSlugResolver;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Enrollment;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Lesson;
@@ -22,14 +23,15 @@ final class LessonController extends Controller
         private readonly CourseAccessService $access,
         private readonly CoursePresenter $presenter,
         private readonly QuizAttemptService $quizAttempts,
+        private readonly CourseSlugResolver $slugResolver,
     ) {}
 
     public function index(Request $request, string $slug): JsonResponse
     {
-        $course = Course::query()
-            ->where('slug', $slug)
-            ->where('is_published', true)
-            ->firstOrFail();
+        $course = $this->slugResolver->resolve($slug, publishedOnly: true);
+        if ($course === null) {
+            return response()->json(['message' => 'Course not found'], 404);
+        }
 
         $user = $request->user('sanctum');
         $enrollment = $user

@@ -36,8 +36,25 @@ final class MyFatoorahPaymentTest extends TestCase
                 'phone' => '01012345678',
                 'city' => 'Cairo',
                 'country' => 'EG',
+                'address' => '12 Test Street',
+                'district' => 'Nasr City',
+                'district_name' => 'Nasr City',
+                'bosta_district_id' => 'district-nasr',
+                'bosta_city_id' => 'FceDyHXwpSYYF9zGW',
             ],
-            'shipping_address' => ['city' => 'Cairo', 'country' => 'EG'],
+            'shipping_address' => [
+                'first_name' => 'Sara',
+                'last_name' => 'Test',
+                'email' => $user->email,
+                'phone' => '01012345678',
+                'city' => 'Cairo',
+                'country' => 'EG',
+                'address' => '12 Test Street',
+                'district' => 'Nasr City',
+                'district_name' => 'Nasr City',
+                'bosta_district_id' => 'district-nasr',
+                'bosta_city_id' => 'FceDyHXwpSYYF9zGW',
+            ],
         ])->assertCreated();
 
         $orderId = $checkout->json('data.id');
@@ -106,8 +123,25 @@ final class MyFatoorahPaymentTest extends TestCase
                 'phone' => '01012345678',
                 'city' => 'Cairo',
                 'country' => 'EG',
+                'address' => '12 Test Street',
+                'district' => 'Nasr City',
+                'district_name' => 'Nasr City',
+                'bosta_district_id' => 'district-nasr',
+                'bosta_city_id' => 'FceDyHXwpSYYF9zGW',
             ],
-            'shipping_address' => ['city' => 'Cairo', 'country' => 'EG'],
+            'shipping_address' => [
+                'first_name' => 'Sara',
+                'last_name' => 'Test',
+                'email' => $user->email,
+                'phone' => '01012345678',
+                'city' => 'Cairo',
+                'country' => 'EG',
+                'address' => '12 Test Street',
+                'district' => 'Nasr City',
+                'district_name' => 'Nasr City',
+                'bosta_district_id' => 'district-nasr',
+                'bosta_city_id' => 'FceDyHXwpSYYF9zGW',
+            ],
         ])->assertCreated();
 
         $orderId = $checkout->json('data.id');

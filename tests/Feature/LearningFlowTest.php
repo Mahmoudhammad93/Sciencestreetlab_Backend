@@ -42,9 +42,26 @@ final class LearningFlowTest extends TestCase
                 'phone' => '01012345678',
                 'city' => 'Cairo',
                 'country' => 'EG',
+                'address' => '12 Test Street',
+                'district' => 'Nasr City',
+                'district_name' => 'Nasr City',
+                'bosta_district_id' => 'district-nasr',
+                'bosta_city_id' => 'FceDyHXwpSYYF9zGW',
             ],
-            'shipping_address' => ['city' => 'Cairo', 'country' => 'EG'],
-        ])->json('data.id');
+            'shipping_address' => [
+                'first_name' => 'Student',
+                'last_name' => 'Test',
+                'email' => $user->email,
+                'phone' => '01012345678',
+                'city' => 'Cairo',
+                'country' => 'EG',
+                'address' => '12 Test Street',
+                'district' => 'Nasr City',
+                'district_name' => 'Nasr City',
+                'bosta_district_id' => 'district-nasr',
+                'bosta_city_id' => 'FceDyHXwpSYYF9zGW',
+            ],
+        ])->assertCreated()->json('data.id');
 
         $paymentId = $this->postJson("/api/v1/checkout/{$orderId}/pay")->json('data.payment_id');
         $this->postJson("/api/v1/payments/mock/{$paymentId}/complete")->assertOk();
@@ -113,9 +130,26 @@ final class LearningFlowTest extends TestCase
                 'phone' => '01012345678',
                 'city' => 'Cairo',
                 'country' => 'EG',
+                'address' => '12 Test Street',
+                'district' => 'Nasr City',
+                'district_name' => 'Nasr City',
+                'bosta_district_id' => 'district-nasr',
+                'bosta_city_id' => 'FceDyHXwpSYYF9zGW',
             ],
-            'shipping_address' => ['city' => 'Cairo', 'country' => 'EG'],
-        ])->json('data.id');
+            'shipping_address' => [
+                'first_name' => 'Student',
+                'last_name' => 'Test',
+                'email' => $user->email,
+                'phone' => '01012345678',
+                'city' => 'Cairo',
+                'country' => 'EG',
+                'address' => '12 Test Street',
+                'district' => 'Nasr City',
+                'district_name' => 'Nasr City',
+                'bosta_district_id' => 'district-nasr',
+                'bosta_city_id' => 'FceDyHXwpSYYF9zGW',
+            ],
+        ])->assertCreated()->json('data.id');
         $paymentId = $this->postJson("/api/v1/checkout/{$orderId}/pay")->json('data.payment_id');
         $this->postJson("/api/v1/payments/mock/{$paymentId}/complete");
 

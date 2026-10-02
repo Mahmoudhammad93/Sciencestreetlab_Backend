@@ -43,6 +43,7 @@ Route::get('/payments/myfatoorah/confirm', [PaymentController::class, 'myfatoora
 Route::post('/payments/mock/{payment}/complete', [PaymentController::class, 'completeMock']);
 
 Route::middleware('auth.optional')->group(function (): void {
+    Route::post('/checkout/quote', [CheckoutController::class, 'quote']);
     Route::post('/checkout', [CheckoutController::class, 'store']);
     Route::post('/checkout/{order}/pay', [CheckoutController::class, 'pay']);
 });

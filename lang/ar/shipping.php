@@ -5,6 +5,8 @@ declare(strict_types=1);
 return [
     'status' => [
         'pending' => 'قيد التجهيز',
+        'waiting_payment' => 'في انتظار الدفع',
+        'awaiting_creation' => 'جاري تجهيز الشحنة',
         'created' => 'تم إنشاء الشحنة',
         'picked_up' => 'تم استلام الشحنة',
         'in_transit' => 'الشحنة في الطريق',
@@ -16,6 +18,8 @@ return [
     ],
     'steps' => [
         'order_placed' => 'تم إنشاء الطلب',
+        'shipment_waiting_payment' => 'في انتظار الدفع',
+        'shipment_awaiting_creation' => 'جاري تجهيز الشحنة',
         'shipment_created' => 'تم إنشاء الشحنة',
         'picked_up' => 'تم استلام الشحنة',
         'in_transit' => 'الشحنة في الطريق',

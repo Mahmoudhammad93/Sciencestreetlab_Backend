@@ -44,35 +44,47 @@ final class BostaShippingFulfillmentTest extends TestCase
             'bosta.api_contract_ready' => false,
             'bosta.webhook_signature_ready' => false,
         ]);
+
+        $this->seed(\Database\Seeders\ShippingRateSeeder::class);
     }
 
-    public function test_checkout_creates_idempotent_bosta_shipment_for_kit(): void
+    public function test_checkout_marks_delivery_required_but_does_not_create_bosta_shipment(): void
     {
         [$user, $course, $product] = $this->kitWithCourse();
         $cart = $this->cartWithProduct($user, $product);
 
+        $address = [
+            'first_name' => $user->name,
+            'last_name' => 'User',
+            'email' => $user->email,
+            'phone' => '01012345678',
+            'city' => 'Cairo',
+            'country' => 'EG',
+            'address' => '12 Test Street',
+            'district' => 'Nasr City',
+            'district_name' => 'Nasr City',
+            'bosta_district_id' => 'district-nasr',
+            'bosta_city_id' => 'FceDyHXwpSYYF9zGW',
+        ];
+
         $order = app(CheckoutService::class)->createOrderFromCart(
             $user,
             $cart,
-            ['first_name' => $user->name, 'last_name' => 'User', 'email' => $user->email, 'phone' => '01012345678', 'city' => 'Cairo', 'country' => 'EG'],
-            ['first_name' => $user->name, 'last_name' => 'User', 'email' => $user->email, 'phone' => '01012345678', 'city' => 'Cairo', 'country' => 'EG'],
+            $address,
+            $address,
         )['order'];
 
         $this->assertTrue($order->requires_delivery_fulfillment);
-        $this->assertDatabaseCount('shipments', 1);
-        $shipment = $order->bostaShipment;
-        $this->assertNotNull($shipment);
-        $this->assertSame('fake-bosta-'.$order->id, $shipment->external_shipment_id);
-        $this->assertSame('TRK-'.$order->order_number, $shipment->tracking_number);
-        $this->assertSame(ShipmentStatus::Created, $shipment->status);
-        $this->assertTrue((bool) data_get($shipment->metadata, 'raw.test_mode'));
+        $this->assertNull($order->bostaShipment);
+        $this->assertDatabaseCount('shipments', 0);
 
+        // Unpaid ensure must not call Bosta.
         app(BostaShipmentService::class)->ensureShipmentForOrder($order->fresh(['items']));
-        $this->assertDatabaseCount('shipments', 1);
+        $this->assertDatabaseCount('shipments', 0);
         $this->assertSame(0, Enrollment::query()->count());
     }
 
-    public function test_fake_mode_does_not_require_api_key_and_uses_fake_client(): void
+    public function test_fake_mode_does_not_require_api_key_and_uses_fake_client_after_payment(): void
     {
         config([
             'bosta.enabled' => true,
@@ -88,7 +100,7 @@ final class BostaShippingFulfillmentTest extends TestCase
         );
 
         [$user, , $product] = $this->kitWithCourse();
-        $order = $this->checkoutKit($user, $product);
+        $order = $this->checkoutAndPayKit($user, $product);
 
         $this->assertNotNull($order->bostaShipment?->external_shipment_id);
         $this->assertStringStartsWith('fake-bosta-', $order->bostaShipment->external_shipment_id);
@@ -123,11 +135,11 @@ final class BostaShippingFulfillmentTest extends TestCase
         $order = app(CheckoutService::class)->createOrderFromCart(
             $user,
             $this->cartWithProduct($user, $product),
-            ['first_name' => $user->name, 'last_name' => 'User', 'email' => $user->email, 'phone' => '01012345678', 'city' => 'Cairo', 'country' => 'EG'],
+            ['first_name' => $user->name, 'last_name' => 'User', 'email' => $user->email, 'phone' => '01012345678', 'city' => 'Cairo', 'country' => 'EG', 'address' => '12 Test Street'],
             null,
         )['order'];
 
-        $this->assertFalse($order->requires_delivery_fulfillment);
+        $this->assertFalse((bool) $order->requires_delivery_fulfillment);
         $this->assertNull($order->bostaShipment);
         $this->assertDatabaseCount('shipments', 0);
     }
@@ -139,7 +151,7 @@ final class BostaShippingFulfillmentTest extends TestCase
         [$user, , $product] = $this->kitWithCourse();
         $order = $this->checkoutKit($user, $product);
 
-        $this->assertFalse($order->requires_delivery_fulfillment);
+        $this->assertFalse((bool) $order->requires_delivery_fulfillment);
         $this->assertNull($order->bostaShipment);
         $this->assertDatabaseCount('shipments', 0);
     }
@@ -174,7 +186,7 @@ final class BostaShippingFulfillmentTest extends TestCase
         );
 
         [$user, , $product] = $this->kitWithCourse();
-        $order = $this->checkoutKit($user, $product);
+        $order = $this->checkoutAndPayKit($user, $product);
 
         $this->assertFalse($httpResolved, 'HttpBostaClient must not be resolved when BOSTA_USE_FAKE=true');
         $this->assertSame('fake-bosta-'.$order->id, $order->bostaShipment?->external_shipment_id);
@@ -185,16 +197,7 @@ final class BostaShippingFulfillmentTest extends TestCase
     {
         Mail::fake();
         [$user, $course, $product] = $this->kitWithCourse();
-        $order = $this->checkoutKit($user, $product);
-
-        $payment = Payment::query()->create([
-            'order_id' => $order->id,
-            'gateway' => 'mock',
-            'amount' => $order->total,
-            'currency' => 'EGP',
-            'status' => PaymentStatus::Pending->value,
-        ]);
-        app(PaymentCompletionService::class)->complete($payment);
+        $order = $this->checkoutAndPayKit($user, $product);
 
         $order->refresh();
         $this->assertNull($order->fulfilled_at);
@@ -241,6 +244,7 @@ final class BostaShippingFulfillmentTest extends TestCase
 
         $order->refresh();
         $this->assertNotNull($order->paid_at);
+        $this->assertNotNull($order->bostaShipment?->external_shipment_id);
         $this->assertNull($order->fulfilled_at);
         $this->assertDatabaseMissing('enrollments', [
             'user_id' => $user->id,
@@ -290,7 +294,7 @@ final class BostaShippingFulfillmentTest extends TestCase
         Mail::fake();
 
         [$user, $course, $product] = $this->kitWithCourse();
-        $order = $this->checkoutKit($user, $product);
+        $order = $this->checkoutAndPayKit($user, $product);
         $externalId = $order->bostaShipment->external_shipment_id;
 
         $service = app(BostaWebhookService::class);
@@ -306,7 +310,7 @@ final class BostaShippingFulfillmentTest extends TestCase
     public function test_invalid_webhook_secret_is_rejected(): void
     {
         [$user, , $product] = $this->kitWithCourse();
-        $order = $this->checkoutKit($user, $product);
+        $order = $this->checkoutAndPayKit($user, $product);
 
         $this->postJson('/api/v1/webhooks/bosta', [
             'external_shipment_id' => $order->bostaShipment->external_shipment_id,
@@ -321,7 +325,7 @@ final class BostaShippingFulfillmentTest extends TestCase
     public function test_webhook_route_requires_no_user_login(): void
     {
         [$user, , $product] = $this->kitWithCourse();
-        $order = $this->checkoutKit($user, $product);
+        $order = $this->checkoutAndPayKit($user, $product);
 
         $this->assertGuest();
 
@@ -348,7 +352,7 @@ final class BostaShippingFulfillmentTest extends TestCase
     public function test_unknown_shipment_does_not_create_data(): void
     {
         [$user, , $product] = $this->kitWithCourse();
-        $this->checkoutKit($user, $product);
+        $this->checkoutAndPayKit($user, $product);
         $before = \App\Modules\Commerce\Infrastructure\Persistence\Models\Shipment::query()->count();
 
         $this->postJson('/api/v1/webhooks/bosta', [
@@ -368,7 +372,7 @@ final class BostaShippingFulfillmentTest extends TestCase
     {
         Mail::fake();
         [$user, $course, $product] = $this->kitWithCourse();
-        $order = $this->checkoutKit($user, $product);
+        $order = $this->checkoutAndPayKit($user, $product);
         $externalId = $order->bostaShipment->external_shipment_id;
 
         $this->postJson('/api/v1/webhooks/bosta', [
@@ -394,7 +398,7 @@ final class BostaShippingFulfillmentTest extends TestCase
     {
         Mail::fake();
         [$user, $course, $product] = $this->kitWithCourse();
-        $order = $this->checkoutKit($user, $product);
+        $order = $this->checkoutAndPayKit($user, $product);
         $externalId = $order->bostaShipment->external_shipment_id;
 
         foreach (['picked_up', 'in_transit', 'out_for_delivery'] as $status) {
@@ -419,7 +423,7 @@ final class BostaShippingFulfillmentTest extends TestCase
     {
         Mail::fake();
         [$user, $course, $product] = $this->kitWithCourse();
-        $order = $this->checkoutKit($user, $product);
+        $order = $this->checkoutAndPayKit($user, $product);
         $externalId = $order->bostaShipment->external_shipment_id;
 
         foreach ([
@@ -431,7 +435,7 @@ final class BostaShippingFulfillmentTest extends TestCase
             // Fresh kit each terminal attempt after first would stick terminal — recreate.
             if ($providerStatus !== 'cancelled') {
                 [$user, $course, $product] = $this->kitWithCourse();
-                $order = $this->checkoutKit($user, $product);
+                $order = $this->checkoutAndPayKit($user, $product);
                 $externalId = $order->bostaShipment->external_shipment_id;
             }
 
@@ -456,7 +460,7 @@ final class BostaShippingFulfillmentTest extends TestCase
     {
         Mail::fake();
         [$user, $course, $product] = $this->kitWithCourse();
-        $order = $this->checkoutKit($user, $product);
+        $order = $this->checkoutAndPayKit($user, $product);
         $externalId = $order->bostaShipment->external_shipment_id;
 
         $this->postJson('/api/v1/webhooks/bosta', [
@@ -485,7 +489,7 @@ final class BostaShippingFulfillmentTest extends TestCase
     {
         Mail::fake();
         [$user, $course, $product] = $this->kitWithCourse();
-        $order = $this->checkoutKit($user, $product);
+        $order = $this->checkoutAndPayKit($user, $product);
         $externalId = $order->bostaShipment->external_shipment_id;
 
         $this->postJson('/api/v1/webhooks/bosta', [
@@ -519,29 +523,141 @@ final class BostaShippingFulfillmentTest extends TestCase
         Mail::assertNothingSent();
     }
 
-    public function test_configured_verifier_rejects_until_official_signature_ready(): void
+    public function test_configured_verifier_rejects_missing_and_wrong_auth_header(): void
     {
         [$user, , $product] = $this->kitWithCourse();
-        $order = $this->checkoutKit($user, $product);
+        $order = $this->checkoutAndPayKit($user, $product);
 
         config([
-            'bosta.webhook_signature_ready' => false,
+            'bosta.webhook_auth_ready' => true,
+            'bosta.webhook_signature_ready' => true,
             'bosta.webhook_secret' => 'real-looking-secret',
+            'bosta.webhook_auth_header' => 'Authorization',
         ]);
 
-        // Keep FakeBostaClient for shipment create; swap only webhook verifier to production stub.
         $this->app->instance(
             \App\Modules\Commerce\Domain\Contracts\BostaWebhookVerifierInterface::class,
             $this->app->make(\App\Modules\Commerce\Infrastructure\Shipping\Bosta\ConfiguredBostaWebhookVerifier::class)
         );
 
-        $this->postJson('/api/v1/webhooks/bosta', [
-            'external_shipment_id' => $order->bostaShipment->external_shipment_id,
-            'status' => 'delivered',
-        ], ['X-Bosta-Test-Secret' => 'real-looking-secret'])
+        $payload = [
+            '_id' => $order->bostaShipment->external_shipment_id,
+            'state' => 45,
+            'type' => 'SEND',
+        ];
+
+        $this->postJson('/api/v1/webhooks/bosta', $payload)
             ->assertUnauthorized();
 
-        $this->assertNull($order->fresh()->fulfilled_at);
+        $this->postJson('/api/v1/webhooks/bosta', $payload, ['Authorization' => 'wrong'])
+            ->assertUnauthorized();
+
+        $this->postJson('/api/v1/webhooks/bosta', $payload, ['Authorization' => 'real-looking-secret'])
+            ->assertOk()
+            ->assertJsonPath('status', 'delivered');
+
+        $this->assertNotNull($order->fresh()->fulfilled_at);
+    }
+
+    public function test_official_numeric_delivered_state_fulfills_once(): void
+    {
+        Mail::fake();
+        [$user, $course, $product] = $this->kitWithCourse();
+        $order = $this->checkoutAndPayKit($user, $product);
+        $externalId = $order->bostaShipment->external_shipment_id;
+
+        $this->postJson('/api/v1/webhooks/bosta', [
+            '_id' => $externalId,
+            'trackingNumber' => 48089608,
+            'state' => 45,
+            'type' => 'SEND',
+            'cod' => 0,
+            'timeStamp' => 1689252908261,
+            'businessReference' => $order->order_number,
+            'numberOfAttempts' => 1,
+        ], ['X-Bosta-Test-Secret' => 'test-secret'])
+            ->assertOk()
+            ->assertJsonPath('status', 'delivered');
+
+        $this->postJson('/api/v1/webhooks/bosta', [
+            '_id' => $externalId,
+            'state' => 45,
+            'type' => 'SEND',
+        ], ['X-Bosta-Test-Secret' => 'test-secret'])
+            ->assertOk()
+            ->assertJsonPath('duplicate', true);
+
+        $this->assertSame(1, Enrollment::query()->where('user_id', $user->id)->where('course_id', $course->id)->count());
+        Mail::assertSent(OrderConfirmationMail::class, 1);
+    }
+
+    public function test_paid_physical_order_creates_exactly_one_bosta_shipment_and_retries_same_row(): void
+    {
+        [$user, , $product] = $this->kitWithCourse();
+        $order = $this->checkoutKit($user, $product);
+        $this->assertDatabaseCount('shipments', 0);
+
+        $counter = (object) ['calls' => 0];
+        $this->app->instance(
+            \App\Modules\Commerce\Domain\Contracts\BostaClientInterface::class,
+            new class($counter) implements \App\Modules\Commerce\Domain\Contracts\BostaClientInterface {
+                public function __construct(private object $counter) {}
+
+                public function createShipment(\App\Modules\Commerce\Infrastructure\Persistence\Models\Order $order): array
+                {
+                    $this->counter->calls++;
+                    if ($this->counter->calls === 1) {
+                        throw new \RuntimeException('temporary provider failure');
+                    }
+
+                    return [
+                        'external_shipment_id' => 'retry-ok-'.$order->id,
+                        'tracking_number' => 'TRK-R',
+                        'tracking_url' => null,
+                        'provider_status' => '10',
+                        'raw' => ['cod' => 0],
+                    ];
+                }
+            }
+        );
+        $this->app->forgetInstance(BostaShipmentService::class);
+
+        $payment = Payment::query()->create([
+            'order_id' => $order->id,
+            'gateway' => 'mock',
+            'amount' => $order->total,
+            'currency' => 'EGP',
+            'status' => PaymentStatus::Pending->value,
+        ]);
+        app(PaymentCompletionService::class)->complete($payment);
+
+        $this->assertDatabaseCount('shipments', 1);
+        $shipment = $order->fresh()->bostaShipment;
+        $this->assertSame(ShipmentStatus::Failed, $shipment->status);
+        $this->assertNull($shipment->external_shipment_id);
+        $this->assertSame('creation_failed', data_get($shipment->metadata, 'creation_state'));
+
+        app(BostaShipmentService::class)->ensureShipmentForOrder($order->fresh(['items']));
+        $this->assertDatabaseCount('shipments', 1);
+        $shipment = $order->fresh()->bostaShipment;
+        $this->assertSame('retry-ok-'.$order->id, $shipment->external_shipment_id);
+        $this->assertSame(ShipmentStatus::Created, $shipment->status);
+        $this->assertSame(2, $counter->calls);
+
+        app(BostaShipmentService::class)->ensureShipmentForOrder($order->fresh(['items']));
+        $this->assertSame(2, $counter->calls);
+        $this->assertDatabaseCount('shipments', 1);
+    }
+
+    public function test_duplicate_order_paid_creates_exactly_one_bosta_shipment(): void
+    {
+        [$user, , $product] = $this->kitWithCourse();
+        $order = $this->checkoutAndPayKit($user, $product);
+        $this->assertDatabaseCount('shipments', 1);
+
+        app(\App\Modules\Commerce\Application\Services\OrderFulfillmentService::class)->markPaid($order->fresh());
+        app(BostaShipmentService::class)->ensureShipmentForOrder($order->fresh(['items']));
+        $this->assertDatabaseCount('shipments', 1);
     }
 
     public function test_non_bosta_course_product_still_enrolls_on_payment(): void
@@ -612,6 +728,69 @@ final class BostaShippingFulfillmentTest extends TestCase
         $this->assertDatabaseCount('shipments', 0);
     }
 
+    public function test_legacy_blocked_placeholder_is_reused_exactly_once_after_payment(): void
+    {
+        [$user, , $product] = $this->kitWithCourse();
+        $order = $this->checkoutKit($user, $product);
+
+        $placeholder = \App\Modules\Commerce\Infrastructure\Persistence\Models\Shipment::query()->create([
+            'order_id' => $order->id,
+            'provider' => \App\Modules\Commerce\Domain\Enums\ShipmentProvider::Bosta->value,
+            'external_shipment_id' => null,
+            'tracking_number' => null,
+            'provider_status' => null,
+            'status' => ShipmentStatus::Pending,
+            'metadata' => [
+                'creation_state' => 'blocked',
+                'reason' => 'BLOCKED_BY_BOSTA_CREDENTIALS_OR_DOCS',
+            ],
+        ]);
+
+        $counter = (object) ['calls' => 0];
+        $this->app->instance(
+            \App\Modules\Commerce\Domain\Contracts\BostaClientInterface::class,
+            new class($counter) implements \App\Modules\Commerce\Domain\Contracts\BostaClientInterface {
+                public function __construct(private object $counter) {}
+
+                public function createShipment(\App\Modules\Commerce\Infrastructure\Persistence\Models\Order $order): array
+                {
+                    $this->counter->calls++;
+
+                    return [
+                        'external_shipment_id' => 'legacy-reuse-'.$order->id,
+                        'tracking_number' => 'TRK-LEGACY',
+                        'tracking_url' => 'https://bosta.test/track/TRK-LEGACY',
+                        'provider_status' => '10',
+                        'raw' => ['cod' => 0],
+                    ];
+                }
+            }
+        );
+        $this->app->forgetInstance(BostaShipmentService::class);
+
+        $payment = Payment::query()->create([
+            'order_id' => $order->id,
+            'gateway' => 'mock',
+            'amount' => $order->total,
+            'currency' => 'EGP',
+            'status' => PaymentStatus::Pending->value,
+        ]);
+        app(PaymentCompletionService::class)->complete($payment);
+
+        $this->assertSame(1, $counter->calls);
+        $this->assertDatabaseCount('shipments', 1);
+
+        $shipment = $order->fresh()->bostaShipment;
+        $this->assertSame($placeholder->id, $shipment->id);
+        $this->assertSame('legacy-reuse-'.$order->id, $shipment->external_shipment_id);
+        $this->assertSame('TRK-LEGACY', $shipment->tracking_number);
+        $this->assertSame(ShipmentStatus::Created, $shipment->status);
+
+        app(BostaShipmentService::class)->ensureShipmentForOrder($order->fresh(['items']));
+        $this->assertSame(1, $counter->calls);
+        $this->assertDatabaseCount('shipments', 1);
+    }
+
     /**
      * @return array{0: User, 1: Course, 2: Product}
      */
@@ -657,11 +836,41 @@ final class BostaShippingFulfillmentTest extends TestCase
 
     private function checkoutKit(User $user, Product $product): Order
     {
+        $address = [
+            'first_name' => $user->name,
+            'last_name' => 'User',
+            'email' => $user->email,
+            'phone' => '01012345678',
+            'city' => 'Cairo',
+            'country' => 'EG',
+            'address' => '12 Test Street',
+            'district' => 'Nasr City',
+            'district_name' => 'Nasr City',
+            'bosta_district_id' => 'district-nasr',
+            'bosta_city_id' => 'FceDyHXwpSYYF9zGW',
+        ];
+
         return app(CheckoutService::class)->createOrderFromCart(
             $user,
             $this->cartWithProduct($user, $product),
-            ['first_name' => $user->name, 'last_name' => 'User', 'email' => $user->email, 'phone' => '01012345678', 'city' => 'Cairo', 'country' => 'EG'],
-            ['first_name' => $user->name, 'last_name' => 'User', 'email' => $user->email, 'phone' => '01012345678', 'city' => 'Cairo', 'country' => 'EG'],
+            $address,
+            $address,
         )['order'];
+    }
+
+    private function checkoutAndPayKit(User $user, Product $product): Order
+    {
+        $order = $this->checkoutKit($user, $product);
+
+        $payment = Payment::query()->create([
+            'order_id' => $order->id,
+            'gateway' => 'mock',
+            'amount' => $order->total,
+            'currency' => 'EGP',
+            'status' => PaymentStatus::Pending->value,
+        ]);
+        app(PaymentCompletionService::class)->complete($payment);
+
+        return $order->fresh(['items', 'bostaShipment']) ?? $order;
     }
 }

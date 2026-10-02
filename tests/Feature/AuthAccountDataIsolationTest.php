@@ -180,6 +180,9 @@ final class AuthAccountDataIsolationTest extends TestCase
                     'country' => 'EG',
                     'address' => '12 Test Street',
                     'district' => 'Dokki',
+                    'district_name' => 'Dokki',
+                    'bosta_district_id' => 'district-dokki',
+                    'bosta_city_id' => '0064Qb0OgcA',
                 ],
                 'shipping_address' => [
                     'first_name' => 'Checkout',
@@ -190,6 +193,9 @@ final class AuthAccountDataIsolationTest extends TestCase
                     'country' => 'EG',
                     'address' => '12 Test Street',
                     'district' => 'Dokki',
+                    'district_name' => 'Dokki',
+                    'bosta_district_id' => 'district-dokki',
+                    'bosta_city_id' => '0064Qb0OgcA',
                 ],
             ])
             ->assertCreated();

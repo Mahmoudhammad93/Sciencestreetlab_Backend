@@ -25,6 +25,12 @@ final class GuestCheckoutMailTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(\Database\Seeders\ShippingRateSeeder::class);
+    }
+
     public function test_guest_confirmation_goes_to_billing_email_with_secure_status_url(): void
     {
         Mail::fake();
@@ -287,6 +293,10 @@ final class GuestCheckoutMailTest extends TestCase
             'city' => 'Cairo',
             'country' => 'EG',
             'address' => 'Street 1',
+            'district' => 'Nasr City',
+            'district_name' => 'Nasr City',
+            'bosta_district_id' => 'district-nasr',
+            'bosta_city_id' => 'FceDyHXwpSYYF9zGW',
         ];
     }
 }

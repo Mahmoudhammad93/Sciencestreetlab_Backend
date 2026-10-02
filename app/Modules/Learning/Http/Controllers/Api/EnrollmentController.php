@@ -11,9 +11,11 @@ use App\Modules\Learning\Application\Services\CoursePresenter;
 use App\Modules\Learning\Application\Services\CourseProgressService;
 use App\Modules\Learning\Application\Services\CurriculumService;
 use App\Modules\Learning\Application\Services\EnrollUserService;
+use App\Modules\Learning\Application\Support\CourseSlugResolver;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
 use App\Modules\Learning\Infrastructure\Persistence\Models\CoursePlan;
 use DomainException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -26,6 +28,7 @@ final class EnrollmentController extends Controller
         private readonly EnrollUserService $enrollUser,
         private readonly CourseProgressService $progress,
         private readonly CoursePresenter $presenter,
+        private readonly CourseSlugResolver $slugResolver,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -51,7 +54,7 @@ final class EnrollmentController extends Controller
 
     public function curriculum(Request $request, string $slug): JsonResponse
     {
-        $course = Course::query()->where('slug', $slug)->where('is_published', true)->firstOrFail();
+        $course = $this->requirePublishedCourse($slug);
 
         try {
             $enrollment = $this->access->requireEnrollment($request->user(), $course);
@@ -66,7 +69,7 @@ final class EnrollmentController extends Controller
 
    public function enroll(Request $request, string $slug): JsonResponse
 {
-    $course = Course::query()->where('slug', $slug)->where('is_published', true)->firstOrFail();
+    $course = $this->requirePublishedCourse($slug);
 
     try {
         $result = $this->enrollUser->enrollDirect($request->user(), $course);
@@ -100,7 +103,7 @@ final class EnrollmentController extends Controller
 
     public function forCourse(Request $request, string $slug): JsonResponse
     {
-        $course = Course::query()->where('slug', $slug)->where('is_published', true)->firstOrFail();
+        $course = $this->requirePublishedCourse($slug);
         $enrollment = $this->access->enrollmentFor($request->user(), $course);
 
         if (! $enrollment) {
@@ -118,7 +121,7 @@ final class EnrollmentController extends Controller
 
     public function progress(Request $request, string $slug): JsonResponse
     {
-        $course = Course::query()->where('slug', $slug)->where('is_published', true)->firstOrFail();
+        $course = $this->requirePublishedCourse($slug);
 
         try {
             $enrollment = $this->access->requireEnrollment($request->user(), $course);
@@ -133,7 +136,7 @@ final class EnrollmentController extends Controller
 
     public function access(Request $request, string $slug): JsonResponse
     {
-        $course = Course::query()->where('slug', $slug)->where('is_published', true)->firstOrFail();
+        $course = $this->requirePublishedCourse($slug);
         $enrollment = $this->access->enrollmentFor($request->user(), $course);
 
         if (! $enrollment) {
@@ -149,7 +152,7 @@ final class EnrollmentController extends Controller
 
     public function enrollPlan(Request $request, string $slug, int $planId): JsonResponse
 {
-    $course = Course::query()->where('slug', $slug)->where('is_published', true)->firstOrFail();
+    $course = $this->requirePublishedCourse($slug);
     $plan = CoursePlan::query()
         ->whereKey($planId)
         ->where('course_id', $course->id)
@@ -176,4 +179,14 @@ final class EnrollmentController extends Controller
         'data' => $this->planAccess->accessSummary($result['enrollment']->fresh(['coursePlan', 'entitlements'])),
     ], 201);
 }
+
+    private function requirePublishedCourse(string $slug): Course
+    {
+        $course = $this->slugResolver->resolve($slug, publishedOnly: true);
+        if ($course === null) {
+            throw (new ModelNotFoundException)->setModel(Course::class, [$slug]);
+        }
+
+        return $course;
+    }
 }

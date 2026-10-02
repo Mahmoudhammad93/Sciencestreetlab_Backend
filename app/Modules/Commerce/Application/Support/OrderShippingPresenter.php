@@ -64,12 +64,17 @@ final class OrderShippingPresenter
         $courseAccess = $this->courseAccess($order, $status);
         $steps = $this->buildSteps($order, $shipment, $status, $courseAccess['status']);
         $progress = $this->buildProgress($steps, $status);
+        $statusLabel = $this->hasProviderShipment($shipment)
+            ? $status->label()
+            : ($order->paid_at === null
+                ? (string) __('shipping.status.waiting_payment')
+                : (string) __('shipping.status.awaiting_creation'));
 
         return [
             'required' => true,
             'provider' => $shipment?->provider?->value ?? 'bosta',
             'status' => $status->value,
-            'status_label' => $status->label(),
+            'status_label' => $statusLabel,
             'tracking_number' => $shipment?->tracking_number,
             'tracking_url' => $shipment?->tracking_url,
             'shipped_at' => $this->iso($shipment?->shipped_at),
@@ -124,11 +129,11 @@ final class OrderShippingPresenter
         // When fulfilled, all steps are completed (no current).
         $currentIndex = $courseActivated
             ? null
-            : $this->currentStepIndex($status, $shipment, $courseAccessStatus);
+            : $this->currentStepIndex($order, $status, $shipment, $courseAccessStatus);
 
         $steps = [];
         foreach (self::JOURNEY_STEPS as $index => $key) {
-            $label = (string) __('shipping.steps.'.$key);
+            $label = $this->stepLabel($key, $order, $shipment);
 
             if ($courseActivated || ($currentIndex !== null && $index < $currentIndex)) {
                 $steps[] = [
@@ -178,6 +183,7 @@ final class OrderShippingPresenter
      * 0-based index into JOURNEY_STEPS for the highlighted current/failed step.
      */
     private function currentStepIndex(
+        Order $order,
         ShipmentStatus $status,
         ?Shipment $shipment,
         string $courseAccessStatus,
@@ -199,6 +205,17 @@ final class OrderShippingPresenter
             return array_search('shipment_created', self::JOURNEY_STEPS, true);
         }
 
+        // Local placeholders without a provider id are NOT a created Bosta delivery.
+        if (! $this->hasProviderShipment($shipment)) {
+            if ($order->paid_at === null) {
+                return array_search('order_placed', self::JOURNEY_STEPS, true);
+            }
+
+            // Paid, waiting for / retrying provider create — highlight creation step,
+            // but labels remain "awaiting creation" until external id exists.
+            return array_search('shipment_created', self::JOURNEY_STEPS, true);
+        }
+
         if ($status === ShipmentStatus::Pending) {
             return array_search('shipment_created', self::JOURNEY_STEPS, true);
         }
@@ -212,11 +229,32 @@ final class OrderShippingPresenter
         };
     }
 
+    private function hasProviderShipment(?Shipment $shipment): bool
+    {
+        return $shipment !== null && filled($shipment->external_shipment_id);
+    }
+
+    private function stepLabel(string $key, Order $order, ?Shipment $shipment): string
+    {
+        if ($key === 'shipment_created' && ! $this->hasProviderShipment($shipment)) {
+            if ($order->paid_at === null) {
+                return (string) __('shipping.steps.shipment_waiting_payment');
+            }
+
+            return (string) __('shipping.steps.shipment_awaiting_creation');
+        }
+
+        return (string) __('shipping.steps.'.$key);
+    }
+
     private function completedAtForStep(string $key, Order $order, ?Shipment $shipment): ?string
     {
         return match ($key) {
             'order_placed' => $this->iso($order->created_at),
-            'shipment_created' => $this->iso($shipment?->created_at),
+            // Only count provider-accepted creation, not local placeholders.
+            'shipment_created' => $this->hasProviderShipment($shipment)
+                ? $this->iso($shipment?->created_at)
+                : null,
             // Only shipped_at is persisted for mid-journey stages.
             'picked_up', 'in_transit', 'out_for_delivery' => $this->iso($shipment?->shipped_at),
             'delivered' => $this->iso($shipment?->delivered_at ?? $order->delivered_at),

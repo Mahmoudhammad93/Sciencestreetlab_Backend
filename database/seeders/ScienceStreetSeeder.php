@@ -37,6 +37,7 @@ final class ScienceStreetSeeder extends Seeder
         $this->call(FreeInteractiveLabsSeeder::class);
         $this->call(ProductionFiveStationsCoursesSeeder::class);
         $this->call(FreeFiveStationsCoursesSeeder::class);
+        $this->call(ShippingRateSeeder::class);
 
         $microscopeCourse = Course::query()->where('slug', 'microscope-course')->firstOrFail();
 

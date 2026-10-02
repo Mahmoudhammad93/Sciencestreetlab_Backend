@@ -24,6 +24,12 @@ final class GuestCheckoutTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(\Database\Seeders\ShippingRateSeeder::class);
+    }
+
     public function test_guest_physical_checkout_and_pay(): void
     {
         $kit = $this->kit();
@@ -164,7 +170,9 @@ final class GuestCheckoutTest extends TestCase
             ->postJson('/api/v1/checkout', $this->guestPayload(true))
             ->assertCreated();
 
-        $this->assertEquals(250.0, (float) $checkout->json('data.total'));
+        $this->assertEquals(330.0, (float) $checkout->json('data.total'));
+        $this->assertEquals(80.0, (float) $checkout->json('data.shipping_amount'));
+        $this->assertEquals(250.0, (float) $checkout->json('data.subtotal'));
     }
 
     public function test_guest_pay_rejects_invalid_token_and_foreign_user(): void
@@ -380,6 +388,10 @@ final class GuestCheckoutTest extends TestCase
             'city' => 'Cairo',
             'country' => 'EG',
             'address' => 'Street 1',
+            'district' => 'Nasr City',
+            'district_name' => 'Nasr City',
+            'bosta_district_id' => 'district-nasr',
+            'bosta_city_id' => 'FceDyHXwpSYYF9zGW',
         ];
     }
 

@@ -27,6 +27,59 @@ final class CheckoutController extends Controller
         private readonly OrderPaymentEligibility $paymentEligibility,
     ) {}
 
+    public function quote(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'shipping_address' => ['nullable', 'array'],
+            'shipping_address.city' => ['nullable', 'string', 'max:100'],
+            'shipping_address.country' => ['nullable', 'string', 'max:2'],
+            'shipping_address.address' => ['nullable', 'string', 'max:500'],
+            'shipping_address.district' => ['nullable', 'string', 'max:150'],
+            'shipping_address.district_name' => ['nullable', 'string', 'max:150'],
+            'shipping_address.district_id' => ['nullable', 'string', 'max:64'],
+            'shipping_address.bosta_district_id' => ['nullable', 'string', 'max:64'],
+            'shipping_address.bosta_city_id' => ['nullable', 'string', 'max:64'],
+            'shipping_address.zone_id' => ['nullable', 'string', 'max:64'],
+            'shipping_address.bosta_zone_id' => ['nullable', 'string', 'max:64'],
+            'billing_address' => ['nullable', 'array'],
+            'billing_address.bosta_city_id' => ['nullable', 'string', 'max:64'],
+            'billing_address.bosta_district_id' => ['nullable', 'string', 'max:64'],
+            'billing_address.district_id' => ['nullable', 'string', 'max:64'],
+            'billing_address.zone_id' => ['nullable', 'string', 'max:64'],
+            'billing_address.bosta_zone_id' => ['nullable', 'string', 'max:64'],
+        ]);
+
+        $cart = $this->resolvesCart->fromRequest($request);
+        $shippingAddress = $validated['shipping_address']
+            ?? $validated['billing_address']
+            ?? null;
+
+        try {
+            $quote = $this->checkoutService->quoteCart($cart, $shippingAddress);
+        } catch (DomainException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'code' => 'shipping_unavailable',
+            ], 422);
+        }
+
+        return response()->json([
+            'data' => [
+                'subtotal' => $quote['subtotal'],
+                'discount' => $quote['discount'],
+                'shipping' => $quote['shipping'],
+                'tax' => $quote['tax'],
+                'total' => $quote['total'],
+                'currency' => $quote['currency'],
+                'shipping_label' => $quote['shipping_label'],
+                'shipping_reason' => $quote['shipping_reason'],
+                'shipping_free' => $quote['shipping_free'],
+                'requires_shipping' => $quote['requires_shipping'],
+                'shipping_quote' => $quote['shipping_quote'],
+            ],
+        ]);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([

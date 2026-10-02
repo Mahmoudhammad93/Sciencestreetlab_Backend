@@ -117,7 +117,20 @@ final class EnrollUserService
 
     private function createOrderForCourseProduct(User $user, Course $course): Order
     {
-        $product = Product::query()->findOrFail($course->product_id);
+        if ($course->product_id === null) {
+            throw new DomainException(
+                'لا يمكن الالتحاق بهذه الدورة حاليًا لأن منتج الشراء غير مرتبط.',
+                422,
+            );
+        }
+
+        $product = Product::query()->find($course->product_id);
+        if ($product === null) {
+            throw new DomainException(
+                'لا يمكن الالتحاق بهذه الدورة حاليًا لأن منتج الشراء غير متاح.',
+                422,
+            );
+        }
 
         return $this->createAwaitingPaymentOrder($user, $product, $course->getTranslation('title', app()->getLocale()));
     }

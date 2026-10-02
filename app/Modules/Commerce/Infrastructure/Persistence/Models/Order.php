@@ -24,6 +24,7 @@ class Order extends Model
         'billing_address', 'shipping_address', 'notes', 'paid_at', 'confirmation_email_sent_at',
         'confirmation_email_claimed_at', 'shipped_at',
         'delivered_at', 'fulfilled_at', 'requires_delivery_fulfillment', 'cancelled_at',
+        'shipping_snapshot',
     ];
 
     protected static function booted(): void
@@ -48,6 +49,7 @@ class Order extends Model
             'total' => 'decimal:2',
             'billing_address' => 'array',
             'shipping_address' => 'array',
+            'shipping_snapshot' => 'array',
             'paid_at' => 'datetime',
             'confirmation_email_sent_at' => 'datetime',
             'confirmation_email_claimed_at' => 'datetime',

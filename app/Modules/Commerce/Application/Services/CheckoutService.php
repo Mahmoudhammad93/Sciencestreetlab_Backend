@@ -28,7 +28,66 @@ final class CheckoutService
         private readonly CouponService $couponService,
         private readonly BostaShipmentService $bostaShipments,
         private readonly GuestOrderCapabilityService $guestCapabilities,
+        private readonly ShippingPricingService $shippingPricing,
     ) {}
+
+    /**
+     * Authoritative totals without creating an order.
+     *
+     * @param  array<string, mixed>|null  $shippingAddress
+     * @return array{
+     *     subtotal: float,
+     *     discount: float,
+     *     shipping: float,
+     *     tax: float,
+     *     total: float,
+     *     currency: string,
+     *     shipping_label: string,
+     *     shipping_reason: string,
+     *     shipping_free: bool,
+     *     shipping_quote: array<string, mixed>,
+     *     requires_shipping: bool
+     * }
+     */
+    public function quoteCart(Cart $cart, ?array $shippingAddress = null): array
+    {
+        $cart->load('items.product');
+
+        if ($cart->items->isEmpty()) {
+            throw new DomainException('Cannot quote an empty cart.');
+        }
+
+        $subtotal = 0.0;
+        foreach ($cart->items as $item) {
+            $product = $item->product;
+            if (! $product instanceof Product) {
+                throw new DomainException('Cart contains an invalid product.');
+            }
+            $subtotal += (float) $product->price * max(1, (int) $item->quantity);
+        }
+
+        $discount = $this->couponService->discountForCart($cart);
+        $requiresShipping = $this->cartRequiresShipping($cart);
+        $quoteShippingAddress = $requiresShipping ? $shippingAddress : null;
+        $shippingQuote = $this->shippingPricing->quoteForCart($cart, $quoteShippingAddress);
+        $shipping = (float) $shippingQuote['amount'];
+        $tax = 0.0;
+        $total = max(0, $subtotal - $discount + $shipping + $tax);
+
+        return [
+            'subtotal' => round($subtotal, 2),
+            'discount' => round($discount, 2),
+            'shipping' => round($shipping, 2),
+            'tax' => round($tax, 2),
+            'total' => round($total, 2),
+            'currency' => 'EGP',
+            'shipping_label' => (string) $shippingQuote['label'],
+            'shipping_reason' => (string) $shippingQuote['reason'],
+            'shipping_free' => (bool) $shippingQuote['free'],
+            'shipping_quote' => $shippingQuote,
+            'requires_shipping' => $requiresShipping,
+        ];
+    }
 
     /**
      * @param  array<string, mixed>  $billingAddress
@@ -79,7 +138,7 @@ final class CheckoutService
 
         $isCod = $paymentMethod->isCashOnDelivery();
 
-        $result = DB::transaction(function () use ($user, $cart, $billingAddress, $shippingAddress, $notes, $isCod): array {
+        $result = DB::transaction(function () use ($user, $cart, $billingAddress, $shippingAddress, $notes, $isCod, $requiresShipping): array {
             $lines = [];
             $subtotal = 0.0;
 
@@ -114,7 +173,16 @@ final class CheckoutService
             $cart->load('items.product');
 
             $discount = $this->couponService->discountForCart($cart);
-            $shipping = 0;
+            $shippingQuote = $this->shippingPricing->quoteForCart(
+                $cart,
+                $requiresShipping ? $shippingAddress : null,
+            );
+            if (($shippingQuote['reason'] ?? null) === 'destination_pending') {
+                throw new DomainException(
+                    'سعر التوصيل لهذه المنطقة غير متاح حاليًا، يرجى التواصل معنا.'
+                );
+            }
+            $shipping = (float) $shippingQuote['amount'];
             $total = max(0, $subtotal - $discount + $shipping);
             $isGuest = $user === null;
 
@@ -137,6 +205,7 @@ final class CheckoutService
                 'coupon_code' => $cart->coupon_code,
                 'billing_address' => $billingAddress,
                 'shipping_address' => $shippingAddress,
+                'shipping_snapshot' => $shippingQuote,
                 'notes' => $notes,
             ]);
 
@@ -155,6 +224,7 @@ final class CheckoutService
                         'product_type' => $product->type->value,
                         'course_id' => $product->course_id,
                         'course_plan_id' => $product->course_plan_id,
+                        'free_shipping' => (bool) ($product->free_shipping ?? false),
                     ],
                 ]);
             }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Commerce\Infrastructure\Shipping\Bosta;
 
+use App\Modules\Commerce\Application\Support\BostaPackageDetailsBuilder;
 use App\Modules\Commerce\Application\Support\OrderPaymentMethod;
 use App\Modules\Commerce\Domain\Contracts\BostaClientInterface;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Order;
@@ -23,6 +24,10 @@ use RuntimeException;
  */
 final class HttpBostaClient implements BostaClientInterface
 {
+    public function __construct(
+        private readonly BostaPackageDetailsBuilder $packageDetails = new BostaPackageDetailsBuilder,
+    ) {}
+
     public function createShipment(Order $order): array
     {
         $this->assertReady();
@@ -237,8 +242,7 @@ final class HttpBostaClient implements BostaClientInterface
         }
 
         $dropOff = $this->buildDropOffAddress($shipping, $billing);
-        $itemsCount = max(1, (int) $order->items->sum('quantity'));
-        $description = 'Science Street Lab order '.$order->order_number;
+        $packageDetails = $this->packageDetails->build($order);
 
         // ONLINE prepaid (Fawaterak): collectible COD must be 0.
         // Cash on Delivery: Bosta collects the authoritative final order total.
@@ -260,8 +264,10 @@ final class HttpBostaClient implements BostaClientInterface
             'dropOffAddress' => $dropOff,
             'specs' => [
                 'packageDetails' => [
-                    'description' => $description,
-                    'itemsCount' => $itemsCount,
+                    // Official Bosta contract: description + itemsCount only.
+                    // Product names/qty come from order-item snapshots (not live Product).
+                    'description' => $packageDetails['description'],
+                    'itemsCount' => $packageDetails['itemsCount'],
                 ],
             ],
             'notes' => 'Order '.$order->order_number,

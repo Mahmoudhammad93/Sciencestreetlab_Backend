@@ -46,6 +46,7 @@ class Product extends Model implements HasMedia
         'name', 'short_description', 'description', 'meta_title', 'meta_description',
         'difficulty_level', 'target_age', 'key_benefits', 'scientific_concepts',
         'design_lab_description', 'creative_lab_description', 'related_course_id',
+        'free_shipping',
     ];
 
     protected static function booted(): void
@@ -66,6 +67,7 @@ class Product extends Model implements HasMedia
             'compare_price' => 'decimal:2',
             'manage_stock' => 'boolean',
             'is_featured' => 'boolean',
+            'free_shipping' => 'boolean',
             'published_at' => 'datetime',
         ];
     }

@@ -6,6 +6,7 @@ namespace App\Modules\Learning\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Learning\Application\Services\CourseLeaderboardService;
+use App\Modules\Learning\Application\Support\CourseSlugResolver;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,14 +15,12 @@ final class CourseLeaderboardController extends Controller
 {
     public function __construct(
         private readonly CourseLeaderboardService $leaderboard,
+        private readonly CourseSlugResolver $slugResolver,
     ) {}
 
     public function show(Request $request, string $slug): JsonResponse
     {
-        $course = Course::query()
-            ->where('slug', $slug)
-            ->where('is_published', true)
-            ->first();
+        $course = $this->slugResolver->resolve($slug, publishedOnly: true);
 
         if ($course === null) {
             return response()->json(['message' => 'Course not found'], 404);

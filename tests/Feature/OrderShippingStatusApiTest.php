@@ -35,6 +35,8 @@ final class OrderShippingStatusApiTest extends TestCase
             'bosta.api_contract_ready' => false,
             'bosta.webhook_signature_ready' => false,
         ]);
+
+        $this->seed(\Database\Seeders\ShippingRateSeeder::class);
     }
 
     public function test_shipping_status_returned_for_bosta_order(): void
@@ -392,6 +394,91 @@ final class OrderShippingStatusApiTest extends TestCase
             ->assertJsonPath('data.shipping.steps.3.label', 'الشحنة في الطريق');
     }
 
+    public function test_placeholder_without_external_id_is_not_shipment_created(): void
+    {
+        [$user, , $product] = $this->kitWithCourse();
+        $order = app(CheckoutService::class)->createOrderFromCart(
+            $user,
+            $this->cartWithProduct($user, $product),
+            $this->shippingAddress($user),
+            $this->shippingAddress($user),
+        )['order'];
+
+        \App\Modules\Commerce\Infrastructure\Persistence\Models\Shipment::query()->create([
+            'order_id' => $order->id,
+            'provider' => \App\Modules\Commerce\Domain\Enums\ShipmentProvider::Bosta->value,
+            'external_shipment_id' => null,
+            'tracking_number' => null,
+            'status' => ShipmentStatus::Pending,
+            'metadata' => [
+                'creation_state' => 'blocked',
+                'reason' => 'BLOCKED_BY_BOSTA_CREDENTIALS_OR_DOCS',
+            ],
+        ]);
+
+        Sanctum::actingAs($user);
+        $payload = $this->getJson('/api/v1/orders/'.$order->order_number, ['Accept-Language' => 'ar'])
+            ->assertOk()
+            ->json('data.shipping');
+
+        $this->assertSame('في انتظار الدفع', $payload['status_label']);
+        $this->assertNotSame('تم إنشاء الشحنة', $payload['status_label']);
+        $this->assertStepStates($payload['steps'], [
+            'order_placed' => 'current',
+            'shipment_created' => 'pending',
+            'picked_up' => 'pending',
+            'in_transit' => 'pending',
+            'out_for_delivery' => 'pending',
+            'delivered' => 'pending',
+            'course_activated' => 'pending',
+        ]);
+        $shipmentStep = collect($payload['steps'])->firstWhere('key', 'shipment_created');
+        $this->assertSame('في انتظار الدفع', $shipmentStep['label']);
+        $this->assertNotSame('تم إنشاء الشحنة', $shipmentStep['label']);
+    }
+
+    public function test_unpaid_physical_order_with_placeholder_shows_waiting_payment_semantics(): void
+    {
+        [$user, , $product] = $this->kitWithCourse();
+        $order = app(CheckoutService::class)->createOrderFromCart(
+            $user,
+            $this->cartWithProduct($user, $product),
+            $this->shippingAddress($user),
+            $this->shippingAddress($user),
+        )['order'];
+
+        \App\Modules\Commerce\Infrastructure\Persistence\Models\Shipment::query()->create([
+            'order_id' => $order->id,
+            'provider' => \App\Modules\Commerce\Domain\Enums\ShipmentProvider::Bosta->value,
+            'external_shipment_id' => null,
+            'status' => ShipmentStatus::Pending,
+            'metadata' => ['creation_state' => 'BLOCKED_BY_BOSTA_CREDENTIALS_OR_DOCS'],
+        ]);
+
+        Sanctum::actingAs($user);
+        $this->getJson('/api/v1/orders/'.$order->order_number)
+            ->assertOk()
+            ->assertJsonPath('data.status', 'awaiting_payment')
+            ->assertJsonPath('data.shipping.status_label', 'Waiting for payment')
+            ->assertJsonPath('data.shipping.steps.0.status', 'current')
+            ->assertJsonPath('data.shipping.steps.1.label', 'Waiting for payment');
+    }
+
+    public function test_real_created_shipment_renders_created_state(): void
+    {
+        [$user, , $product] = $this->kitWithCourse();
+        $order = $this->checkoutKit($user, $product);
+
+        $this->assertNotNull($order->bostaShipment?->external_shipment_id);
+
+        Sanctum::actingAs($user);
+        $this->getJson('/api/v1/orders/'.$order->order_number, ['Accept-Language' => 'ar'])
+            ->assertOk()
+            ->assertJsonPath('data.shipping.status_label', 'تم إنشاء الشحنة')
+            ->assertJsonPath('data.shipping.steps.1.label', 'تم إنشاء الشحنة')
+            ->assertJsonPath('data.shipping.steps.1.status', 'current');
+    }
+
     /**
      * @param  array<string, string>  $expected
      * @param  list<array{key: string, status: string}>  $steps
@@ -474,13 +561,43 @@ final class OrderShippingStatusApiTest extends TestCase
         return $cart->fresh(['items.product']);
     }
 
+    private function shippingAddress(User $user): array
+    {
+        return [
+            'first_name' => $user->name,
+            'last_name' => 'User',
+            'email' => $user->email,
+            'phone' => '01012345678',
+            'city' => 'Cairo',
+            'country' => 'EG',
+            'address' => '12 Test Street',
+            'district' => 'Nasr City',
+            'district_name' => 'Nasr City',
+            'district_id' => 'district-test-1',
+            'bosta_district_id' => 'district-test-1',
+            'bosta_city_id' => 'FceDyHXwpSYYF9zGW',
+        ];
+    }
+
     private function checkoutKit(User $user, Product $product): Order
     {
-        return app(CheckoutService::class)->createOrderFromCart(
+        $address = $this->shippingAddress($user);
+        $order = app(CheckoutService::class)->createOrderFromCart(
             $user,
             $this->cartWithProduct($user, $product),
-            ['first_name' => $user->name, 'last_name' => 'User', 'email' => $user->email, 'phone' => '01012345678', 'city' => 'Cairo', 'country' => 'EG'],
-            ['first_name' => $user->name, 'last_name' => 'User', 'email' => $user->email, 'phone' => '01012345678', 'city' => 'Cairo', 'country' => 'EG'],
+            $address,
+            $address,
         )['order'];
+
+        $payment = \App\Modules\Commerce\Infrastructure\Persistence\Models\Payment::query()->create([
+            'order_id' => $order->id,
+            'gateway' => 'mock',
+            'amount' => $order->total,
+            'currency' => 'EGP',
+            'status' => \App\Modules\Commerce\Domain\Enums\PaymentStatus::Pending->value,
+        ]);
+        app(\App\Modules\Commerce\Application\Services\PaymentCompletionService::class)->complete($payment);
+
+        return $order->fresh(['items', 'bostaShipment']) ?? $order;
     }
 }

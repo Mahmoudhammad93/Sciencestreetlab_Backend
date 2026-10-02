@@ -127,6 +127,13 @@ class ProductResource extends Resource
                     ->minValue(0),
                 Forms\Components\Toggle::make('is_featured')
                     ->label(__('admin.products.fields.is_featured')),
+                Forms\Components\Toggle::make('free_shipping')
+                    ->label(__('admin.products.fields.free_shipping'))
+                    ->helperText(__('admin.products.fields.free_shipping_help'))
+                    ->visible(fn (Get $get): bool => in_array($get('type'), [
+                        ProductType::Kit->value,
+                        ProductType::Bundle->value,
+                    ], true)),
                 Forms\Components\DateTimePicker::make('published_at')
                     ->label(__('admin.products.fields.published_at'))
                     ->visible(fn (Get $get): bool => $get('status') === ProductStatus::Published->value),
@@ -392,6 +399,9 @@ class ProductResource extends Resource
                     ->toggleable(),
                 Tables\Columns\IconColumn::make('is_featured')
                     ->label(__('admin.products.table.featured'))
+                    ->boolean(),
+                Tables\Columns\IconColumn::make('free_shipping')
+                    ->label(__('admin.products.table.free_shipping'))
                     ->boolean(),
                 Tables\Columns\TextColumn::make('published_at')
                     ->label(__('admin.products.fields.published_at'))

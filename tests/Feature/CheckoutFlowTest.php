@@ -38,6 +38,11 @@ final class CheckoutFlowTest extends TestCase
                 'phone' => '01012345678',
                 'city' => 'Cairo',
                 'country' => 'EG',
+                'address' => '12 Test Street',
+                'district' => 'Nasr City',
+                'district_name' => 'Nasr City',
+                'bosta_district_id' => 'district-nasr',
+                'bosta_city_id' => 'FceDyHXwpSYYF9zGW',
             ],
             'shipping_address' => [
                 'first_name' => 'Ahmed',
@@ -46,6 +51,11 @@ final class CheckoutFlowTest extends TestCase
                 'phone' => '01012345678',
                 'city' => 'Cairo',
                 'country' => 'EG',
+                'address' => '12 Test Street',
+                'district' => 'Nasr City',
+                'district_name' => 'Nasr City',
+                'bosta_district_id' => 'district-nasr',
+                'bosta_city_id' => 'FceDyHXwpSYYF9zGW',
             ],
         ])->assertCreated();
 
@@ -118,6 +128,11 @@ final class CheckoutFlowTest extends TestCase
                 'phone' => '01012345678',
                 'city' => 'Cairo',
                 'country' => 'EG',
+                'address' => '12 Test Street',
+                'district' => 'Nasr City',
+                'district_name' => 'Nasr City',
+                'bosta_district_id' => 'district-nasr',
+                'bosta_city_id' => 'FceDyHXwpSYYF9zGW',
             ],
             'shipping_address' => [
                 'first_name' => 'Ahmed',
@@ -126,6 +141,11 @@ final class CheckoutFlowTest extends TestCase
                 'phone' => '01012345678',
                 'city' => 'Cairo',
                 'country' => 'EG',
+                'address' => '12 Test Street',
+                'district' => 'Nasr City',
+                'district_name' => 'Nasr City',
+                'bosta_district_id' => 'district-nasr',
+                'bosta_city_id' => 'FceDyHXwpSYYF9zGW',
             ],
         ])->assertCreated();
 

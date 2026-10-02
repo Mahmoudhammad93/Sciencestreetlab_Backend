@@ -5,6 +5,8 @@ declare(strict_types=1);
 return [
     'status' => [
         'pending' => 'Pending',
+        'waiting_payment' => 'Waiting for payment',
+        'awaiting_creation' => 'Preparing shipment',
         'created' => 'Shipment Created',
         'picked_up' => 'Picked Up',
         'in_transit' => 'In Transit',
@@ -16,6 +18,8 @@ return [
     ],
     'steps' => [
         'order_placed' => 'Order Placed',
+        'shipment_waiting_payment' => 'Waiting for payment',
+        'shipment_awaiting_creation' => 'Preparing shipment',
         'shipment_created' => 'Shipment Created',
         'picked_up' => 'Picked Up',
         'in_transit' => 'In Transit',
