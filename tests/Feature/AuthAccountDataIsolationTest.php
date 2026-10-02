@@ -24,6 +24,11 @@ final class AuthAccountDataIsolationTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_sanctum_guard_skips_web_session_for_api_tokens(): void
+    {
+        $this->assertSame([], config('sanctum.guard'));
+    }
+
     public function test_login_token_belongs_to_credentials_user(): void
     {
         $a = User::factory()->create([

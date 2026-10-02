@@ -10,12 +10,14 @@ use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * When a Bearer token is present, ignore the web session user for this request.
+ * Defense-in-depth for SHARED_SESSION_GUARD_BUG.
  *
- * Filament admin and the customer SPA share app.sciencestreetlab.com. Sanctum's
- * guard checks the web session BEFORE the Bearer token, so an active /admin
- * session would otherwise make /api/* resolve as the admin even when the SPA
- * sends a customer token — leaking admin profile/orders/enrollments.
+ * Primary fix is config/sanctum.php `guard => []` (Bearer-only for auth:sanctum).
+ * This middleware remains so any future reintroduction of a web sanctum guard
+ * still forgets an in-memory web user when a Bearer token is present.
+ *
+ * Note: SessionGuard may reload from session after forgetUser(); do not rely on
+ * this middleware alone — sanctum.guard must stay empty for production SPA.
  */
 final class PreferBearerTokenOverSession
 {

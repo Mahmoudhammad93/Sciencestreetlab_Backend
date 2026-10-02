@@ -30,14 +30,17 @@ return [
     | Sanctum Guards
     |--------------------------------------------------------------------------
     |
-    | This array contains the authentication guards that will be checked when
-    | Sanctum is trying to authenticate a request. If none of these guards
-    | are able to authenticate the request, Sanctum will use the bearer
-    | token that's present on an incoming request for authentication.
+    | Customer SPA authenticates with Bearer personal-access tokens only.
+    | Filament admin uses the separate web session on /admin.
+    |
+    | IMPORTANT: An empty list forces Sanctum to skip session auth and use the
+    | Bearer token. If 'web' remains here, an active Filament session on the
+    | same host (app.sciencestreetlab.com) wins over the customer token and
+    | leaks admin profile/orders/enrollments (SHARED_SESSION_GUARD_BUG).
     |
     */
 
-    'guard' => ['web'],
+    'guard' => [],
 
     /*
     |--------------------------------------------------------------------------
