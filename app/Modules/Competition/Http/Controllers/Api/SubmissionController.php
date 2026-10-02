@@ -6,7 +6,7 @@ namespace App\Modules\Competition\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Competition\Application\Services\CompetitionSubmissionService;
-use App\Modules\Competition\Infrastructure\Persistence\Models\Competition;
+use App\Modules\Competition\Application\Support\CompetitionSlugResolver;
 use App\Modules\Competition\Infrastructure\Persistence\Models\CompetitionSubmission;
 use DomainException;
 use Illuminate\Http\JsonResponse;
@@ -16,6 +16,7 @@ final class SubmissionController extends Controller
 {
     public function __construct(
         private readonly CompetitionSubmissionService $submissions,
+        private readonly CompetitionSlugResolver $slugResolver,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -38,7 +39,7 @@ final class SubmissionController extends Controller
 
     public function store(Request $request, string $slug): JsonResponse
     {
-        $competition = Competition::query()->where('slug', $slug)->firstOrFail();
+        $competition = $this->slugResolver->resolve($slug);
 
         $validated = $request->validate([
             'sample_number' => ['required', 'integer', 'min:1'],

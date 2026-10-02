@@ -7,7 +7,7 @@ namespace App\Modules\Competition\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Modules\Competition\Application\Services\CompetitionEligibilityService;
 use App\Modules\Competition\Application\Services\CompetitionRegistrationService;
-use App\Modules\Competition\Infrastructure\Persistence\Models\Competition;
+use App\Modules\Competition\Application\Support\CompetitionSlugResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -16,18 +16,21 @@ final class CompetitionController extends Controller
     public function __construct(
         private readonly CompetitionEligibilityService $eligibility,
         private readonly CompetitionRegistrationService $registration,
+        private readonly CompetitionSlugResolver $slugResolver,
     ) {}
 
     public function show(string $slug): JsonResponse
     {
-        $competition = Competition::query()
-            ->where('slug', $slug)
-            ->whereIn('status', ['active', 'judging', 'completed'])
-            ->firstOrFail();
+        $competition = $this->slugResolver->resolve($slug);
+
+        if (! in_array($competition->status, ['active', 'judging', 'completed'], true)) {
+            abort(404);
+        }
 
         return response()->json([
             'data' => [
                 'slug' => $competition->slug,
+                'canonical_slug' => 'microscope-100-challenge',
                 'title' => $competition->getTranslations('title'),
                 'description' => $competition->getTranslations('description'),
                 'rules' => $competition->getTranslations('rules'),
@@ -44,37 +47,63 @@ final class CompetitionController extends Controller
 
     public function eligibility(Request $request, string $slug): JsonResponse
     {
-        $competition = Competition::query()->where('slug', $slug)->firstOrFail();
+        $competition = $this->slugResolver->resolve($slug);
+        $status = $this->eligibility->participationStatus($request->user(), $competition);
 
         return response()->json([
-            'data' => $this->eligibility->canParticipate($request->user(), $competition),
+            'data' => [
+                ...$status,
+                // Legacy key used by older clients/tests.
+                'reason' => $status['eligibility_reason'],
+            ],
         ]);
     }
 
     public function register(Request $request, string $slug): JsonResponse
     {
-        $competition = Competition::query()->where('slug', $slug)->firstOrFail();
+        $competition = $this->slugResolver->resolve($slug);
 
         try {
+            $existingBefore = $competition->participants()
+                ->where('user_id', $request->user()->id)
+                ->exists();
+
             $participant = $this->registration->register($request->user(), $competition);
         } catch (\DomainException $e) {
-            return response()->json(['message' => $e->getMessage(), 'code' => $e->getMessage()], 403);
+            return response()->json([
+                'message' => $e->getMessage(),
+                'code' => $e->getMessage(),
+                'data' => $this->eligibility->participationStatus($request->user(), $competition),
+            ], 403);
         }
 
-        return response()->json(['data' => $participant], 201);
+        $statusCode = $existingBefore ? 200 : 201;
+
+        return response()->json([
+            'data' => [
+                'participant' => $participant,
+                'participation' => $this->eligibility->participationStatus($request->user(), $competition),
+            ],
+        ], $statusCode);
     }
 
     public function dashboard(Request $request, string $slug): JsonResponse
     {
-        $competition = Competition::query()->where('slug', $slug)->firstOrFail();
+        $competition = $this->slugResolver->resolve($slug);
+        $user = $request->user();
+        $participation = $this->eligibility->participationStatus($user, $competition);
+
+        if (! $participation['registered']) {
+            return response()->json([
+                'message' => 'Not registered.',
+                'code' => 'not_registered',
+                'data' => $participation,
+            ], 403);
+        }
 
         $participant = $competition->participants()
-            ->where('user_id', $request->user()->id)
-            ->first();
-
-        if (! $participant) {
-            return response()->json(['message' => 'Not registered.', 'code' => 'not_registered'], 404);
-        }
+            ->where('user_id', $user->id)
+            ->firstOrFail();
 
         return response()->json([
             'data' => [
@@ -86,21 +115,27 @@ final class CompetitionController extends Controller
                 'progress_percent' => round(($participant->approved_count / max(1, $competition->required_photos)) * 100, 2),
                 'registered_at' => $participant->registered_at->toIso8601String(),
                 'shortlisted_at' => $participant->shortlisted_at?->toIso8601String(),
+                'participation' => $participation,
             ],
         ]);
     }
 
     public function submissionsSummary(Request $request, string $slug): JsonResponse
     {
-        $competition = Competition::query()->where('slug', $slug)->firstOrFail();
+        $competition = $this->slugResolver->resolve($slug);
+        $participation = $this->eligibility->participationStatus($request->user(), $competition);
+
+        if (! $participation['registered']) {
+            return response()->json([
+                'message' => 'Not registered.',
+                'code' => 'not_registered',
+                'data' => $participation,
+            ], 403);
+        }
 
         $participant = $competition->participants()
             ->where('user_id', $request->user()->id)
-            ->first();
-
-        if (! $participant) {
-            return response()->json(['message' => 'Not registered.', 'code' => 'not_registered'], 404);
-        }
+            ->firstOrFail();
 
         return response()->json([
             'data' => [
