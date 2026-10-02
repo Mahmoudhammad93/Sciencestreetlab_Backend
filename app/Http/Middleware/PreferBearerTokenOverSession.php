@@ -23,8 +23,19 @@ final class PreferBearerTokenOverSession
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (is_string($request->bearerToken()) && $request->bearerToken() !== '') {
-            Auth::guard('web')->forgetUser();
+        $bearer = $request->bearerToken();
+        if (! is_string($bearer) || $bearer === '') {
+            return $next($request);
+        }
+
+        // Drop session user so a later auth:sanctum / OptionalSanctumAuth path
+        // cannot keep serving the Filament admin from the shared-host cookie.
+        Auth::guard('web')->forgetUser();
+
+        $user = Auth::guard('sanctum')->setRequest($request)->user();
+        if ($user !== null) {
+            Auth::setUser($user);
+            $request->setUserResolver(static fn () => $user);
         }
 
         return $next($request);

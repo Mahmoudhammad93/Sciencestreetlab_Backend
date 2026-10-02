@@ -262,6 +262,17 @@ final class HttpBostaClient implements BostaClientInterface
             ?? $shipping['districtId']
             ?? ''
         ));
+        $districtName = trim((string) (
+            $shipping['district_name']
+            ?? $shipping['districtName']
+            ?? $shipping['district']
+            ?? $shipping['area']
+            ?? $billing['district_name']
+            ?? $billing['districtName']
+            ?? $billing['district']
+            ?? $billing['area']
+            ?? ''
+        ));
 
         if ($cityId === '' && $cityName !== '') {
             $cityId = $this->resolveCityIdByName($cityName) ?? '';
@@ -277,10 +288,19 @@ final class HttpBostaClient implements BostaClientInterface
             );
         }
 
+        if ($districtId === '' && $districtName === '') {
+            throw new RuntimeException(
+                'Bosta delivery requires districtId or districtName on dropOffAddress. '
+                .'Checkout shipping address is missing a district/area. '
+                .'Ask the customer for the Bosta district that matches their city.'
+            );
+        }
+
         $address = array_filter([
             'city' => $cityId !== '' ? $cityId : null,
             'zoneId' => $zoneId !== '' ? $zoneId : null,
             'districtId' => $districtId !== '' ? $districtId : null,
+            'districtName' => $districtId === '' && $districtName !== '' ? $districtName : null,
             'firstLine' => $firstLine,
             'secondLine' => trim((string) ($shipping['second_line'] ?? $shipping['secondLine'] ?? '')) ?: null,
             'buildingNumber' => trim((string) ($shipping['building_number'] ?? $shipping['buildingNumber'] ?? '')) ?: null,
