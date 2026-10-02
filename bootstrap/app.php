@@ -17,6 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(prepend: [
             \App\Http\Middleware\SetLocale::class,
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+            // After stateful session boot: Bearer must win over Filament web session.
+            \App\Http\Middleware\PreferBearerTokenOverSession::class,
         ]);
 
         $middleware->validateCsrfTokens(except: [
