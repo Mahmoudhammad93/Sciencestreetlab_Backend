@@ -28,18 +28,17 @@ final class FawaterakGateway implements PaymentGatewayInterface
             throw new InvalidArgumentException('Expected Order model.');
         }
 
-        $payment = Payment::query()->create([
-            'order_id' => $order->id,
-            'gateway' => 'fawaterak',
-            'amount' => $order->total,
-            'currency' => $order->currency,
-            'status' => PaymentStatus::Pending->value,
-        ]);
-
         if (! $this->client->isConfigured()) {
+            $payment = Payment::query()->create([
+                'order_id' => $order->id,
+                'gateway' => 'fawaterak',
+                'amount' => $order->total,
+                'currency' => $order->currency,
+                'status' => PaymentStatus::Pending->value,
+            ]);
             $mockToken = 'mock_'.bin2hex(random_bytes(8));
             $payment->update([
-                'gateway_order_id' => 'mock_'.$order->id,
+                'gateway_order_id' => 'mock_'.$order->id.'_'.$payment->id,
                 'gateway_response' => ['mode' => 'mock'],
             ]);
 
@@ -50,6 +49,38 @@ final class FawaterakGateway implements PaymentGatewayInterface
             );
         }
 
+        $this->assertAmountMeetsProviderMinimum($order);
+
+        $reusable = $this->findReusableSameOrderPayment($order);
+        if ($reusable !== null) {
+            $invoiceId = (string) $reusable->gateway_order_id;
+            $url = (string) data_get($reusable->gateway_response, 'url', '');
+            if ($url === '') {
+                try {
+                    $data = $this->client->getInvoiceData($invoiceId);
+                    $url = (string) ($data['url'] ?? $data['invoice_url'] ?? '');
+                } catch (RuntimeException) {
+                    $url = '';
+                }
+            }
+
+            if ($url !== '') {
+                return new PaymentInitiationResult(
+                    iframeUrl: $url,
+                    paymentId: $reusable->id,
+                    gatewayOrderId: $invoiceId,
+                );
+            }
+        }
+
+        $payment = Payment::query()->create([
+            'order_id' => $order->id,
+            'gateway' => 'fawaterak',
+            'amount' => $order->total,
+            'currency' => $order->currency,
+            'status' => PaymentStatus::Pending->value,
+        ]);
+
         $billing = $order->billing_address ?? [];
         $user = $order->user;
         [$firstName, $lastName] = $this->splitName(
@@ -57,40 +88,81 @@ final class FawaterakGateway implements PaymentGatewayInterface
             .' '.(string) ($billing['last_name'] ?? '')
         );
 
-        $data = $this->client->createInvoiceLink([
-            'cartTotal' => (string) $order->total,
-            'currency' => (string) config('fawaterak.currency', $order->currency),
-            'customer' => array_filter([
-                'first_name' => $firstName,
-                'last_name' => $lastName,
-                'email' => (string) ($billing['email'] ?? $user?->email ?? ''),
-                'phone' => $billing['phone'] ?? $user?->phone ?? null,
-                'address' => $billing['address'] ?? null,
-            ], static fn ($value) => $value !== null && $value !== ''),
-            'cartItems' => [
-                [
-                    'name' => 'Order '.$order->order_number,
-                    'price' => (string) $order->total,
-                    'quantity' => '1',
+        try {
+            $data = $this->client->createInvoiceLink([
+                'cartTotal' => (string) $order->total,
+                'currency' => (string) config('fawaterak.currency', $order->currency),
+                'customer' => array_filter([
+                    'first_name' => $firstName,
+                    'last_name' => $lastName,
+                    'email' => (string) ($billing['email'] ?? $user?->email ?? ''),
+                    'phone' => $billing['phone'] ?? $user?->phone ?? null,
+                    'address' => $billing['address'] ?? null,
+                ], static fn ($value) => $value !== null && $value !== ''),
+                'cartItems' => [
+                    [
+                        'name' => 'Order '.$order->order_number,
+                        'price' => (string) $order->total,
+                        'quantity' => '1',
+                    ],
                 ],
-            ],
-            'redirectionUrls' => [
-                'successUrl' => $this->returnUrl($payment->id, 'success'),
-                'failUrl' => $this->returnUrl($payment->id, 'fail'),
-                'pendingUrl' => $this->returnUrl($payment->id, 'pending'),
-                'webhookUrl' => url('/api/v1/payments/fawaterak/webhook'),
-            ],
-            'payLoad' => [
-                'local_payment_id' => $payment->id,
-                'order_number' => $order->order_number,
-            ],
-        ]);
+                'redirectionUrls' => [
+                    'successUrl' => $this->returnUrl($payment->id, 'success'),
+                    'failUrl' => $this->returnUrl($payment->id, 'fail'),
+                    'pendingUrl' => $this->returnUrl($payment->id, 'pending'),
+                    'webhookUrl' => url('/api/v1/payments/fawaterak/webhook'),
+                ],
+                'payLoad' => [
+                    'local_payment_id' => $payment->id,
+                    'order_number' => $order->order_number,
+                ],
+            ]);
+        } catch (RuntimeException $e) {
+            $payment->update([
+                'status' => PaymentStatus::Failed->value,
+                'gateway_response' => [
+                    'error' => 'create_invoice_failed',
+                    'message' => $e->getMessage(),
+                ],
+            ]);
+
+            throw $e;
+        }
 
         $invoiceId = (string) ($data['invoiceId'] ?? '');
         $invoiceUrl = (string) ($data['url'] ?? '');
 
         if ($invoiceId === '' || $invoiceUrl === '') {
+            $payment->update([
+                'status' => PaymentStatus::Failed->value,
+                'gateway_response' => ['error' => 'missing_invoice_id_or_url', 'raw' => $data],
+            ]);
+
             throw new RuntimeException('Fawaterak did not return an invoice url/id.');
+        }
+
+        try {
+            $this->assertInvoiceExclusiveToOrder($invoiceId, (int) $order->id, (int) $payment->id);
+            $this->assertProviderPayloadBelongsToOrder($data, $order, $payment);
+        } catch (RuntimeException $e) {
+            $payment->update([
+                'status' => PaymentStatus::Failed->value,
+                'gateway_response' => [
+                    'error' => 'cross_order_or_invalid_invoice_rejected',
+                    'message' => $e->getMessage(),
+                    'rejected_invoice_id' => $invoiceId,
+                ],
+            ]);
+
+            Log::error('Fawaterak createInvoiceLink rejected: invoice cannot be attached to this order', [
+                'order_id' => $order->id,
+                'order_number' => $order->order_number,
+                'payment_id' => $payment->id,
+                'invoice_id' => $invoiceId,
+                'reason' => $e->getMessage(),
+            ]);
+
+            throw $e;
         }
 
         $payment->update([
@@ -120,10 +192,7 @@ final class FawaterakGateway implements PaymentGatewayInterface
             throw new InvalidArgumentException('Webhook payload missing invoice_id.');
         }
 
-        $payment = Payment::query()->with('order')
-            ->where('gateway', 'fawaterak')
-            ->where('gateway_order_id', $invoiceId)
-            ->firstOrFail();
+        $payment = $this->resolvePaymentForInvoice($invoiceId, $payload);
 
         if ($payment->status === PaymentStatus::Completed->value) {
             return $payment;
@@ -139,7 +208,6 @@ final class FawaterakGateway implements PaymentGatewayInterface
         $status = strtolower((string) ($payload['invoice_status'] ?? ''));
 
         if ($status === 'paid') {
-            // Prefer authoritative server re-query when configured; fall back to webhook fields.
             $authoritative = $payload;
             if ($this->client->isConfigured()) {
                 try {
@@ -153,6 +221,7 @@ final class FawaterakGateway implements PaymentGatewayInterface
                 }
             }
 
+            $this->assertProviderPayloadBelongsToOrder($authoritative, $payment->order, $payment);
             $this->assertAmountAndCurrencyMatch($payment, $authoritative);
 
             $transactionId = (string) ($payload['referenceNumber'] ?? $invoiceId);
@@ -186,8 +255,11 @@ final class FawaterakGateway implements PaymentGatewayInterface
         }
 
         $this->assertOwnsInvoice($payment, $invoiceId);
+        $this->assertInvoiceExclusiveToOrder($invoiceId, (int) $payment->order_id, (int) $payment->id);
 
         $data = $this->client->getInvoiceData($invoiceId);
+
+        $this->assertProviderPayloadBelongsToOrder($data, $payment->order, $payment);
 
         if ((int) ($data['paid'] ?? 0) === 1) {
             $this->assertAmountAndCurrencyMatch($payment, $data);
@@ -209,6 +281,145 @@ final class FawaterakGateway implements PaymentGatewayInterface
         return new RefundResult(false, null, 'Fawaterak refunds not yet implemented.');
     }
 
+    private function assertAmountMeetsProviderMinimum(Order $order): void
+    {
+        $min = (float) config('fawaterak.min_amount', 5.01);
+        $total = round((float) $order->total, 2);
+
+        if ($total + 0.0001 < $min) {
+            throw new RuntimeException(
+                'Order total '.$total.' EGP is below the Fawaterak minimum of '.$min.' EGP.'
+            );
+        }
+    }
+
+    /**
+     * Reuse an unpaid same-order invoice when still payable.
+     * Never reuse an invoice that belongs to another order.
+     */
+    private function findReusableSameOrderPayment(Order $order): ?Payment
+    {
+        $candidates = Payment::query()
+            ->where('order_id', $order->id)
+            ->where('gateway', 'fawaterak')
+            ->whereIn('status', [PaymentStatus::Pending->value, PaymentStatus::Processing->value])
+            ->whereNotNull('gateway_order_id')
+            ->where('gateway_order_id', '!=', '')
+            ->orderByDesc('id')
+            ->get();
+
+        foreach ($candidates as $candidate) {
+            $invoiceId = (string) $candidate->gateway_order_id;
+            if ($invoiceId === '' || str_starts_with($invoiceId, 'mock_')) {
+                continue;
+            }
+
+            try {
+                $this->assertInvoiceExclusiveToOrder($invoiceId, (int) $order->id, (int) $candidate->id);
+            } catch (RuntimeException) {
+                // Historical cross-order contamination: do not reuse; leave row for audit.
+                continue;
+            }
+
+            try {
+                $data = $this->client->getInvoiceData($invoiceId);
+            } catch (RuntimeException) {
+                continue;
+            }
+
+            try {
+                $this->assertProviderPayloadBelongsToOrder($data, $order, $candidate);
+            } catch (RuntimeException) {
+                continue;
+            }
+
+            if ((int) ($data['paid'] ?? 0) === 1) {
+                // Already paid for this order — complete via normal path and surface URL unused.
+                $this->assertAmountAndCurrencyMatch($candidate, $data);
+                $this->completion->complete(
+                    $candidate,
+                    $this->successfulTransactionId($data) ?: $invoiceId,
+                    $data
+                );
+
+                continue;
+            }
+
+            // Unpaid / failed-attempt invoice still owned by this order → safe reuse.
+            return $candidate;
+        }
+
+        return null;
+    }
+
+    /**
+     * Resolve the local payment for a provider invoice without crossing orders.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function resolvePaymentForInvoice(string $invoiceId, array $payload): Payment
+    {
+        $matches = Payment::query()
+            ->with('order')
+            ->where('gateway', 'fawaterak')
+            ->where('gateway_order_id', $invoiceId)
+            ->orderBy('id')
+            ->get();
+
+        if ($matches->isEmpty()) {
+            throw new InvalidArgumentException('Unknown Fawaterak invoice.');
+        }
+
+        if ($matches->count() === 1) {
+            return $matches->first();
+        }
+
+        $payloadOrderNumber = $this->extractOrderNumberFromProviderData($payload);
+        if ($payloadOrderNumber !== null) {
+            $byOrder = $matches->first(
+                fn (Payment $p) => $p->order && (string) $p->order->order_number === $payloadOrderNumber
+            );
+            if ($byOrder !== null) {
+                return $byOrder;
+            }
+        }
+
+        $completed = $matches->first(fn (Payment $p) => $p->status === PaymentStatus::Completed->value);
+        if ($completed !== null) {
+            return $completed;
+        }
+
+        Log::warning('Ambiguous Fawaterak invoice matched multiple local payments', [
+            'invoice_id' => $invoiceId,
+            'payment_ids' => $matches->pluck('id')->all(),
+            'order_ids' => $matches->pluck('order_id')->all(),
+        ]);
+
+        throw new RuntimeException('Fawaterak invoice is associated with multiple local payments/orders.');
+    }
+
+    /**
+     * One Fawaterak invoice may belong to at most one local order.
+     */
+    public function assertInvoiceExclusiveToOrder(string $invoiceId, int $orderId, ?int $exceptPaymentId = null): void
+    {
+        $query = Payment::query()
+            ->where('gateway', 'fawaterak')
+            ->where('gateway_order_id', $invoiceId)
+            ->where('order_id', '!=', $orderId);
+
+        if ($exceptPaymentId !== null) {
+            $query->where('id', '!=', $exceptPaymentId);
+        }
+
+        $foreign = $query->first();
+        if ($foreign !== null) {
+            throw new RuntimeException(
+                'Fawaterak invoice '.$invoiceId.' is already associated with a different order.'
+            );
+        }
+    }
+
     /**
      * Verify invoice/payment reference ownership before completing.
      */
@@ -226,6 +437,39 @@ final class FawaterakGateway implements PaymentGatewayInterface
 
         if ($payment->order === null) {
             throw new RuntimeException('Payment has no owning order.');
+        }
+
+        $this->assertInvoiceExclusiveToOrder($invoiceId, (int) $payment->order_id, (int) $payment->id);
+    }
+
+    /**
+     * When provider payload carries order/payment identity, it must match local rows.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function assertProviderPayloadBelongsToOrder(array $data, ?Order $order, Payment $payment): void
+    {
+        if ($order === null) {
+            throw new RuntimeException('Payment has no owning order.');
+        }
+
+        $payloadOrderNumber = $this->extractOrderNumberFromProviderData($data);
+        if ($payloadOrderNumber !== null && $payloadOrderNumber !== (string) $order->order_number) {
+            throw new RuntimeException(
+                'Fawaterak invoice order_number does not match local order (ownership mismatch).'
+            );
+        }
+
+        $payloadPaymentId = $this->extractLocalPaymentIdFromProviderData($data);
+        if ($payloadPaymentId !== null && $payloadPaymentId !== (int) $payment->id) {
+            // Allow historical invoices created for an earlier same-order payment only when
+            // order_number matches and no foreign-order collision exists.
+            $owner = Payment::query()->find($payloadPaymentId);
+            if ($owner === null || (int) $owner->order_id !== (int) $order->id) {
+                throw new RuntimeException(
+                    'Fawaterak invoice local_payment_id does not belong to this order.'
+                );
+            }
         }
     }
 
@@ -285,6 +529,42 @@ final class FawaterakGateway implements PaymentGatewayInterface
     /**
      * @param  array<string, mixed>  $data
      */
+    private function extractOrderNumberFromProviderData(array $data): ?string
+    {
+        $payload = $data['pay_load'] ?? $data['payLoad'] ?? null;
+        if (is_string($payload) && $payload !== '') {
+            $decoded = json_decode($payload, true);
+            $payload = is_array($decoded) ? $decoded : null;
+        }
+        if (is_array($payload) && isset($payload['order_number']) && is_scalar($payload['order_number'])) {
+            $value = trim((string) $payload['order_number']);
+
+            return $value !== '' ? $value : null;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function extractLocalPaymentIdFromProviderData(array $data): ?int
+    {
+        $payload = $data['pay_load'] ?? $data['payLoad'] ?? null;
+        if (is_string($payload) && $payload !== '') {
+            $decoded = json_decode($payload, true);
+            $payload = is_array($decoded) ? $decoded : null;
+        }
+        if (is_array($payload) && isset($payload['local_payment_id']) && is_numeric($payload['local_payment_id'])) {
+            return (int) $payload['local_payment_id'];
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
     private function extractAmount(array $data): ?float
     {
         foreach ([
@@ -296,13 +576,19 @@ final class FawaterakGateway implements PaymentGatewayInterface
             'invoice_value',
             'invoiceValue',
             'InvoiceValue',
+            'total_paid',
+            'original_amount_egp',
         ] as $key) {
             if (isset($data[$key]) && is_numeric($data[$key])) {
                 return (float) $data[$key];
             }
+            if (isset($data[$key]) && is_string($data[$key])) {
+                if (preg_match('/([0-9]+(?:\.[0-9]+)?)/', $data[$key], $m)) {
+                    return (float) $m[1];
+                }
+            }
         }
 
-        // Nested invoice / transaction structures from getInvoiceData.
         foreach (['invoice', 'data'] as $nest) {
             if (isset($data[$nest]) && is_array($data[$nest])) {
                 $nested = $this->extractAmount($data[$nest]);
@@ -319,9 +605,13 @@ final class FawaterakGateway implements PaymentGatewayInterface
                     continue;
                 }
                 if ((int) ($transaction['paidWithIt'] ?? 0) === 1) {
-                    foreach (['paidAmount', 'amount', 'value'] as $key) {
+                    foreach (['paidAmount', 'amount', 'value', 'transactionAmount'] as $key) {
                         if (isset($transaction[$key]) && is_numeric($transaction[$key])) {
                             return (float) $transaction[$key];
+                        }
+                        if (isset($transaction[$key]) && is_string($transaction[$key])
+                            && preg_match('/([0-9]+(?:\.[0-9]+)?)/', $transaction[$key], $m)) {
+                            return (float) $m[1];
                         }
                     }
                 }
@@ -336,7 +626,7 @@ final class FawaterakGateway implements PaymentGatewayInterface
      */
     private function extractCurrency(array $data): ?string
     {
-        foreach (['currency', 'Currency', 'currencyCode', 'currency_code'] as $key) {
+        foreach (['currency', 'Currency', 'currencyCode', 'currency_code', 'transactionCurrency'] as $key) {
             if (isset($data[$key]) && is_scalar($data[$key]) && trim((string) $data[$key]) !== '') {
                 return strtoupper(trim((string) $data[$key]));
             }

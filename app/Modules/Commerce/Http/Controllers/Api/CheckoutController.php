@@ -13,6 +13,7 @@ use App\Shared\Contracts\PaymentGatewayInterface;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use RuntimeException;
 
 final class CheckoutController extends Controller
 {
@@ -103,7 +104,12 @@ final class CheckoutController extends Controller
         }
 
         $gateway = app(PaymentGatewayInterface::class);
-        $result = $gateway->initiate($order);
+
+        try {
+            $result = $gateway->initiate($order);
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
 
         return response()->json([
             'data' => [
