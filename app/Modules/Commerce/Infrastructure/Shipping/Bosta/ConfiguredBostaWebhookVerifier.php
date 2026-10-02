@@ -8,17 +8,19 @@ use App\Modules\Commerce\Domain\Contracts\BostaWebhookVerifierInterface;
 use Illuminate\Http\Request;
 
 /**
- * Production verifier placeholder.
+ * Official Bosta webhook auth: custom Authorization header name + value
+ * configured in the Bosta dashboard (or per-delivery webhookCustomHeaders).
  *
- * BLOCKED_BY_BOSTA_CREDENTIALS_OR_DOCS — do not invent HMAC/header algorithms.
- * Rejects all webhooks until BOSTA_WEBHOOK_SIGNATURE_READY=true and official
- * documentation is implemented here.
+ * Compares received header to BOSTA_WEBHOOK_SECRET with hash_equals.
+ * Does NOT invent an HMAC signature algorithm.
+ *
+ * @see https://docs.bosta.co/docs/how-to/get-delivery-status-via-webhook/
  */
 final class ConfiguredBostaWebhookVerifier implements BostaWebhookVerifierInterface
 {
     public function verify(Request $request): bool
     {
-        if (! (bool) config('bosta.webhook_signature_ready')) {
+        if (! (bool) config('bosta.webhook_auth_ready', config('bosta.webhook_signature_ready'))) {
             return false;
         }
 
@@ -27,8 +29,16 @@ final class ConfiguredBostaWebhookVerifier implements BostaWebhookVerifierInterf
             return false;
         }
 
-        // Official signature comparison must be implemented from Bosta docs.
-        // Intentionally not invented.
-        return false;
+        $headerName = trim((string) config('bosta.webhook_auth_header', 'Authorization'));
+        if ($headerName === '') {
+            return false;
+        }
+
+        $received = (string) $request->header($headerName, '');
+        if ($received === '') {
+            return false;
+        }
+
+        return hash_equals($secret, $received);
     }
 }

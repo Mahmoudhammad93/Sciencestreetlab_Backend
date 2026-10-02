@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Commerce\Infrastructure\Providers;
 
+use App\Modules\Commerce\Application\Listeners\CreateBostaShipmentOnOrderPaid;
 use App\Modules\Commerce\Application\Services\BostaShipmentService;
 use App\Modules\Commerce\Application\Services\BostaWebhookService;
 use App\Modules\Commerce\Application\Services\CartService;
@@ -13,6 +14,8 @@ use App\Modules\Commerce\Application\Services\OrderFulfillmentService;
 use App\Modules\Commerce\Application\Services\PaymentCompletionService;
 use App\Modules\Commerce\Domain\Contracts\BostaClientInterface;
 use App\Modules\Commerce\Domain\Contracts\BostaWebhookVerifierInterface;
+use App\Modules\Commerce\Domain\Events\OrderPaid;
+use Illuminate\Support\Facades\Event;
 use App\Modules\Commerce\Http\Support\ResolvesCart;
 use App\Modules\Commerce\Infrastructure\Payment\FawaterakClient;
 use App\Modules\Commerce\Infrastructure\Payment\FawaterakGateway;
@@ -91,5 +94,12 @@ final class CommerceServiceProvider extends ModuleServiceProvider
                 default => $app->make(FawaterakGateway::class),
             };
         });
+    }
+
+    public function boot(): void
+    {
+        parent::boot();
+
+        Event::listen(OrderPaid::class, CreateBostaShipmentOnOrderPaid::class);
     }
 }

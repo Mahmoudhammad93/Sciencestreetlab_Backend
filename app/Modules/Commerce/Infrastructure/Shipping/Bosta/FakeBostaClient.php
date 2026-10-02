@@ -27,11 +27,19 @@ final class FakeBostaClient implements BostaClientInterface
             'external_shipment_id' => $id,
             'tracking_number' => 'TRK-'.$order->order_number,
             'tracking_url' => 'https://bosta.example/track/'.$id,
-            'provider_status' => 'Pickup requested',
+            'provider_status' => '10',
             'raw' => [
                 'driver' => 'fake',
                 'test_mode' => true,
                 'order_id' => $order->id,
+                'type' => 10,
+                'cod' => 0,
+                'businessReference' => $order->order_number,
+            ],
+            'request' => [
+                'type' => 10,
+                'cod' => 0,
+                'businessReference' => $order->order_number,
             ],
         ];
     }

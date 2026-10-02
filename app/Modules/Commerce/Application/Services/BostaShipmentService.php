@@ -16,7 +16,10 @@ use RuntimeException;
 use Throwable;
 
 /**
- * Idempotent Bosta shipment creation for physical (kit) Egypt orders.
+ * Idempotent Bosta shipment creation for physical (kit/bundle) Egypt orders.
+ *
+ * External create runs ONLY after verified payment (paid_at set).
+ * Checkout may mark requires_delivery_fulfillment without calling Bosta.
  */
 final class BostaShipmentService
 {
@@ -24,16 +27,8 @@ final class BostaShipmentService
         private readonly BostaClientInterface $client,
     ) {}
 
-    public function shouldCreateForOrder(Order $order): bool
+    public function orderRequiresDelivery(Order $order): bool
     {
-        if (! (bool) config('bosta.enabled')) {
-            Log::info('Bosta shipment skipped: BOSTA_ENABLED=false', [
-                'order_id' => $order->id,
-            ]);
-
-            return false;
-        }
-
         $order->loadMissing(['items.product']);
 
         foreach ($order->items as $item) {
@@ -46,16 +41,69 @@ final class BostaShipmentService
             }
         }
 
-        Log::info('Bosta shipment skipped: no kit/bundle items on order', [
-            'order_id' => $order->id,
-        ]);
-
         return false;
     }
 
     /**
-     * Ensure exactly one Bosta shipment exists for the order.
-     * Safe to call repeatedly.
+     * Checkout-time flag only — does NOT call the Bosta API.
+     */
+    public function markRequiresDeliveryIfNeeded(Order $order): Order
+    {
+        if (! (bool) config('bosta.enabled')) {
+            return $order;
+        }
+
+        if (! $this->orderRequiresDelivery($order)) {
+            return $order;
+        }
+
+        if (! $order->requires_delivery_fulfillment) {
+            $order->update(['requires_delivery_fulfillment' => true]);
+        }
+
+        return $order->fresh(['items', 'bostaShipment']) ?? $order;
+    }
+
+    public function shouldCreateForOrder(Order $order): bool
+    {
+        if (! (bool) config('bosta.enabled')) {
+            Log::info('Bosta shipment skipped: BOSTA_ENABLED=false', [
+                'order_id' => $order->id,
+            ]);
+
+            return false;
+        }
+
+        if ($order->paid_at === null) {
+            Log::info('Bosta shipment skipped: order unpaid', [
+                'order_id' => $order->id,
+            ]);
+
+            return false;
+        }
+
+        if ($order->delivered_at !== null) {
+            Log::info('Bosta shipment skipped: order already delivered', [
+                'order_id' => $order->id,
+            ]);
+
+            return false;
+        }
+
+        if (! $this->orderRequiresDelivery($order)) {
+            Log::info('Bosta shipment skipped: no kit/bundle items on order', [
+                'order_id' => $order->id,
+            ]);
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Ensure exactly one Bosta shipment exists for the paid order.
+     * Safe to call repeatedly. Retries the SAME local row when create previously failed.
      */
     public function ensureShipmentForOrder(Order $order): ?Shipment
     {
@@ -67,12 +115,17 @@ final class BostaShipmentService
             /** @var Order $locked */
             $locked = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
 
+            if ($locked->paid_at === null) {
+                throw new RuntimeException('Refusing Bosta create for unpaid order '.$locked->id);
+            }
+
             $existing = Shipment::query()
                 ->where('order_id', $locked->id)
                 ->where('provider', ShipmentProvider::Bosta->value)
+                ->lockForUpdate()
                 ->first();
 
-            if ($existing !== null) {
+            if ($existing !== null && filled($existing->external_shipment_id)) {
                 if (! $locked->requires_delivery_fulfillment) {
                     $locked->update(['requires_delivery_fulfillment' => true]);
                 }
@@ -80,41 +133,68 @@ final class BostaShipmentService
                 return $existing;
             }
 
-            $metadata = ['creation_attempted_at' => now()->toIso8601String()];
+            if (! $locked->requires_delivery_fulfillment) {
+                $locked->update(['requires_delivery_fulfillment' => true]);
+            }
+
+            $shipment = $existing ?? Shipment::query()->create([
+                'order_id' => $locked->id,
+                'provider' => ShipmentProvider::Bosta->value,
+                'external_shipment_id' => null,
+                'status' => ShipmentStatus::Pending,
+                'metadata' => [
+                    'creation_state' => 'pending_creation',
+                    'creation_attempted_at' => now()->toIso8601String(),
+                ],
+            ]);
+
+            // Re-check after create race: another worker may have set external id.
+            $shipment->refresh();
+            if (filled($shipment->external_shipment_id)) {
+                return $shipment;
+            }
 
             try {
                 $result = $this->client->createShipment($locked);
-                $shipment = Shipment::query()->create([
-                    'order_id' => $locked->id,
-                    'provider' => ShipmentProvider::Bosta->value,
+
+                if (! filled($result['external_shipment_id'] ?? null)) {
+                    throw new RuntimeException('Bosta create returned empty external_shipment_id.');
+                }
+
+                $shipment->update([
                     'external_shipment_id' => $result['external_shipment_id'],
                     'tracking_number' => $result['tracking_number'] ?? null,
                     'tracking_url' => $result['tracking_url'] ?? null,
                     'status' => ShipmentStatus::Created,
                     'provider_status' => $result['provider_status'] ?? null,
-                    'metadata' => array_merge($metadata, ['raw' => $result['raw'] ?? []]),
+                    'metadata' => array_merge($shipment->metadata ?? [], [
+                        'creation_state' => 'created',
+                        'created_at_provider' => now()->toIso8601String(),
+                        'raw' => $result['raw'] ?? [],
+                        'request' => $result['request'] ?? null,
+                        'business_reference' => $locked->order_number,
+                    ]),
                 ]);
             } catch (Throwable $e) {
-                Log::warning('Bosta shipment creation deferred', [
+                Log::warning('Bosta shipment creation failed (retryable)', [
                     'order_id' => $locked->id,
+                    'shipment_id' => $shipment->id,
+                    'business_reference' => $locked->order_number,
                     'reason' => $e->getMessage(),
                 ]);
 
-                $shipment = Shipment::query()->create([
-                    'order_id' => $locked->id,
-                    'provider' => ShipmentProvider::Bosta->value,
-                    'external_shipment_id' => null,
-                    'status' => ShipmentStatus::Pending,
-                    'metadata' => array_merge($metadata, [
-                        'blocked' => 'BLOCKED_BY_BOSTA_CREDENTIALS_OR_DOCS',
-                        'error' => $e->getMessage(),
+                $shipment->update([
+                    'status' => ShipmentStatus::Failed,
+                    'metadata' => array_merge($shipment->metadata ?? [], [
+                        'creation_state' => 'creation_failed',
+                        'last_error' => $e->getMessage(),
+                        'last_failed_at' => now()->toIso8601String(),
+                        'business_reference' => $locked->order_number,
                     ]),
                 ]);
             }
 
-            $locked->update(['requires_delivery_fulfillment' => true]);
-
-            return $shipment;
+            return $shipment->fresh() ?? $shipment;
         });
     }
 
@@ -147,7 +227,7 @@ final class BostaShipmentService
                 'tracking_url' => $data['tracking_url'] ?? null,
                 'status' => ShipmentStatus::Created,
                 'provider_status' => $data['provider_status'] ?? null,
-                'metadata' => ['source' => 'attach'],
+                'metadata' => ['source' => 'attach', 'creation_state' => 'created'],
             ]);
 
             $order->update(['requires_delivery_fulfillment' => true]);

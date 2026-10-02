@@ -39,7 +39,8 @@ final class BostaWebhookService
         }
 
         $providerStatus = $this->extractProviderStatus($payload);
-        $mapped = $this->statusMapper->map($providerStatus);
+        $deliveryType = $this->extractDeliveryType($payload);
+        $mapped = $this->statusMapper->map($providerStatus, $deliveryType);
 
         return DB::transaction(function () use ($externalId, $providerStatus, $mapped, $payload): BostaWebhookResult {
             /** @var Shipment|null $shipment */
@@ -148,11 +149,13 @@ final class BostaWebhookService
     }
 
     /**
+     * Official webhook identifies the delivery by `_id`.
+     *
      * @param  array<string, mixed>  $payload
      */
     private function extractExternalId(array $payload): ?string
     {
-        foreach (['external_shipment_id', 'shipmentId', 'shipment_id', 'trackingNumber', 'tracking_number', '_id', 'id'] as $key) {
+        foreach (['_id', 'external_shipment_id', 'shipmentId', 'shipment_id', 'id'] as $key) {
             if (! empty($payload[$key]) && is_scalar($payload[$key])) {
                 return (string) $payload[$key];
             }
@@ -162,15 +165,18 @@ final class BostaWebhookService
             return $this->extractExternalId($payload['data']);
         }
 
+        // trackingNumber alone is insufficient when _id is missing — avoid ambiguous matches.
         return null;
     }
 
     /**
+     * Official field: `state` (Number). Legacy string `status` still accepted in tests.
+     *
      * @param  array<string, mixed>  $payload
      */
     private function extractProviderStatus(array $payload): ?string
     {
-        foreach (['provider_status', 'state', 'status', 'deliveryState', 'delivery_state'] as $key) {
+        foreach (['state', 'provider_status', 'status', 'deliveryState', 'delivery_state'] as $key) {
             if (isset($payload[$key]) && is_scalar($payload[$key])) {
                 return (string) $payload[$key];
             }
@@ -181,6 +187,26 @@ final class BostaWebhookService
         }
 
         return null;
+    }
+
+    /**
+     * Official field: `type` (SEND | EXCHANGE | …). Defaults to SEND for our outbound deliveries.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function extractDeliveryType(array $payload): string
+    {
+        foreach (['type', 'deliveryType', 'delivery_type'] as $key) {
+            if (isset($payload[$key]) && is_scalar($payload[$key]) && (string) $payload[$key] !== '') {
+                return strtoupper((string) $payload[$key]);
+            }
+        }
+
+        if (isset($payload['data']) && is_array($payload['data'])) {
+            return $this->extractDeliveryType($payload['data']);
+        }
+
+        return 'SEND';
     }
 
     /**

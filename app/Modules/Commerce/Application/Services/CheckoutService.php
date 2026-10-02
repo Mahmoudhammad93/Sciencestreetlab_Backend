@@ -153,8 +153,9 @@ final class CheckoutService
             $cart->update(['coupon_id' => null, 'coupon_code' => null]);
 
             $order = $order->load('items');
-            $this->bostaShipments->ensureShipmentForOrder($order);
-            $order = $order->fresh(['items', 'bostaShipment']) ?? $order;
+            // Flag physical kit/bundle orders for delivery gating only.
+            // External Bosta create happens AFTER verified payment (OrderPaid).
+            $order = $this->bostaShipments->markRequiresDeliveryIfNeeded($order);
 
             $guestTokens = null;
             if ($isGuest) {
@@ -218,7 +219,7 @@ final class CheckoutService
      */
     private function assertShipping(array $shipping): void
     {
-        foreach (['first_name', 'phone', 'city', 'country'] as $field) {
+        foreach (['first_name', 'phone', 'city', 'country', 'address'] as $field) {
             if (! isset($shipping[$field]) || trim((string) $shipping[$field]) === '') {
                 throw new DomainException("Shipping {$field} is required.");
             }

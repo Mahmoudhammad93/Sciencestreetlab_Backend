@@ -11,6 +11,7 @@ use App\Modules\Commerce\Infrastructure\Persistence\Models\Payment;
 use App\Shared\Contracts\PaymentGatewayInterface;
 use App\Shared\Contracts\PaymentInitiationResult;
 use App\Shared\Contracts\RefundResult;
+use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -133,9 +134,27 @@ final class FawaterakGateway implements PaymentGatewayInterface
             throw new RuntimeException('Invalid Fawaterak webhook signature.');
         }
 
+        $this->assertOwnsInvoice($payment, $invoiceId);
+
         $status = strtolower((string) ($payload['invoice_status'] ?? ''));
 
         if ($status === 'paid') {
+            // Prefer authoritative server re-query when configured; fall back to webhook fields.
+            $authoritative = $payload;
+            if ($this->client->isConfigured()) {
+                try {
+                    $authoritative = array_merge($payload, $this->client->getInvoiceData($invoiceId));
+                } catch (RuntimeException $e) {
+                    Log::warning('Fawaterak webhook re-query failed; using signed webhook payload', [
+                        'payment_id' => $payment->id,
+                        'invoice_id' => $invoiceId,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            $this->assertAmountAndCurrencyMatch($payment, $authoritative);
+
             $transactionId = (string) ($payload['referenceNumber'] ?? $invoiceId);
 
             return $this->completion->complete($payment, $transactionId !== '' ? $transactionId : null, $payload);
@@ -166,9 +185,12 @@ final class FawaterakGateway implements PaymentGatewayInterface
             throw new RuntimeException('Payment has no Fawaterak invoice id.');
         }
 
+        $this->assertOwnsInvoice($payment, $invoiceId);
+
         $data = $this->client->getInvoiceData($invoiceId);
 
         if ((int) ($data['paid'] ?? 0) === 1) {
+            $this->assertAmountAndCurrencyMatch($payment, $data);
             $transactionId = $this->successfulTransactionId($data);
 
             return $this->completion->complete($payment, $transactionId !== '' ? $transactionId : null, $data);
@@ -185,6 +207,151 @@ final class FawaterakGateway implements PaymentGatewayInterface
     public function refund(object $payment, float $amount): RefundResult
     {
         return new RefundResult(false, null, 'Fawaterak refunds not yet implemented.');
+    }
+
+    /**
+     * Verify invoice/payment reference ownership before completing.
+     */
+    private function assertOwnsInvoice(Payment $payment, string $invoiceId): void
+    {
+        $payment->loadMissing('order');
+
+        if ($payment->gateway !== 'fawaterak') {
+            throw new RuntimeException('Payment gateway ownership mismatch.');
+        }
+
+        if ((string) $payment->gateway_order_id !== $invoiceId) {
+            throw new RuntimeException('Fawaterak invoice reference does not match local payment.');
+        }
+
+        if ($payment->order === null) {
+            throw new RuntimeException('Payment has no owning order.');
+        }
+    }
+
+    /**
+     * Do not complete payment on amount or currency mismatch.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function assertAmountAndCurrencyMatch(Payment $payment, array $data): void
+    {
+        $payment->loadMissing('order');
+        $order = $payment->order;
+        if ($order === null) {
+            throw new RuntimeException('Payment has no owning order for amount verification.');
+        }
+
+        $expectedAmount = round((float) $payment->amount, 2);
+        $expectedOrderAmount = round((float) $order->total, 2);
+        if (abs($expectedAmount - $expectedOrderAmount) > 0.009) {
+            throw new RuntimeException('Local payment amount does not match order total.');
+        }
+
+        $remoteAmount = $this->extractAmount($data);
+        if ($remoteAmount === null) {
+            throw new RuntimeException('Fawaterak payload missing amount for verification.');
+        }
+
+        if (abs(round($remoteAmount, 2) - $expectedAmount) > 0.009) {
+            Log::warning('Fawaterak amount mismatch — payment NOT completed', [
+                'payment_id' => $payment->id,
+                'order_id' => $order->id,
+                'expected' => $expectedAmount,
+                'remote' => $remoteAmount,
+            ]);
+
+            throw new RuntimeException('Fawaterak amount does not match local payment.');
+        }
+
+        $expectedCurrency = strtoupper(trim((string) ($payment->currency ?: $order->currency ?: 'EGP')));
+        $remoteCurrency = $this->extractCurrency($data);
+        if ($remoteCurrency === null || $remoteCurrency === '') {
+            throw new RuntimeException('Fawaterak payload missing currency for verification.');
+        }
+
+        if (strtoupper($remoteCurrency) !== $expectedCurrency) {
+            Log::warning('Fawaterak currency mismatch — payment NOT completed', [
+                'payment_id' => $payment->id,
+                'order_id' => $order->id,
+                'expected' => $expectedCurrency,
+                'remote' => $remoteCurrency,
+            ]);
+
+            throw new RuntimeException('Fawaterak currency does not match local payment.');
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function extractAmount(array $data): ?float
+    {
+        foreach ([
+            'paidAmount',
+            'paid_amount',
+            'amount',
+            'total',
+            'cartTotal',
+            'invoice_value',
+            'invoiceValue',
+            'InvoiceValue',
+        ] as $key) {
+            if (isset($data[$key]) && is_numeric($data[$key])) {
+                return (float) $data[$key];
+            }
+        }
+
+        // Nested invoice / transaction structures from getInvoiceData.
+        foreach (['invoice', 'data'] as $nest) {
+            if (isset($data[$nest]) && is_array($data[$nest])) {
+                $nested = $this->extractAmount($data[$nest]);
+                if ($nested !== null) {
+                    return $nested;
+                }
+            }
+        }
+
+        $transactions = $data['invoice_transactions'] ?? null;
+        if (is_array($transactions)) {
+            foreach ($transactions as $transaction) {
+                if (! is_array($transaction)) {
+                    continue;
+                }
+                if ((int) ($transaction['paidWithIt'] ?? 0) === 1) {
+                    foreach (['paidAmount', 'amount', 'value'] as $key) {
+                        if (isset($transaction[$key]) && is_numeric($transaction[$key])) {
+                            return (float) $transaction[$key];
+                        }
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function extractCurrency(array $data): ?string
+    {
+        foreach (['currency', 'Currency', 'currencyCode', 'currency_code'] as $key) {
+            if (isset($data[$key]) && is_scalar($data[$key]) && trim((string) $data[$key]) !== '') {
+                return strtoupper(trim((string) $data[$key]));
+            }
+        }
+
+        foreach (['invoice', 'data'] as $nest) {
+            if (isset($data[$nest]) && is_array($data[$nest])) {
+                $nested = $this->extractCurrency($data[$nest]);
+                if ($nested !== null) {
+                    return $nested;
+                }
+            }
+        }
+
+        return null;
     }
 
     /**

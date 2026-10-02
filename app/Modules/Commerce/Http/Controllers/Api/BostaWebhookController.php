@@ -33,10 +33,10 @@ final class BostaWebhookController
         }
 
         if (! $this->verifier->verify($request)) {
-            Log::warning('Rejected Bosta webhook: invalid signature or verifier blocked', [
-                'blocked' => ! (bool) config('bosta.webhook_signature_ready')
-                    ? 'BLOCKED_BY_BOSTA_CREDENTIALS_OR_DOCS'
-                    : 'invalid_signature',
+            Log::warning('Rejected Bosta webhook: invalid or missing auth header', [
+                'blocked' => ! (bool) config('bosta.webhook_auth_ready', config('bosta.webhook_signature_ready'))
+                    ? 'webhook_auth_not_ready'
+                    : 'invalid_auth_header',
             ]);
 
             return response()->json(['message' => 'Unauthorized'], 401);

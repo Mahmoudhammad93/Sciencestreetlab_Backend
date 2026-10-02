@@ -6,21 +6,365 @@ namespace App\Modules\Commerce\Infrastructure\Shipping\Bosta;
 
 use App\Modules\Commerce\Domain\Contracts\BostaClientInterface;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Order;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 /**
- * Production-facing client shell.
+ * Official Bosta HTTP client.
  *
- * BLOCKED_BY_BOSTA_CREDENTIALS_OR_DOCS — refuses real HTTP until
- * BOSTA_API_CONTRACT_READY=true and credentials/docs are supplied.
+ * Create delivery: POST {BOSTA_API_URL}/api/v2/deliveries?apiVersion=1
+ * Auth: Authorization: <raw API key> (no Bearer prefix).
+ *
+ * @see https://docs.bosta.co/docs/how-to/create-your-first-delivery/
+ * @see https://docs.bosta.co/docs/how-to/get-your-api-key/
  */
 final class HttpBostaClient implements BostaClientInterface
 {
     public function createShipment(Order $order): array
     {
-        throw new RuntimeException(
-            'BLOCKED_BY_BOSTA_CREDENTIALS_OR_DOCS: Bosta createShipment HTTP mapping is not configured. '
-            .'Provide BOSTA_API_URL, BOSTA_API_KEY, official API documentation, then set BOSTA_API_CONTRACT_READY=true.'
+        $this->assertReady();
+
+        $payload = $this->buildCreateDeliveryPayload($order);
+        $url = $this->baseUrl().'/api/v2/deliveries?apiVersion=1';
+
+        try {
+            $response = Http::withHeaders($this->authHeaders())
+                ->acceptJson()
+                ->asJson()
+                ->timeout((int) config('bosta.http_timeout_seconds', 20))
+                ->retry(
+                    (int) config('bosta.http_retries', 2),
+                    (int) config('bosta.http_retry_sleep_ms', 250),
+                    function ($exception): bool {
+                        return $exception instanceof ConnectionException;
+                    },
+                    throw: false,
+                )
+                ->post($url, $payload);
+        } catch (ConnectionException $e) {
+            Log::warning('Bosta create delivery connection failure', [
+                'order_id' => $order->id,
+                'business_reference' => $payload['businessReference'] ?? null,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw new RuntimeException('Bosta create delivery timed out or could not connect.', 0, $e);
+        }
+
+        $json = $response->json();
+        $json = is_array($json) ? $json : null;
+
+        if (! $response->successful()) {
+            Log::warning('Bosta create delivery non-2xx', [
+                'order_id' => $order->id,
+                'business_reference' => $payload['businessReference'] ?? null,
+                'http_status' => $response->status(),
+                'success' => $json['success'] ?? null,
+                'message' => $json['message'] ?? null,
+                'error_code' => $json['errorCode'] ?? null,
+            ]);
+
+            throw new RuntimeException(
+                'Bosta create delivery failed with HTTP '.$response->status()
+                .': '.(is_string($json['message'] ?? null) ? $json['message'] : 'unknown error')
+            );
+        }
+
+        if (! is_array($json) || ($json['success'] ?? null) === false) {
+            Log::warning('Bosta create delivery success=false', [
+                'order_id' => $order->id,
+                'business_reference' => $payload['businessReference'] ?? null,
+                'http_status' => $response->status(),
+                'message' => is_array($json) ? ($json['message'] ?? null) : null,
+                'error_code' => is_array($json) ? ($json['errorCode'] ?? null) : null,
+            ]);
+
+            throw new RuntimeException(
+                'Bosta create delivery rejected: '
+                .(is_array($json) && is_string($json['message'] ?? null) ? $json['message'] : 'success=false')
+            );
+        }
+
+        $data = $json['data'] ?? null;
+        if (! is_array($data)) {
+            throw new RuntimeException('Bosta create delivery response missing data.');
+        }
+
+        $externalId = (string) ($data['_id'] ?? $data['id'] ?? '');
+        if ($externalId === '') {
+            throw new RuntimeException('Bosta create delivery response missing delivery _id.');
+        }
+
+        $tracking = $data['trackingNumber'] ?? null;
+        $state = $data['state'] ?? null;
+
+        return [
+            'external_shipment_id' => $externalId,
+            'tracking_number' => $tracking !== null && $tracking !== '' ? (string) $tracking : null,
+            'tracking_url' => null,
+            'provider_status' => $state !== null && $state !== '' ? (string) $state : '10',
+            'raw' => $this->sanitizeRaw($data),
+            'request' => [
+                'url' => $url,
+                'type' => $payload['type'] ?? null,
+                'businessReference' => $payload['businessReference'] ?? null,
+                'cod' => $payload['cod'] ?? null,
+                'itemsCount' => $payload['specs']['packageDetails']['itemsCount'] ?? null,
+            ],
+        ];
+    }
+
+    /**
+     * Documented read endpoint used for auth checks and city resolution.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listCities(): array
+    {
+        $this->assertReady(requireContract: false);
+
+        $response = Http::withHeaders($this->authHeaders())
+            ->acceptJson()
+            ->timeout((int) config('bosta.http_timeout_seconds', 20))
+            ->get($this->baseUrl().'/api/v2/cities');
+
+        if (! $response->successful()) {
+            throw new RuntimeException('Bosta cities request failed with HTTP '.$response->status());
+        }
+
+        $json = $response->json();
+        if (! is_array($json) || ($json['success'] ?? null) === false) {
+            throw new RuntimeException('Bosta cities request unsuccessful.');
+        }
+
+        $list = $json['data']['list'] ?? $json['data'] ?? [];
+        if (! is_array($list)) {
+            return [];
+        }
+
+        /** @var list<array<string, mixed>> $cities */
+        $cities = array_values(array_filter($list, 'is_array'));
+
+        return $cities;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function buildCreateDeliveryPayload(Order $order): array
+    {
+        $order->loadMissing(['items', 'user', 'payment']);
+
+        $shipping = is_array($order->shipping_address) ? $order->shipping_address : [];
+        $billing = is_array($order->billing_address) ? $order->billing_address : [];
+
+        $firstName = trim((string) ($shipping['first_name'] ?? $billing['first_name'] ?? ''));
+        $lastName = trim((string) ($shipping['last_name'] ?? $billing['last_name'] ?? ''));
+        $phone = trim((string) ($shipping['phone'] ?? $billing['phone'] ?? $order->user?->phone ?? ''));
+        $email = trim((string) ($shipping['email'] ?? $billing['email'] ?? $order->user?->email ?? ''));
+
+        if ($firstName === '' || $phone === '') {
+            throw new RuntimeException(
+                'Bosta delivery requires receiver firstName and phone from the order shipping/billing address.'
+            );
+        }
+
+        if ($lastName === '') {
+            $lastName = '-';
+        }
+
+        $dropOff = $this->buildDropOffAddress($shipping, $billing);
+        $itemsCount = max(1, (int) $order->items->sum('quantity'));
+        $description = 'Science Street Lab order '.$order->order_number;
+
+        // Prepaid Fawaterak (or any already-paid online order): collectible COD must be 0.
+        // Do NOT use Bosta escrowInfo prepaid feature for external Fawaterak payments.
+        $cod = 0;
+
+        $receiver = array_filter([
+            'firstName' => $firstName,
+            'lastName' => $lastName,
+            'phone' => $phone,
+            'email' => $email !== '' ? $email : null,
+        ], static fn ($v) => $v !== null && $v !== '');
+
+        $payload = [
+            'type' => 10,
+            'cod' => $cod,
+            'businessReference' => (string) $order->order_number,
+            'receiver' => $receiver,
+            'dropOffAddress' => $dropOff,
+            'specs' => [
+                'packageDetails' => [
+                    'description' => $description,
+                    'itemsCount' => $itemsCount,
+                ],
+            ],
+            'notes' => 'Order '.$order->order_number,
+        ];
+
+        $webhookUrl = trim((string) config('bosta.webhook_url', ''));
+        if ($webhookUrl !== '') {
+            $payload['webhookUrl'] = $webhookUrl;
+            $secret = (string) config('bosta.webhook_secret', '');
+            $headerName = (string) config('bosta.webhook_auth_header', 'Authorization');
+            if ($secret !== '' && $headerName !== '') {
+                $payload['webhookCustomHeaders'] = [
+                    $headerName => $secret,
+                ];
+            }
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @param  array<string, mixed>  $shipping
+     * @param  array<string, mixed>  $billing
+     * @return array<string, mixed>
+     */
+    private function buildDropOffAddress(array $shipping, array $billing): array
+    {
+        $firstLine = trim((string) (
+            $shipping['address']
+            ?? $shipping['first_line']
+            ?? $shipping['firstLine']
+            ?? $billing['address']
+            ?? ''
+        ));
+
+        if ($firstLine === '') {
+            throw new RuntimeException(
+                'Bosta delivery requires a street address (dropOffAddress.firstLine). '
+                .'Checkout shipping address is missing an address line.'
+            );
+        }
+
+        $cityId = trim((string) (
+            $shipping['bosta_city_id']
+            ?? $shipping['city_id']
+            ?? $shipping['cityId']
+            ?? ''
+        ));
+        $cityName = trim((string) ($shipping['city'] ?? $billing['city'] ?? ''));
+
+        $zoneId = trim((string) (
+            $shipping['bosta_zone_id']
+            ?? $shipping['zone_id']
+            ?? $shipping['zoneId']
+            ?? ''
+        ));
+        $districtId = trim((string) (
+            $shipping['bosta_district_id']
+            ?? $shipping['district_id']
+            ?? $shipping['districtId']
+            ?? ''
+        ));
+
+        if ($cityId === '' && $cityName !== '') {
+            $cityId = $this->resolveCityIdByName($cityName) ?? '';
+        }
+
+        if ($cityId === '' && $zoneId === '' && $districtId === '') {
+            throw new RuntimeException(
+                'Bosta delivery requires city, zoneId, or districtId (error 3009). '
+                .'Could not resolve a Bosta city identifier from shipping city'
+                .($cityName !== '' ? ' "'.$cityName.'"' : '')
+                .'. Store bosta_city_id / zone_id / district_id on the shipping address, '
+                .'or use a city name that matches Bosta GET /api/v2/cities.'
+            );
+        }
+
+        $address = array_filter([
+            'city' => $cityId !== '' ? $cityId : null,
+            'zoneId' => $zoneId !== '' ? $zoneId : null,
+            'districtId' => $districtId !== '' ? $districtId : null,
+            'firstLine' => $firstLine,
+            'secondLine' => trim((string) ($shipping['second_line'] ?? $shipping['secondLine'] ?? '')) ?: null,
+            'buildingNumber' => trim((string) ($shipping['building_number'] ?? $shipping['buildingNumber'] ?? '')) ?: null,
+            'floor' => trim((string) ($shipping['floor'] ?? '')) ?: null,
+            'apartment' => trim((string) ($shipping['apartment'] ?? '')) ?: null,
+        ], static fn ($v) => $v !== null && $v !== '');
+
+        return $address;
+    }
+
+    private function resolveCityIdByName(string $cityName): ?string
+    {
+        $needle = mb_strtolower(trim($cityName));
+        if ($needle === '') {
+            return null;
+        }
+
+        foreach ($this->listCities() as $city) {
+            $candidates = [
+                (string) ($city['name'] ?? ''),
+                (string) ($city['nameAr'] ?? ''),
+                (string) ($city['alias'] ?? ''),
+            ];
+            foreach ($candidates as $candidate) {
+                if ($candidate !== '' && mb_strtolower(trim($candidate)) === $needle) {
+                    $id = (string) ($city['_id'] ?? '');
+
+                    return $id !== '' ? $id : null;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function assertReady(bool $requireContract = true): void
+    {
+        $key = trim((string) config('bosta.api_key', ''));
+        if ($key === '') {
+            throw new RuntimeException('BOSTA_API_KEY is not configured.');
+        }
+
+        if ($requireContract && ! (bool) config('bosta.api_contract_ready')) {
+            throw new RuntimeException(
+                'BLOCKED_BY_BOSTA_CREDENTIALS_OR_DOCS: set BOSTA_API_CONTRACT_READY=true after verifying official docs.'
+            );
+        }
+
+        if (trim((string) config('bosta.api_url', '')) === '') {
+            throw new RuntimeException('BOSTA_API_URL is not configured.');
+        }
+    }
+
+    private function baseUrl(): string
+    {
+        return rtrim((string) config('bosta.api_url'), '/');
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function authHeaders(): array
+    {
+        return [
+            'Authorization' => (string) config('bosta.api_key'),
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json',
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function sanitizeRaw(array $data): array
+    {
+        unset(
+            $data['apiKey'],
+            $data['api_key'],
+            $data['authorization'],
+            $data['Authorization'],
+            $data['secret'],
         );
+
+        return $data;
     }
 }
