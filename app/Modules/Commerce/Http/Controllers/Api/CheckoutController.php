@@ -40,6 +40,9 @@ final class CheckoutController extends Controller
             'billing_address.district_name' => ['nullable', 'string', 'max:150'],
             'billing_address.district_id' => ['nullable', 'string', 'max:64'],
             'billing_address.bosta_district_id' => ['nullable', 'string', 'max:64'],
+            'billing_address.bosta_city_id' => ['nullable', 'string', 'max:64'],
+            'billing_address.zone_id' => ['nullable', 'string', 'max:64'],
+            'billing_address.bosta_zone_id' => ['nullable', 'string', 'max:64'],
             'shipping_address' => ['nullable', 'array'],
             'shipping_address.first_name' => ['nullable', 'string', 'max:255'],
             'shipping_address.last_name' => ['nullable', 'string', 'max:255'],
@@ -52,6 +55,9 @@ final class CheckoutController extends Controller
             'shipping_address.district_name' => ['nullable', 'string', 'max:150'],
             'shipping_address.district_id' => ['nullable', 'string', 'max:64'],
             'shipping_address.bosta_district_id' => ['nullable', 'string', 'max:64'],
+            'shipping_address.bosta_city_id' => ['nullable', 'string', 'max:64'],
+            'shipping_address.zone_id' => ['nullable', 'string', 'max:64'],
+            'shipping_address.bosta_zone_id' => ['nullable', 'string', 'max:64'],
             'notes' => ['nullable', 'string', 'max:1000'],
         ]);
 

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Modules\Commerce\Http\Controllers\Api\BostaLocationsController;
 use App\Modules\Commerce\Http\Controllers\Api\BostaWebhookController;
 use App\Modules\Commerce\Http\Controllers\Api\CartController;
 use App\Modules\Commerce\Http\Controllers\Api\CartCouponController;
@@ -22,6 +23,10 @@ Route::prefix('cart')->middleware('auth.optional')->group(function (): void {
 });
 
 Route::post('/webhooks/bosta', BostaWebhookController::class);
+
+Route::get('/shipping/bosta/cities', [BostaLocationsController::class, 'cities']);
+Route::get('/shipping/bosta/cities/{cityId}/districts', [BostaLocationsController::class, 'districts'])
+    ->where('cityId', '[A-Za-z0-9_-]+');
 
 Route::post('/payments/paymob/callback', [PaymentController::class, 'paymobCallback']);
 Route::post('/payments/fawaterak/webhook', [PaymentController::class, 'fawaterakWebhook']);

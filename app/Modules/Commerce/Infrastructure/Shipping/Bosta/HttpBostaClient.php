@@ -98,13 +98,13 @@ final class HttpBostaClient implements BostaClientInterface
         }
 
         $tracking = $data['trackingNumber'] ?? null;
-        $state = $data['state'] ?? null;
+        $providerStatus = $this->normalizeProviderStatus($data['state'] ?? null);
 
         return [
             'external_shipment_id' => $externalId,
             'tracking_number' => $tracking !== null && $tracking !== '' ? (string) $tracking : null,
             'tracking_url' => null,
-            'provider_status' => $state !== null && $state !== '' ? (string) $state : '10',
+            'provider_status' => $providerStatus,
             'raw' => $this->sanitizeRaw($data),
             'request' => [
                 'url' => $url,
@@ -114,6 +114,66 @@ final class HttpBostaClient implements BostaClientInterface
                 'itemsCount' => $payload['specs']['packageDetails']['itemsCount'] ?? null,
             ],
         ];
+    }
+
+    /**
+     * Bosta returns state as either a code string/int or {code, value}.
+     */
+    private function normalizeProviderStatus(mixed $state): string
+    {
+        if (is_array($state)) {
+            $code = $state['code'] ?? $state['value'] ?? null;
+            if ($code !== null && $code !== '') {
+                return (string) $code;
+            }
+
+            return '10';
+        }
+
+        if ($state !== null && $state !== '') {
+            return (string) $state;
+        }
+
+        return '10';
+    }
+
+    /**
+     * Official districts for a Bosta city (districtId + names).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listDistrictsForCity(string $cityId): array
+    {
+        $this->assertReady(requireContract: false);
+
+        $cityId = trim($cityId);
+        if ($cityId === '') {
+            return [];
+        }
+
+        $response = Http::withHeaders($this->authHeaders())
+            ->acceptJson()
+            ->timeout((int) config('bosta.http_timeout_seconds', 20))
+            ->get($this->baseUrl().'/api/v2/cities/'.$cityId.'/districts');
+
+        if (! $response->successful()) {
+            throw new RuntimeException('Bosta districts request failed with HTTP '.$response->status());
+        }
+
+        $json = $response->json();
+        if (! is_array($json) || ($json['success'] ?? null) === false) {
+            throw new RuntimeException('Bosta districts request unsuccessful.');
+        }
+
+        $list = $json['data'] ?? [];
+        if (! is_array($list)) {
+            return [];
+        }
+
+        /** @var list<array<string, mixed>> $districts */
+        $districts = array_values(array_filter($list, 'is_array'));
+
+        return $districts;
     }
 
     /**
