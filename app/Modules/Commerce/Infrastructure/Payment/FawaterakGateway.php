@@ -81,42 +81,11 @@ final class FawaterakGateway implements PaymentGatewayInterface
             'status' => PaymentStatus::Pending->value,
         ]);
 
-        $billing = $order->billing_address ?? [];
-        $user = $order->user;
-        [$firstName, $lastName] = $this->splitName(
-            (string) ($billing['first_name'] ?? $user?->name ?? 'Customer')
-            .' '.(string) ($billing['last_name'] ?? '')
-        );
+        $merchantReference = $this->merchantPaymentReference($order, $payment);
+        $requestPayload = $this->buildCreateInvoicePayload($order, $payment, $merchantReference);
 
         try {
-            $data = $this->client->createInvoiceLink([
-                'cartTotal' => (string) $order->total,
-                'currency' => (string) config('fawaterak.currency', $order->currency),
-                'customer' => array_filter([
-                    'first_name' => $firstName,
-                    'last_name' => $lastName,
-                    'email' => (string) ($billing['email'] ?? $user?->email ?? ''),
-                    'phone' => $billing['phone'] ?? $user?->phone ?? null,
-                    'address' => $billing['address'] ?? null,
-                ], static fn ($value) => $value !== null && $value !== ''),
-                'cartItems' => [
-                    [
-                        'name' => 'Order '.$order->order_number,
-                        'price' => (string) $order->total,
-                        'quantity' => '1',
-                    ],
-                ],
-                'redirectionUrls' => [
-                    'successUrl' => $this->returnUrl($payment->id, 'success'),
-                    'failUrl' => $this->returnUrl($payment->id, 'fail'),
-                    'pendingUrl' => $this->returnUrl($payment->id, 'pending'),
-                    'webhookUrl' => url('/api/v1/payments/fawaterak/webhook'),
-                ],
-                'payLoad' => [
-                    'local_payment_id' => $payment->id,
-                    'order_number' => $order->order_number,
-                ],
-            ]);
+            $data = $this->client->createInvoiceLink($requestPayload);
         } catch (RuntimeException $e) {
             $payment->update([
                 'status' => PaymentStatus::Failed->value,
@@ -141,9 +110,35 @@ final class FawaterakGateway implements PaymentGatewayInterface
             throw new RuntimeException('Fawaterak did not return an invoice url/id.');
         }
 
+        // createInvoiceLink returns only url/invoiceKey/invoiceId. Authoritative ownership
+        // lives on getInvoiceData.pay_load — always verify before accepting the invoice.
+        try {
+            $authoritative = $this->client->getInvoiceData($invoiceId);
+        } catch (RuntimeException $e) {
+            $payment->update([
+                'status' => PaymentStatus::Failed->value,
+                'gateway_response' => [
+                    'error' => 'invoice_ownership_lookup_failed',
+                    'message' => $e->getMessage(),
+                    'rejected_invoice_id' => $invoiceId,
+                    'create_response' => $data,
+                ],
+            ]);
+
+            throw $e;
+        }
+
+        $ownershipData = array_merge($authoritative, [
+            'invoiceId' => $invoiceId,
+            'url' => $invoiceUrl,
+            'invoiceKey' => $data['invoiceKey'] ?? ($authoritative['invoice_key'] ?? null),
+            'payLoad' => $authoritative['pay_load'] ?? $authoritative['payLoad'] ?? null,
+            'request_merchant_reference' => $merchantReference,
+        ]);
+
         try {
             $this->assertInvoiceExclusiveToOrder($invoiceId, (int) $order->id, (int) $payment->id);
-            $this->assertProviderPayloadBelongsToOrder($data, $order, $payment);
+            $this->assertProviderPayloadBelongsToOrder($ownershipData, $order, $payment);
         } catch (RuntimeException $e) {
             $payment->update([
                 'status' => PaymentStatus::Failed->value,
@@ -151,6 +146,7 @@ final class FawaterakGateway implements PaymentGatewayInterface
                     'error' => 'cross_order_or_invalid_invoice_rejected',
                     'message' => $e->getMessage(),
                     'rejected_invoice_id' => $invoiceId,
+                    'merchant_reference' => $merchantReference,
                 ],
             ]);
 
@@ -159,6 +155,7 @@ final class FawaterakGateway implements PaymentGatewayInterface
                 'order_number' => $order->order_number,
                 'payment_id' => $payment->id,
                 'invoice_id' => $invoiceId,
+                'merchant_reference' => $merchantReference,
                 'reason' => $e->getMessage(),
             ]);
 
@@ -168,7 +165,7 @@ final class FawaterakGateway implements PaymentGatewayInterface
         $payment->update([
             'gateway_order_id' => $invoiceId,
             'status' => PaymentStatus::Processing->value,
-            'gateway_response' => $data,
+            'gateway_response' => $ownershipData,
         ]);
 
         return new PaymentInitiationResult(
@@ -294,6 +291,87 @@ final class FawaterakGateway implements PaymentGatewayInterface
     }
 
     /**
+     * Stable unique reference for this payment attempt.
+     * Fawaterak createInvoiceLink has no first-class merchant order id; we send this via
+     * documented payLoad + customer.customer_unique_id, and as an email plus-tag so the
+     * provider cannot silently reuse another unpaid invoice for the same customer+amount.
+     */
+    public function merchantPaymentReference(Order $order, Payment $payment): string
+    {
+        return (string) $order->order_number.'-P'.$payment->id;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function buildCreateInvoicePayload(Order $order, Payment $payment, string $merchantReference): array
+    {
+        $billing = $order->billing_address ?? [];
+        $user = $order->user;
+        [$firstName, $lastName] = $this->splitName(
+            (string) ($billing['first_name'] ?? $user?->name ?? 'Customer')
+            .' '.(string) ($billing['last_name'] ?? '')
+        );
+
+        $rawEmail = (string) ($billing['email'] ?? $user?->email ?? '');
+        $email = $this->uniqueCustomerEmail($rawEmail, $merchantReference);
+
+        return [
+            'cartTotal' => (string) $order->total,
+            'currency' => (string) config('fawaterak.currency', $order->currency),
+            'customer' => array_filter([
+                'first_name' => $firstName,
+                'last_name' => $lastName,
+                'email' => $email,
+                'phone' => $billing['phone'] ?? $user?->phone ?? null,
+                'address' => $billing['address'] ?? null,
+                // Documented on createInvoiceLink (mandatory for tokenization; safe optional otherwise).
+                'customer_unique_id' => $merchantReference,
+            ], static fn ($value) => $value !== null && $value !== ''),
+            'cartItems' => [
+                [
+                    'name' => 'Order '.$order->order_number.' ('.$merchantReference.')',
+                    'price' => (string) $order->total,
+                    'quantity' => '1',
+                ],
+            ],
+            'redirectionUrls' => [
+                'successUrl' => $this->returnUrl($payment->id, 'success'),
+                'failUrl' => $this->returnUrl($payment->id, 'fail'),
+                'pendingUrl' => $this->returnUrl($payment->id, 'pending'),
+                'webhookUrl' => url('/api/v1/payments/fawaterak/webhook'),
+            ],
+            'payLoad' => [
+                'local_payment_id' => $payment->id,
+                'order_number' => $order->order_number,
+                'merchant_reference' => $merchantReference,
+            ],
+        ];
+    }
+
+    /**
+     * Plus-tag the local email part so unpaid-invoice reuse keyed on customer email+amount
+     * cannot collide across distinct payment attempts. Falls back to original when email
+     * cannot be rewritten safely.
+     */
+    public function uniqueCustomerEmail(string $email, string $merchantReference): string
+    {
+        $email = trim($email);
+        if ($email === '' || ! str_contains($email, '@')) {
+            return $email;
+        }
+
+        [$local, $domain] = explode('@', $email, 2);
+        $localBase = explode('+', $local, 2)[0];
+        $tag = preg_replace('/[^A-Za-z0-9_-]/', '', $merchantReference) ?? '';
+        if ($localBase === '' || $domain === '' || $tag === '') {
+            return $email;
+        }
+
+        return $localBase.'+'.$tag.'@'.$domain;
+    }
+
+    /**
      * Reuse an unpaid same-order invoice when still payable.
      * Never reuse an invoice that belongs to another order.
      */
@@ -302,7 +380,11 @@ final class FawaterakGateway implements PaymentGatewayInterface
         $candidates = Payment::query()
             ->where('order_id', $order->id)
             ->where('gateway', 'fawaterak')
-            ->whereIn('status', [PaymentStatus::Pending->value, PaymentStatus::Processing->value])
+            ->whereIn('status', [
+                PaymentStatus::Pending->value,
+                PaymentStatus::Processing->value,
+                PaymentStatus::Failed->value,
+            ])
             ->whereNotNull('gateway_order_id')
             ->where('gateway_order_id', '!=', '')
             ->orderByDesc('id')
@@ -346,6 +428,30 @@ final class FawaterakGateway implements PaymentGatewayInterface
             }
 
             // Unpaid / failed-attempt invoice still owned by this order → safe reuse.
+            $reuseUrl = (string) (
+                data_get($candidate->gateway_response, 'url')
+                ?: ($data['url'] ?? $data['invoice_url'] ?? '')
+            );
+
+            // Without a payable URL, fall through so initiate can create a fresh exclusive invoice.
+            if ($reuseUrl === '') {
+                continue;
+            }
+
+            if ($candidate->status === PaymentStatus::Failed->value) {
+                $candidate->update([
+                    'status' => PaymentStatus::Processing->value,
+                    'gateway_response' => array_merge(
+                        is_array($candidate->gateway_response) ? $candidate->gateway_response : [],
+                        [
+                            'url' => $reuseUrl,
+                            'revived_from_failed' => true,
+                        ]
+                    ),
+                ]);
+                $candidate->refresh();
+            }
+
             return $candidate;
         }
 
@@ -471,6 +577,22 @@ final class FawaterakGateway implements PaymentGatewayInterface
                 );
             }
         }
+
+        $payloadMerchantReference = $this->extractMerchantReferenceFromProviderData($data);
+        if ($payloadMerchantReference !== null) {
+            $expected = $this->merchantPaymentReference($order, $payment);
+            $ownerPaymentId = $this->extractLocalPaymentIdFromProviderData($data);
+            $historicalSameOrder = $ownerPaymentId !== null
+                && $ownerPaymentId !== (int) $payment->id
+                && ($owner = Payment::query()->find($ownerPaymentId)) !== null
+                && (int) $owner->order_id === (int) $order->id;
+
+            if ($payloadMerchantReference !== $expected && ! $historicalSameOrder) {
+                throw new RuntimeException(
+                    'Fawaterak invoice merchant_reference does not match this payment attempt.'
+                );
+            }
+        }
     }
 
     /**
@@ -557,6 +679,25 @@ final class FawaterakGateway implements PaymentGatewayInterface
         }
         if (is_array($payload) && isset($payload['local_payment_id']) && is_numeric($payload['local_payment_id'])) {
             return (int) $payload['local_payment_id'];
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function extractMerchantReferenceFromProviderData(array $data): ?string
+    {
+        $payload = $data['pay_load'] ?? $data['payLoad'] ?? null;
+        if (is_string($payload) && $payload !== '') {
+            $decoded = json_decode($payload, true);
+            $payload = is_array($decoded) ? $decoded : null;
+        }
+        if (is_array($payload) && isset($payload['merchant_reference']) && is_scalar($payload['merchant_reference'])) {
+            $value = trim((string) $payload['merchant_reference']);
+
+            return $value !== '' ? $value : null;
         }
 
         return null;
