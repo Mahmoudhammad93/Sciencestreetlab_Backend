@@ -61,8 +61,17 @@ final class PaymentCompletionService
             ]);
 
             $locked->loadMissing('order');
+            // Failed online attempts remain unpaid and retryable — keep awaiting_payment.
+            // Do not move the order into a non-retryable "pending" state that hides Pay Now.
             if ($locked->order !== null && $locked->order->paid_at === null) {
-                $locked->order->update(['status' => OrderStatus::Pending->value]);
+                $status = (string) $locked->order->status;
+                if (! in_array($status, [
+                    OrderStatus::Cancelled->value,
+                    OrderStatus::Refunded->value,
+                    OrderStatus::Paid->value,
+                ], true)) {
+                    $locked->order->update(['status' => OrderStatus::AwaitingPayment->value]);
+                }
             }
 
             return $locked->fresh() ?? $locked;

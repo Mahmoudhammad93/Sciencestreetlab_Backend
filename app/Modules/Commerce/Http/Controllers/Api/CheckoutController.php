@@ -7,6 +7,7 @@ namespace App\Modules\Commerce\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Modules\Commerce\Application\Services\CheckoutService;
 use App\Modules\Commerce\Application\Services\GuestOrderCapabilityService;
+use App\Modules\Commerce\Application\Support\OrderPaymentEligibility;
 use App\Modules\Commerce\Http\Support\ResolvesCart;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Order;
 use App\Shared\Contracts\PaymentGatewayInterface;
@@ -21,6 +22,7 @@ final class CheckoutController extends Controller
         private readonly ResolvesCart $resolvesCart,
         private readonly CheckoutService $checkoutService,
         private readonly GuestOrderCapabilityService $guestCapabilities,
+        private readonly OrderPaymentEligibility $paymentEligibility,
     ) {}
 
     public function store(Request $request): JsonResponse
@@ -99,8 +101,10 @@ final class CheckoutController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        if ($order->status !== 'awaiting_payment') {
-            return response()->json(['message' => 'Order is not awaiting payment.'], 422);
+        try {
+            $this->paymentEligibility->assertRetryAllowed($order);
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
         }
 
         $gateway = app(PaymentGatewayInterface::class);
