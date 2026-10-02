@@ -20,9 +20,9 @@ class Quiz extends Model
     public array $translatable = ['title', 'instructions'];
 
     protected $fillable = [
-        'uuid', 'quizable_type', 'quizable_id', 'passing_score', 'max_attempts',
-        'time_limit_seconds', 'shuffle_questions', 'is_required',
-        'selection_mode', 'selection_config',
+        'uuid', 'quizable_type', 'quizable_id', 'title', 'instructions',
+        'passing_score', 'max_attempts', 'time_limit_seconds', 'shuffle_questions',
+        'is_required', 'selection_mode', 'selection_config',
     ];
 
     protected static function booted(): void

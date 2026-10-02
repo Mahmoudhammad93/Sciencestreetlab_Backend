@@ -88,7 +88,15 @@ final class CoursePresenter
 
         return $lessons->map(function (Lesson $lesson) use ($locale, $enrollment) {
             $canAccessLesson = $enrollment ? $this->access->canAccessLesson($enrollment, $lesson) : false;
-            $quiz = $lesson->quizzes->first();
+            $quizSummaries = $lesson->quizzes
+                ->sortBy('id')
+                ->values()
+                ->map(fn ($quiz) => [
+                    'id' => $quiz->id,
+                    'title' => $quiz->getTranslation('title', $locale),
+                    'is_required' => (bool) $quiz->is_required,
+                ])
+                ->all();
 
             $item = [
                 'id' => $lesson->id,
@@ -100,11 +108,10 @@ final class CoursePresenter
                 'is_locked' => ! $canAccessLesson,
                 'topics_count' => $lesson->topics_count,
                 'has_quiz' => $lesson->quizzes_count > 0,
-                'quiz' => $quiz ? [
-                    'id' => $quiz->id,
-                    'title' => $quiz->getTranslation('title', $locale),
-                    'is_required' => (bool) $quiz->is_required,
-                ] : null,
+                // Plural is authoritative — lessons may have multiple quizzes.
+                'quizzes' => $quizSummaries,
+                // Deprecated singular alias (first quiz only) for older clients.
+                'quiz' => $quizSummaries[0] ?? null,
             ];
 
             if ($enrollment !== null) {

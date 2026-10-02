@@ -74,7 +74,7 @@ class QuizResource extends Resource
             Forms\Components\KeyValue::make('selection_config')
                 ->visible(fn (Get $get) => $get('selection_mode') === QuizSelectionMode::Generated->value)
                 ->helperText(__('admin.quizzes.fields.selection_config_help'))
-                ->extraInputAttributes(['dir' => 'ltr']),
+                ->extraAttributes(['dir' => 'ltr']),
             Forms\Components\Section::make(__('admin.quizzes.sections.lesson_assignment'))
                 ->description(__('admin.quizzes.sections.lesson_assignment_description'))
                 ->schema([

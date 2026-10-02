@@ -136,19 +136,32 @@ class LessonsRelationManager extends RelationManager
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\Action::make('quiz')
-                    ->label(fn (Lesson $record): string => $record->quizzes()->exists()
-                        ? __('admin.lessons.actions.edit_quiz')
-                        : __('admin.lessons.actions.assign_quiz'))
-                    ->icon('heroicon-o-clipboard-document-check')
-                    ->url(function (Lesson $record): string {
-                        $quiz = $record->quizzes()->first();
-                        if ($quiz !== null) {
-                            return QuizResource::getUrl('edit', ['record' => $quiz]);
-                        }
+                Tables\Actions\Action::make('add_quiz')
+                    ->label(__('admin.lessons.actions.add_quiz'))
+                    ->icon('heroicon-o-plus-circle')
+                    ->url(fn (Lesson $record): string => QuizResource::getUrl('create').'?lesson_id='.$record->id),
+                Tables\Actions\ActionGroup::make([
+                    Tables\Actions\Action::make('view_quizzes')
+                        ->label(__('admin.lessons.actions.view_quizzes'))
+                        ->icon('heroicon-o-clipboard-document-list')
+                        ->url(fn (Lesson $record): string => QuizResource::getUrl('index').'?tableSearch='.urlencode((string) $record->slug))
+                        ->visible(fn (Lesson $record): bool => $record->quizzes()->exists()),
+                    Tables\Actions\Action::make('edit_first_quiz')
+                        ->label(__('admin.lessons.actions.edit_quiz'))
+                        ->icon('heroicon-o-pencil-square')
+                        ->url(function (Lesson $record): string {
+                            $quiz = $record->quizzes()->orderBy('id')->first();
 
-                        return QuizResource::getUrl('create').'?lesson_id='.$record->id;
-                    }),
+                            return $quiz !== null
+                                ? QuizResource::getUrl('edit', ['record' => $quiz])
+                                : QuizResource::getUrl('index');
+                        })
+                        ->visible(fn (Lesson $record): bool => $record->quizzes()->count() === 1),
+                ])
+                    ->label(__('admin.lessons.actions.manage_quizzes'))
+                    ->icon('heroicon-o-clipboard-document-check')
+                    ->visible(fn (Lesson $record): bool => $record->quizzes()->exists())
+                    ->button(),
                 Tables\Actions\Action::make('preview')
                     ->label(__('admin.common.actions.preview'))
                     ->icon('heroicon-o-arrow-top-right-on-square')

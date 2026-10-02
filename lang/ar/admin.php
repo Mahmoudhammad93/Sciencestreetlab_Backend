@@ -364,7 +364,10 @@ return [
     'lessons' => [
         'actions' => [
             'assign_quiz' => 'ربط اختبار',
+            'add_quiz' => 'إضافة اختبار',
             'edit_quiz' => 'تعديل الاختبار',
+            'view_quizzes' => 'عرض الاختبارات',
+            'manage_quizzes' => 'إدارة الاختبارات',
             'quiz' => 'تعديل الاختبار / ربط اختبار',
         ],
         'fields' => [

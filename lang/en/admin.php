@@ -364,7 +364,10 @@ return [
     'lessons' => [
         'actions' => [
             'assign_quiz' => 'Assign quiz',
+            'add_quiz' => 'Add quiz',
             'edit_quiz' => 'Edit quiz',
+            'view_quizzes' => 'View quizzes',
+            'manage_quizzes' => 'Manage quizzes',
             'quiz' => 'Edit quiz / Assign quiz',
         ],
         'fields' => [
