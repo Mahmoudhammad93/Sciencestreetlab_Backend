@@ -7,6 +7,7 @@ namespace App\Modules\Commerce\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Modules\Commerce\Application\Services\CheckoutService;
 use App\Modules\Commerce\Application\Services\GuestOrderCapabilityService;
+use App\Modules\Commerce\Application\Support\DeliveryAddressValidator;
 use App\Modules\Commerce\Application\Support\OrderPaymentEligibility;
 use App\Modules\Commerce\Domain\Enums\PaymentMethod;
 use App\Modules\Commerce\Http\Support\ResolvesCart;
@@ -15,6 +16,7 @@ use App\Shared\Contracts\PaymentGatewayInterface;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -117,6 +119,11 @@ final class CheckoutController extends Controller
             'payment_method' => ['nullable', 'string', 'max:50'],
         ]);
 
+        $validated['billing_address'] = DeliveryAddressValidator::normalize($validated['billing_address']) ?? [];
+        if (array_key_exists('shipping_address', $validated)) {
+            $validated['shipping_address'] = DeliveryAddressValidator::normalize($validated['shipping_address']);
+        }
+
         try {
             $paymentMethod = PaymentMethod::fromCheckoutInput($validated['payment_method'] ?? 'online');
         } catch (InvalidArgumentException $e) {
@@ -125,6 +132,13 @@ final class CheckoutController extends Controller
 
         $user = $request->user();
         $cart = $this->resolvesCart->fromRequest($request);
+
+        if ($this->checkoutService->cartRequiresShipping($cart)) {
+            DeliveryAddressValidator::assertForPhysicalCheckout(
+                $validated['billing_address'],
+                $validated['shipping_address'] ?? null,
+            );
+        }
 
         try {
             $result = $this->checkoutService->createOrderFromCart(
@@ -135,6 +149,8 @@ final class CheckoutController extends Controller
                 $validated['notes'] ?? null,
                 $paymentMethod,
             );
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (DomainException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }

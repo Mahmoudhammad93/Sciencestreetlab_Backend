@@ -408,7 +408,7 @@ final class OrderPaymentRetryTest extends TestCase
                 'phone' => '01012345678',
                 'city' => 'Cairo',
                 'country' => 'EG',
-                'address' => '12 Test St',
+                'address' => '12 Test Street Rd',
             ],
             'shipping_address' => [
                 'first_name' => 'Buyer',
@@ -417,7 +417,7 @@ final class OrderPaymentRetryTest extends TestCase
                 'phone' => '01012345678',
                 'city' => 'Cairo',
                 'country' => 'EG',
-                'address' => '12 Test St',
+                'address' => '12 Test Street Rd',
             ],
         ];
         if ($orderNumber !== null) {

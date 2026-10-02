@@ -369,7 +369,7 @@ final class BostaRealProductDetailsTest extends TestCase
             'phone' => '01012345678',
             'city' => 'Cairo',
             'country' => 'EG',
-            'address' => '12 Nile St',
+            'address' => '12 Nile Street Ave',
             'district' => 'Nasr City',
             'district_name' => 'Nasr City',
             'bosta_city_id' => 'city-cairo-id',

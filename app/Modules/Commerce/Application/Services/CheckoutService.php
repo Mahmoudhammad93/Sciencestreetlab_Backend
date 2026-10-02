@@ -7,6 +7,7 @@ namespace App\Modules\Commerce\Application\Services;
 use App\Models\User;
 use App\Modules\Catalog\Domain\Enums\ProductType;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\Product;
+use App\Modules\Commerce\Application\Support\DeliveryAddressValidator;
 use App\Modules\Commerce\Application\Support\OrderPaymentMethod;
 use App\Modules\Commerce\Domain\Enums\OrderStatus;
 use App\Modules\Commerce\Domain\Enums\PaymentMethod;
@@ -123,6 +124,7 @@ final class CheckoutService
                 'phone' => $billingAddress['phone'] ?? '',
                 'address' => $billingAddress['address'] ?? '',
             ], $shippingAddress);
+            $shippingAddress = DeliveryAddressValidator::normalize($shippingAddress) ?? [];
             $this->assertShipping($shippingAddress);
         } else {
             $shippingAddress = $shippingAddress ?: [
@@ -340,6 +342,11 @@ final class CheckoutService
             if (! isset($shipping[$field]) || trim((string) $shipping[$field]) === '') {
                 throw new DomainException("Shipping {$field} is required.");
             }
+        }
+
+        $street = trim((string) $shipping['address']);
+        if (! DeliveryAddressValidator::isValid($street)) {
+            throw new DomainException(DeliveryAddressValidator::MESSAGE);
         }
 
         if ((bool) config('bosta.enabled')) {

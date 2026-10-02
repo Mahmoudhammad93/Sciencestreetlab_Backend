@@ -92,7 +92,7 @@ final class BostaOfficialApiIntegrationTest extends TestCase
             $this->assertSame('01012345678', $body['receiver']['phone']);
             $this->assertSame('ada@example.com', $body['receiver']['email']);
             $this->assertSame('city-cairo-id', $body['dropOffAddress']['city']);
-            $this->assertSame('12 Nile St', $body['dropOffAddress']['firstLine']);
+            $this->assertSame('12 Nile Street Ave', $body['dropOffAddress']['firstLine']);
             $this->assertSame('Nasr City', $body['dropOffAddress']['districtName']);
             $this->assertSame(2, $body['specs']['packageDetails']['itemsCount']);
             $this->assertSame('Science Kit × 2', $body['specs']['packageDetails']['description']);
@@ -367,7 +367,7 @@ final class BostaOfficialApiIntegrationTest extends TestCase
                 'phone' => '01012345678',
                 'city' => 'Cairo',
                 'country' => 'EG',
-                'address' => '12 Nile St',
+                'address' => '12 Nile Street Ave',
                 'district' => 'Nasr City',
             ],
             'shipping_address' => [
@@ -377,7 +377,7 @@ final class BostaOfficialApiIntegrationTest extends TestCase
                 'phone' => '01012345678',
                 'city' => 'Cairo',
                 'country' => 'EG',
-                'address' => '12 Nile St',
+                'address' => '12 Nile Street Ave',
                 'district' => 'Nasr City',
             ],
         ]);

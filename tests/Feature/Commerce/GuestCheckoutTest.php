@@ -387,7 +387,7 @@ final class GuestCheckoutTest extends TestCase
             'phone' => '01012345678',
             'city' => 'Cairo',
             'country' => 'EG',
-            'address' => 'Street 1',
+            'address' => 'Street 1 Building A',
             'district' => 'Nasr City',
             'district_name' => 'Nasr City',
             'bosta_district_id' => 'district-nasr',

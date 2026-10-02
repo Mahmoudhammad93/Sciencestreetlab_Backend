@@ -60,7 +60,7 @@ final class BostaShippingFulfillmentTest extends TestCase
             'phone' => '01012345678',
             'city' => 'Cairo',
             'country' => 'EG',
-            'address' => '12 Test Street',
+            'address' => '123 Test Street',
             'district' => 'Nasr City',
             'district_name' => 'Nasr City',
             'bosta_district_id' => 'district-nasr',
@@ -135,7 +135,7 @@ final class BostaShippingFulfillmentTest extends TestCase
         $order = app(CheckoutService::class)->createOrderFromCart(
             $user,
             $this->cartWithProduct($user, $product),
-            ['first_name' => $user->name, 'last_name' => 'User', 'email' => $user->email, 'phone' => '01012345678', 'city' => 'Cairo', 'country' => 'EG', 'address' => '12 Test Street'],
+            ['first_name' => $user->name, 'last_name' => 'User', 'email' => $user->email, 'phone' => '01012345678', 'city' => 'Cairo', 'country' => 'EG', 'address' => '123 Test Street'],
             null,
         )['order'];
 
@@ -843,7 +843,7 @@ final class BostaShippingFulfillmentTest extends TestCase
             'phone' => '01012345678',
             'city' => 'Cairo',
             'country' => 'EG',
-            'address' => '12 Test Street',
+            'address' => '123 Test Street',
             'district' => 'Nasr City',
             'district_name' => 'Nasr City',
             'bosta_district_id' => 'district-nasr',

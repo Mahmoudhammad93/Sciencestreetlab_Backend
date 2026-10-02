@@ -570,7 +570,7 @@ final class OrderShippingStatusApiTest extends TestCase
             'phone' => '01012345678',
             'city' => 'Cairo',
             'country' => 'EG',
-            'address' => '12 Test Street',
+            'address' => '123 Test Street',
             'district' => 'Nasr City',
             'district_name' => 'Nasr City',
             'district_id' => 'district-test-1',

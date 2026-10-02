@@ -178,7 +178,7 @@ final class AuthAccountDataIsolationTest extends TestCase
                     'phone' => '01004460433',
                     'city' => 'Giza',
                     'country' => 'EG',
-                    'address' => '12 Test Street',
+                    'address' => '123 Test Street',
                     'district' => 'Dokki',
                     'district_name' => 'Dokki',
                     'bosta_district_id' => 'district-dokki',
@@ -191,7 +191,7 @@ final class AuthAccountDataIsolationTest extends TestCase
                     'phone' => '01004460433',
                     'city' => 'Giza',
                     'country' => 'EG',
-                    'address' => '12 Test Street',
+                    'address' => '123 Test Street',
                     'district' => 'Dokki',
                     'district_name' => 'Dokki',
                     'bosta_district_id' => 'district-dokki',
@@ -259,7 +259,7 @@ final class AuthAccountDataIsolationTest extends TestCase
                     'phone' => '01001112233',
                     'city' => 'Cairo',
                     'country' => 'EG',
-                    'address' => '1 Guest St',
+                    'address' => '1 Guest Street Apt',
                 ],
             ]);
 
