@@ -28,6 +28,11 @@ Route::get('/shipping/bosta/cities', [BostaLocationsController::class, 'cities']
 Route::get('/shipping/bosta/cities/{cityId}/districts', [BostaLocationsController::class, 'districts'])
     ->where('cityId', '[A-Za-z0-9_-]+');
 
+// Preferred public aliases (searchable checkout contract).
+Route::get('/shipping/locations/cities', [BostaLocationsController::class, 'cities']);
+Route::get('/shipping/locations/cities/{cityId}/districts', [BostaLocationsController::class, 'districts'])
+    ->where('cityId', '[A-Za-z0-9_-]+');
+
 Route::post('/payments/paymob/callback', [PaymentController::class, 'paymobCallback']);
 Route::post('/payments/fawaterak/webhook', [PaymentController::class, 'fawaterakWebhook']);
 Route::get('/payments/fawaterak/callback', [PaymentController::class, 'fawaterakCallback']);
@@ -50,4 +55,5 @@ Route::get('/guest/orders/{orderNumber}', [GuestOrderController::class, 'show'])
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/orders', [OrderController::class, 'index']);
     Route::get('/orders/{orderNumber}', [OrderController::class, 'show']);
+    Route::post('/orders/{orderNumber}/cancel', [OrderController::class, 'cancel']);
 });

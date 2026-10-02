@@ -224,5 +224,23 @@ final class CheckoutService
                 throw new DomainException("Shipping {$field} is required.");
             }
         }
+
+        if ((bool) config('bosta.enabled')) {
+            $districtId = trim((string) (
+                $shipping['bosta_district_id']
+                ?? $shipping['district_id']
+                ?? ''
+            ));
+            $districtName = trim((string) (
+                $shipping['district_name']
+                ?? $shipping['district']
+                ?? ''
+            ));
+            if ($districtId === '' && $districtName === '') {
+                throw new DomainException(
+                    'Shipping district/area is required for physical delivery.'
+                );
+            }
+        }
     }
 }

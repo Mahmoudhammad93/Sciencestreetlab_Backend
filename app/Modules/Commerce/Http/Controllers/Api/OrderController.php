@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Modules\Commerce\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Commerce\Application\Services\CustomerOrderCancelService;
 use App\Modules\Commerce\Application\Support\OrderPaymentEligibility;
 use App\Modules\Commerce\Application\Support\OrderShippingPresenter;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Order;
+use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -16,6 +18,7 @@ final class OrderController extends Controller
     public function __construct(
         private readonly OrderShippingPresenter $shippingPresenter,
         private readonly OrderPaymentEligibility $paymentEligibility,
+        private readonly CustomerOrderCancelService $cancelService,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -48,6 +51,37 @@ final class OrderController extends Controller
         return response()->json(['data' => $this->orderPayload($order)]);
     }
 
+    public function cancel(Request $request, string $orderNumber): JsonResponse
+    {
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $order = Order::query()
+            ->where('order_number', $orderNumber)
+            ->where('user_id', $request->user()->id)
+            ->first();
+
+        if ($order === null) {
+            return response()->json(['message' => 'Order not found'], 404);
+        }
+
+        try {
+            $cancelled = $this->cancelService->cancelForCustomer(
+                $order,
+                (int) $request->user()->id,
+                $validated['reason'] ?? null,
+            );
+        } catch (DomainException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Order cancelled.',
+            'data' => $this->orderPayload($cancelled->loadMissing(['items.product', 'payment', 'bostaShipment'])),
+        ]);
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -55,7 +89,6 @@ final class OrderController extends Controller
     {
         $payload = $order->toArray();
 
-        // Never leak raw shipment rows / metadata to customers.
         unset($payload['bosta_shipment'], $payload['shipments'], $payload['confirmation_email_claimed_at']);
 
         $eligibility = $this->paymentEligibility->forOrder($order);
@@ -63,8 +96,8 @@ final class OrderController extends Controller
         $payload['payment_required'] = $eligibility['payment_required'];
         $payload['payment_retry_allowed'] = $eligibility['payment_retry_allowed'];
         $payload['latest_payment_status'] = $eligibility['latest_payment_status'];
+        $payload['cancellation_allowed'] = $this->cancelService->customerMayCancel($order);
 
-        // Prefer latest payment row for customer-facing payment summary (no secrets).
         $latestPayment = $order->payments()->orderByDesc('id')->first();
 
         if ($latestPayment !== null) {
