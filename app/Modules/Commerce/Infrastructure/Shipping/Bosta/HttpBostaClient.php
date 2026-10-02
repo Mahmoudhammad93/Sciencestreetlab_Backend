@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Commerce\Infrastructure\Shipping\Bosta;
 
+use App\Modules\Commerce\Application\Support\OrderPaymentMethod;
 use App\Modules\Commerce\Domain\Contracts\BostaClientInterface;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Order;
 use Illuminate\Http\Client\ConnectionException;
@@ -239,9 +240,10 @@ final class HttpBostaClient implements BostaClientInterface
         $itemsCount = max(1, (int) $order->items->sum('quantity'));
         $description = 'Science Street Lab order '.$order->order_number;
 
-        // Prepaid Fawaterak (or any already-paid online order): collectible COD must be 0.
+        // ONLINE prepaid (Fawaterak): collectible COD must be 0.
+        // Cash on Delivery: Bosta collects the authoritative final order total.
         // Do NOT use Bosta escrowInfo prepaid feature for external Fawaterak payments.
-        $cod = 0;
+        $cod = $this->collectibleCodAmount($order);
 
         $receiver = array_filter([
             'firstName' => $firstName,
@@ -394,6 +396,26 @@ final class HttpBostaClient implements BostaClientInterface
         }
 
         return null;
+    }
+
+    /**
+     * Authoritative Bosta collectible amount.
+     * COD: final order.total (after discount/shipping/tax). Online prepaid: 0.
+     */
+    private function collectibleCodAmount(Order $order): float|int
+    {
+        if (! OrderPaymentMethod::isCashOnDelivery($order)) {
+            return 0;
+        }
+
+        $amount = round((float) $order->total, 2);
+
+        // Prefer int when whole pounds to match historical prepaid assertions.
+        if (fmod($amount, 1.0) === 0.0) {
+            return (int) $amount;
+        }
+
+        return $amount;
     }
 
     private function assertReady(bool $requireContract = true): void

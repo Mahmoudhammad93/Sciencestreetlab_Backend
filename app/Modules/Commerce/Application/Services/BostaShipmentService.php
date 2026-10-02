@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Commerce\Application\Services;
 
 use App\Modules\Catalog\Domain\Enums\ProductType;
+use App\Modules\Commerce\Application\Support\OrderPaymentMethod;
 use App\Modules\Commerce\Domain\Contracts\BostaClientInterface;
 use App\Modules\Commerce\Domain\Enums\ShipmentProvider;
 use App\Modules\Commerce\Domain\Enums\ShipmentStatus;
@@ -18,8 +19,11 @@ use Throwable;
 /**
  * Idempotent Bosta shipment creation for physical (kit/bundle) Egypt orders.
  *
- * External create runs ONLY after verified payment (paid_at set).
- * Checkout may mark requires_delivery_fulfillment without calling Bosta.
+ * External create runs when the order is shipment-eligible:
+ * - ONLINE: verified payment (paid_at set)
+ * - COD: confirmed cash-on-delivery order (gateway=cod), without faking paid_at
+ *
+ * Checkout may mark requires_delivery_fulfillment without calling Bosta for online unpaid.
  */
 final class BostaShipmentService
 {
@@ -64,6 +68,15 @@ final class BostaShipmentService
         return $order->fresh(['items', 'bostaShipment']) ?? $order;
     }
 
+    public function isShipmentEligible(Order $order): bool
+    {
+        if ($order->paid_at !== null) {
+            return true;
+        }
+
+        return OrderPaymentMethod::isCashOnDelivery($order);
+    }
+
     public function shouldCreateForOrder(Order $order): bool
     {
         if (! (bool) config('bosta.enabled')) {
@@ -74,8 +87,8 @@ final class BostaShipmentService
             return false;
         }
 
-        if ($order->paid_at === null) {
-            Log::info('Bosta shipment skipped: order unpaid', [
+        if (! $this->isShipmentEligible($order)) {
+            Log::info('Bosta shipment skipped: order not shipment-eligible (unpaid online)', [
                 'order_id' => $order->id,
             ]);
 
@@ -102,7 +115,7 @@ final class BostaShipmentService
     }
 
     /**
-     * Ensure exactly one Bosta shipment exists for the paid order.
+     * Ensure exactly one Bosta shipment exists for an eligible order.
      * Safe to call repeatedly. Retries the SAME local row when create previously failed.
      */
     public function ensureShipmentForOrder(Order $order): ?Shipment
@@ -115,8 +128,10 @@ final class BostaShipmentService
             /** @var Order $locked */
             $locked = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
 
-            if ($locked->paid_at === null) {
-                throw new RuntimeException('Refusing Bosta create for unpaid order '.$locked->id);
+            if (! $this->isShipmentEligible($locked)) {
+                throw new RuntimeException(
+                    'Refusing Bosta create for non-eligible order '.$locked->id
+                );
             }
 
             $existing = Shipment::query()

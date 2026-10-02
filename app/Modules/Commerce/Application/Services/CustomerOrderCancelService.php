@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Modules\Commerce\Application\Services;
 
 use App\Modules\Commerce\Application\Support\OrderPaymentEligibility;
+use App\Modules\Commerce\Application\Support\OrderPaymentMethod;
 use App\Modules\Commerce\Domain\Enums\OrderStatus;
+use App\Modules\Commerce\Domain\Enums\ShipmentProvider;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Order;
+use App\Modules\Commerce\Infrastructure\Persistence\Models\Shipment;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -16,13 +19,24 @@ use Illuminate\Support\Facades\Log;
  *
  * State transition only — never deletes the order, never refunds Fawaterak,
  * never creates/cancels Bosta deliveries.
+ *
+ * COD: cancel allowed only before an external Bosta shipment exists.
+ * Once external_shipment_id is set, customer auto-cancel is blocked
+ * (admin/support must cancel the live Bosta delivery — cancel API not wired).
  */
 final class CustomerOrderCancelService
 {
     /** @var list<string> */
-    private const CUSTOMER_CANCELLABLE = [
+    private const ONLINE_CANCELLABLE = [
         OrderStatus::Pending->value,
         OrderStatus::AwaitingPayment->value,
+    ];
+
+    /** @var list<string> */
+    private const COD_CANCELLABLE_WITHOUT_EXTERNAL_SHIPMENT = [
+        OrderStatus::Pending->value,
+        OrderStatus::AwaitingPayment->value,
+        OrderStatus::Processing->value,
     ];
 
     public function __construct(
@@ -40,15 +54,20 @@ final class CustomerOrderCancelService
             return false;
         }
 
-        if (! in_array($order->status, self::CUSTOMER_CANCELLABLE, true)) {
+        if ($this->hasExternalBostaShipment($order)) {
             return false;
         }
 
-        return true;
+        $isCod = OrderPaymentMethod::isCashOnDelivery($order);
+        if ($isCod) {
+            return in_array($order->status, self::COD_CANCELLABLE_WITHOUT_EXTERNAL_SHIPMENT, true);
+        }
+
+        return in_array($order->status, self::ONLINE_CANCELLABLE, true);
     }
 
     /**
-     * Cancel an unpaid order owned by the given user id.
+     * Cancel an unpaid / COD-pre-shipment order owned by the given user id.
      * Idempotent when already cancelled by the same owner.
      */
     public function cancelForCustomer(Order $order, int $userId, ?string $reason = null): Order
@@ -72,7 +91,19 @@ final class CustomerOrderCancelService
                 );
             }
 
-            if (! in_array($locked->status, self::CUSTOMER_CANCELLABLE, true)) {
+            if ($this->hasExternalBostaShipment($locked)) {
+                throw new DomainException(
+                    'This order already has a live Bosta shipment. Contact support to cancel — '
+                    .'automatic cancellation is blocked to avoid orphaning the delivery.'
+                );
+            }
+
+            $isCod = OrderPaymentMethod::isCashOnDelivery($locked);
+            $allowedStatuses = $isCod
+                ? self::COD_CANCELLABLE_WITHOUT_EXTERNAL_SHIPMENT
+                : self::ONLINE_CANCELLABLE;
+
+            if (! in_array($locked->status, $allowedStatuses, true)) {
                 throw new DomainException('This order cannot be cancelled in its current state.');
             }
 
@@ -82,6 +113,12 @@ final class CustomerOrderCancelService
             if ($eligibility['is_paid'] || $locked->paid_at !== null) {
                 throw new DomainException(
                     'Payment completed while cancelling. Contact support if you need assistance.'
+                );
+            }
+
+            if ($this->hasExternalBostaShipment($locked)) {
+                throw new DomainException(
+                    'A Bosta shipment was created while cancelling. Contact support to cancel the delivery.'
                 );
             }
 
@@ -102,14 +139,32 @@ final class CustomerOrderCancelService
                 'notes' => $notes !== '' ? $notes : $locked->notes,
             ]);
 
-            Log::info('Customer cancelled unpaid order', [
+            Log::info('Customer cancelled order', [
                 'order_id' => $locked->id,
                 'order_number' => $locked->order_number,
                 'user_id' => $userId,
+                'is_cod' => $isCod,
                 'has_reason' => $trimmedReason !== '',
             ]);
 
             return $locked->fresh(['items', 'payment', 'bostaShipment']) ?? $locked;
         });
+    }
+
+    private function hasExternalBostaShipment(Order $order): bool
+    {
+        if ($order->relationLoaded('bostaShipment')
+            && $order->bostaShipment instanceof Shipment
+            && filled($order->bostaShipment->external_shipment_id)
+        ) {
+            return true;
+        }
+
+        return Shipment::query()
+            ->where('order_id', $order->id)
+            ->where('provider', ShipmentProvider::Bosta->value)
+            ->whereNotNull('external_shipment_id')
+            ->where('external_shipment_id', '!=', '')
+            ->exists();
     }
 }

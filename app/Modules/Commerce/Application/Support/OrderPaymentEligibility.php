@@ -21,7 +21,9 @@ final class OrderPaymentEligibility
      *     payment_required: bool,
      *     payment_retry_allowed: bool,
      *     latest_payment_status: ?string,
-     *     latest_payment_id: ?int
+     *     latest_payment_id: ?int,
+     *     payment_method: string,
+     *     is_cod: bool
      * }
      */
     public function forOrder(Order $order): array
@@ -30,6 +32,9 @@ final class OrderPaymentEligibility
             ->where('order_id', $order->id)
             ->orderByDesc('id')
             ->first();
+
+        $isCod = OrderPaymentMethod::isCashOnDelivery($order);
+        $paymentMethod = OrderPaymentMethod::fromOrder($order)->value;
 
         $isPaid = $order->paid_at !== null
             || $order->status === OrderStatus::Paid->value
@@ -45,6 +50,19 @@ final class OrderPaymentEligibility
             ->where('status', PaymentStatus::Completed->value)
             ->exists();
 
+        // COD is confirmed at checkout — customer must not be prompted for online pay.
+        if ($isCod) {
+            return [
+                'is_paid' => $isPaid,
+                'payment_required' => false,
+                'payment_retry_allowed' => false,
+                'latest_payment_status' => $latest?->status,
+                'latest_payment_id' => $latest?->id,
+                'payment_method' => $paymentMethod,
+                'is_cod' => true,
+            ];
+        }
+
         $paymentRequired = ! $isPaid && ! $terminalNonPayable;
         $paymentRetryAllowed = $paymentRequired && ! $hasSuccessfulPayment;
 
@@ -54,6 +72,8 @@ final class OrderPaymentEligibility
             'payment_retry_allowed' => $paymentRetryAllowed,
             'latest_payment_status' => $latest?->status,
             'latest_payment_id' => $latest?->id,
+            'payment_method' => $paymentMethod,
+            'is_cod' => false,
         ];
     }
 

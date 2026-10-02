@@ -7,13 +7,19 @@ namespace App\Modules\Commerce\Application\Services;
 use App\Models\User;
 use App\Modules\Catalog\Domain\Enums\ProductType;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\Product;
+use App\Modules\Commerce\Application\Support\OrderPaymentMethod;
 use App\Modules\Commerce\Domain\Enums\OrderStatus;
+use App\Modules\Commerce\Domain\Enums\PaymentMethod;
+use App\Modules\Commerce\Domain\Enums\PaymentStatus;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Cart;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Coupon;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Order;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\OrderItem;
+use App\Modules\Commerce\Infrastructure\Persistence\Models\Payment;
 use DomainException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 final class CheckoutService
 {
@@ -35,6 +41,7 @@ final class CheckoutService
         array $billingAddress,
         ?array $shippingAddress = null,
         ?string $notes = null,
+        PaymentMethod $paymentMethod = PaymentMethod::Online,
     ): array {
         $cart->load('items.product');
 
@@ -70,7 +77,9 @@ final class CheckoutService
             ];
         }
 
-        return DB::transaction(function () use ($user, $cart, $billingAddress, $shippingAddress, $notes): array {
+        $isCod = $paymentMethod->isCashOnDelivery();
+
+        $result = DB::transaction(function () use ($user, $cart, $billingAddress, $shippingAddress, $notes, $isCod): array {
             $lines = [];
             $subtotal = 0.0;
 
@@ -109,10 +118,15 @@ final class CheckoutService
             $total = max(0, $subtotal - $discount + $shipping);
             $isGuest = $user === null;
 
+            // COD is confirmed at checkout (not awaiting online payment, not financially paid).
+            $orderStatus = $isCod
+                ? OrderStatus::Processing->value
+                : OrderStatus::AwaitingPayment->value;
+
             $order = Order::query()->create([
                 'user_id' => $user?->id,
                 'is_guest' => $isGuest,
-                'status' => OrderStatus::AwaitingPayment->value,
+                'status' => $orderStatus,
                 'subtotal' => $subtotal,
                 'discount_amount' => $discount,
                 'shipping_amount' => $shipping,
@@ -145,6 +159,18 @@ final class CheckoutService
                 ]);
             }
 
+            if ($isCod) {
+                Payment::query()->create([
+                    'order_id' => $order->id,
+                    'gateway' => OrderPaymentMethod::COD_GATEWAY,
+                    'amount' => $order->total,
+                    'currency' => $order->currency,
+                    'status' => PaymentStatus::Pending->value,
+                    'payment_method' => PaymentMethod::CashOnDelivery->value,
+                    'paid_at' => null,
+                ]);
+            }
+
             if ($cart->coupon_id) {
                 Coupon::query()->whereKey($cart->coupon_id)->increment('used_count');
             }
@@ -152,9 +178,10 @@ final class CheckoutService
             $this->cartService->clear($cart);
             $cart->update(['coupon_id' => null, 'coupon_code' => null]);
 
-            $order = $order->load('items');
-            // Flag physical kit/bundle orders for delivery gating only.
-            // External Bosta create happens AFTER verified payment (OrderPaid).
+            $order = $order->load(['items', 'payment']);
+            // Flag physical kit/bundle orders for delivery gating.
+            // Online: external Bosta create happens AFTER verified payment (OrderPaid).
+            // COD: external Bosta create runs after this transaction commits.
             $order = $this->bostaShipments->markRequiresDeliveryIfNeeded($order);
 
             $guestTokens = null;
@@ -165,8 +192,28 @@ final class CheckoutService
             return [
                 'order' => $order,
                 'guest_tokens' => $guestTokens,
+                'is_cod' => $isCod,
             ];
         });
+
+        if ($result['is_cod']) {
+            try {
+                $this->bostaShipments->ensureShipmentForOrder(
+                    $result['order']->fresh(['items.product', 'payment', 'bostaShipment']) ?? $result['order']
+                );
+                $result['order'] = $result['order']->fresh(['items', 'payment', 'bostaShipment']) ?? $result['order'];
+            } catch (Throwable $e) {
+                Log::error('COD checkout Bosta shipment ensure failed', [
+                    'order_id' => $result['order']->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return [
+            'order' => $result['order'],
+            'guest_tokens' => $result['guest_tokens'],
+        ];
     }
 
     public function cartRequiresShipping(Cart $cart): bool

@@ -8,12 +8,14 @@ use App\Http\Controllers\Controller;
 use App\Modules\Commerce\Application\Services\CheckoutService;
 use App\Modules\Commerce\Application\Services\GuestOrderCapabilityService;
 use App\Modules\Commerce\Application\Support\OrderPaymentEligibility;
+use App\Modules\Commerce\Domain\Enums\PaymentMethod;
 use App\Modules\Commerce\Http\Support\ResolvesCart;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Order;
 use App\Shared\Contracts\PaymentGatewayInterface;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use InvalidArgumentException;
 use RuntimeException;
 
 final class CheckoutController extends Controller
@@ -59,7 +61,14 @@ final class CheckoutController extends Controller
             'shipping_address.zone_id' => ['nullable', 'string', 'max:64'],
             'shipping_address.bosta_zone_id' => ['nullable', 'string', 'max:64'],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'payment_method' => ['nullable', 'string', 'max:50'],
         ]);
+
+        try {
+            $paymentMethod = PaymentMethod::fromCheckoutInput($validated['payment_method'] ?? 'online');
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
 
         $user = $request->user();
         $cart = $this->resolvesCart->fromRequest($request);
@@ -71,6 +80,7 @@ final class CheckoutController extends Controller
                 $validated['billing_address'],
                 $validated['shipping_address'] ?? null,
                 $validated['notes'] ?? null,
+                $paymentMethod,
             );
         } catch (DomainException $e) {
             return response()->json(['message' => $e->getMessage()], 422);

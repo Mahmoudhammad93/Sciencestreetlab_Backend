@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Commerce\Infrastructure\Shipping\Bosta;
 
+use App\Modules\Commerce\Application\Support\OrderPaymentMethod;
 use App\Modules\Commerce\Domain\Contracts\BostaClientInterface;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Order;
 
@@ -22,6 +23,7 @@ final class FakeBostaClient implements BostaClientInterface
         }
 
         $id = 'fake-bosta-'.$order->id;
+        $cod = $this->collectibleCodAmount($order);
 
         return [
             'external_shipment_id' => $id,
@@ -33,14 +35,28 @@ final class FakeBostaClient implements BostaClientInterface
                 'test_mode' => true,
                 'order_id' => $order->id,
                 'type' => 10,
-                'cod' => 0,
+                'cod' => $cod,
                 'businessReference' => $order->order_number,
             ],
             'request' => [
                 'type' => 10,
-                'cod' => 0,
+                'cod' => $cod,
                 'businessReference' => $order->order_number,
             ],
         ];
+    }
+
+    private function collectibleCodAmount(Order $order): float|int
+    {
+        if (! OrderPaymentMethod::isCashOnDelivery($order)) {
+            return 0;
+        }
+
+        $amount = round((float) $order->total, 2);
+        if (fmod($amount, 1.0) === 0.0) {
+            return (int) $amount;
+        }
+
+        return $amount;
     }
 }

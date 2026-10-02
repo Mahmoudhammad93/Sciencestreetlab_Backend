@@ -96,6 +96,8 @@ final class OrderController extends Controller
         $payload['payment_required'] = $eligibility['payment_required'];
         $payload['payment_retry_allowed'] = $eligibility['payment_retry_allowed'];
         $payload['latest_payment_status'] = $eligibility['latest_payment_status'];
+        $payload['payment_method'] = $eligibility['payment_method'];
+        $payload['is_cod'] = $eligibility['is_cod'];
         $payload['cancellation_allowed'] = $this->cancelService->customerMayCancel($order);
 
         $latestPayment = $order->payments()->orderByDesc('id')->first();
@@ -105,6 +107,7 @@ final class OrderController extends Controller
                 'id' => $latestPayment->id,
                 'status' => $latestPayment->status,
                 'gateway' => $latestPayment->gateway,
+                'payment_method' => $latestPayment->payment_method,
                 'amount' => $latestPayment->amount,
                 'currency' => $latestPayment->currency,
                 'paid_at' => $latestPayment->paid_at,
