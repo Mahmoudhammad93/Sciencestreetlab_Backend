@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Content\Infrastructure\Persistence\Models;
 
+use App\Modules\Content\Application\Services\HomeSlideImageVariantService;
 use App\Support\PublicMediaUrl;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -39,6 +40,15 @@ class HomeSlide extends Model
                     self::deleteOwnedImage($previous);
                 }
             }
+        });
+
+        static::saved(function (HomeSlide $slide): void {
+            if (! is_string($slide->image) || $slide->image === '') {
+                return;
+            }
+
+            // Warm responsive variants after admin upload/replace (original preserved).
+            app(HomeSlideImageVariantService::class)->describe($slide->image);
         });
 
         static::deleting(function (HomeSlide $slide): void {
@@ -106,5 +116,6 @@ class HomeSlide extends Model
         }
 
         Storage::disk('public')->delete($normalized);
+        app(HomeSlideImageVariantService::class)->deleteVariantsFor($normalized);
     }
 };
