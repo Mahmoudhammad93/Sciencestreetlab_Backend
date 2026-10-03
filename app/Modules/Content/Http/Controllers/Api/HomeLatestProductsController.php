@@ -6,6 +6,7 @@ namespace App\Modules\Content\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Catalog\Application\Services\ProductPresenter;
+use App\Modules\Catalog\Domain\Enums\ProductType;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,12 +19,16 @@ final class HomeLatestProductsController extends Controller
 
     public function __invoke(Request $request): JsonResponse
     {
-        $limit = (int) $request->query('limit', 3);
+        $limit = (int) $request->query('limit', 4);
         $limit = max(1, min(12, $limit));
 
+        // Homepage "Latest Products" is a store shelf: physical kits only.
+        // Course products (type=course) remain purchasable elsewhere.
+        // Kits with related_course_id / course_id stay eligible (e.g. microscope kit).
         $items = Product::query()
             ->with(['category.media', 'curriculumAlignments', 'relatedCourse', 'media'])
             ->where('status', 'published')
+            ->where('type', ProductType::Kit->value)
             ->orderByDesc('published_at')
             ->orderByDesc('id')
             ->limit($limit)
