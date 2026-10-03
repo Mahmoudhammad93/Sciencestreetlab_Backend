@@ -6,9 +6,16 @@ namespace App\Modules\Assessment\Infrastructure\Persistence\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
-class QuizAttemptAnswer extends Model
+class QuizAttemptAnswer extends Model implements HasMedia
 {
+    use InteractsWithMedia;
+
+    public const MEDIA_COLLECTION = 'answer_images';
+
     protected $fillable = [
         'quiz_attempt_id', 'question_id', 'selected_option_ids', 'text_answer',
         'numeric_answer', 'matching_answer', 'ordering_answer', 'interactive_answer',
@@ -30,6 +37,23 @@ class QuizAttemptAnswer extends Model
             'points_awarded' => 'decimal:2',
             'numeric_answer' => 'decimal:4',
         ];
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection(self::MEDIA_COLLECTION)
+            ->useDisk('local')
+            ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp']);
+    }
+
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        // Light review thumbnail only — keep original for microscope detail.
+        $this->addMediaConversion('review')
+            ->width(1600)
+            ->height(1600)
+            ->keepOriginalImageFormat()
+            ->nonQueued();
     }
 
     public function attempt(): BelongsTo

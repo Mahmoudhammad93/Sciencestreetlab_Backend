@@ -9,6 +9,7 @@ use App\Modules\Assessment\Domain\Enums\AttemptStatus;
 use App\Modules\Assessment\Domain\Enums\QuestionType;
 use App\Modules\Assessment\Domain\Enums\QuizSelectionMode;
 use App\Modules\Assessment\Domain\Events\QuizPassed;
+use App\Modules\Assessment\Domain\Support\ImageUploadQuestionConfig;
 use App\Modules\Assessment\Infrastructure\Grading\QuestionGraderRegistry;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\Question;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\Quiz;
@@ -132,15 +133,27 @@ final class QuizAttemptService
                     );
                 }
 
+                $mapped = $this->mapAnswerPayload($payload ?? []);
+                if ($question->question_type === QuestionType::ImageUpload) {
+                    // Media + interactive_answer are owned by the upload endpoint.
+                    unset($mapped['interactive_answer']);
+                }
+
                 $answer = QuizAttemptAnswer::query()->updateOrCreate(
                     ['quiz_attempt_id' => $attempt->id, 'question_id' => $question->id],
-                    $this->mapAnswerPayload($payload ?? [])
+                    $mapped
                 );
+
+                if ($question->question_type === QuestionType::ImageUpload) {
+                    $this->assertImageUploadAnswerReady($question, $answer);
+                }
 
                 $isCorrect = $this->graderRegistry->grade($question, $answer->fresh());
                 $answer->refresh();
 
-                if ($answer->needs_manual_review || $question->question_type === QuestionType::LongAnswer) {
+                if ($answer->needs_manual_review
+                    || $question->question_type === QuestionType::LongAnswer
+                    || $question->question_type === QuestionType::ImageUpload) {
                     $needsReview = true;
                     $points = 0.0;
                     $isCorrect = null;
@@ -419,5 +432,24 @@ final class QuizAttemptService
             'interactive_answer' => $payload['interactive_answer'] ?? null,
             'client_result' => $payload['client_result'] ?? null,
         ];
+    }
+
+    private function assertImageUploadAnswerReady(Question $question, QuizAttemptAnswer $answer): void
+    {
+        $config = ImageUploadQuestionConfig::fromQuestion($question);
+        $count = $answer->getMedia(QuizAttemptAnswer::MEDIA_COLLECTION)->count();
+
+        if ($config->required && $count < 1) {
+            throw new DomainException('يجب اختيار صورة.', 422);
+        }
+
+        if ($count > $config->maxImages) {
+            throw new DomainException(
+                $config->maxImages === 1
+                    ? 'يمكنك رفع صورة واحدة فقط.'
+                    : "يمكنك رفع {$config->maxImages} صور كحد أقصى.",
+                422
+            );
+        }
     }
 }

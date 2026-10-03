@@ -31,7 +31,30 @@ final class ViewQuizAttempt extends ViewRecord
                 ->schema([
                     Infolists\Components\TextEntry::make('text_'.$answer->id)
                         ->label(__('admin.quiz_attempts.infolist.fields.student_answer'))
-                        ->state((string) ($answer->text_answer ?: '—')),
+                        ->state((string) ($answer->text_answer ?: '—'))
+                        ->visible($answer->question?->question_type?->value !== 'image_upload'),
+                    Infolists\Components\TextEntry::make('images_'.$answer->id)
+                        ->label(__('admin.quiz_attempts.grade_form.uploaded_images'))
+                        ->html()
+                        ->state(function () use ($answer, $record): string {
+                            if ($answer->question?->question_type?->value !== 'image_upload') {
+                                return '—';
+                            }
+                            $answer->loadMissing('media');
+                            $html = $answer->getMedia(\App\Modules\Assessment\Infrastructure\Persistence\Models\QuizAttemptAnswer::MEDIA_COLLECTION)
+                                ->map(function ($media) use ($record, $answer): string {
+                                    $url = route('admin.quiz-attempt-images.show', [
+                                        'attempt' => $record->id,
+                                        'question' => $answer->question_id,
+                                        'media' => $media->id,
+                                    ]);
+
+                                    return '<a href="'.e($url).'" target="_blank" rel="noopener"><img src="'.e($url).'" style="max-width:280px;max-height:200px;object-fit:contain" /></a>';
+                                })->implode('<br>');
+
+                            return $html !== '' ? $html : '—';
+                        })
+                        ->visible($answer->question?->question_type?->value === 'image_upload'),
                     Infolists\Components\TextEntry::make('pending_'.$answer->id)
                         ->label(__('admin.quiz_attempts.infolist.fields.needs_review'))
                         ->state($answer->needs_manual_review

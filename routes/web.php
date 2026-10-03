@@ -44,6 +44,11 @@ Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
     Route::get('/locale/{locale}', \App\Http\Controllers\Admin\SwitchAdminLocaleController::class)
         ->whereIn('locale', ['ar', 'en'])
         ->name('admin.locale.switch');
+
+    Route::get(
+        '/quiz-attempts/{attempt}/questions/{question}/images/{media}',
+        \App\Http\Controllers\Admin\QuizAnswerImageController::class,
+    )->name('admin.quiz-attempt-images.show');
 });
 
 /*

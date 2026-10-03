@@ -16,6 +16,8 @@ enum QuestionType: string
     case Ordering = 'ordering';
     case DragDrop = 'drag_drop';
     case Numeric = 'numeric';
+    /** Student uploads one or more images; always requires manual review. */
+    case ImageUpload = 'image_upload';
     /** @deprecated Interactive HTML is learning content, not a quiz question. Kept for legacy rows. */
     case InteractiveHtml = 'interactive_html';
     /** @deprecated Interactive activities are topics, not question-bank items. Kept for legacy rows. */

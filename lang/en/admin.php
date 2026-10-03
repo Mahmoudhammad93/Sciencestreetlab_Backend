@@ -674,12 +674,16 @@ return [
             'points' => 'Points',
             'sort_order' => 'Sort order',
             'tag_slug' => 'Tag slug',
+            'upload_max_images' => 'Max images',
+            'upload_max_size_mb' => 'Max size per image (MB)',
+            'upload_required' => 'Image required',
         ],
         'helpers' => [
             'matching_options' => 'Add a left and right item for each pair, sharing the same match key.',
             'ordering_options' => 'Order items in the correct sequence (first at the top).',
             'single_choice_options' => 'Mark exactly one correct option.',
             'multiple_choice_options' => 'You may mark multiple correct options.',
+            'upload_formats' => 'Allowed formats: JPEG, PNG, WebP',
         ],
         'types' => [
             'single_choice' => 'Single choice',
@@ -692,6 +696,7 @@ return [
             'ordering' => 'Ordering',
             'drag_drop' => 'Drag & drop',
             'numeric' => 'Numeric',
+            'image_upload' => 'Image upload',
             'interactive_html' => 'Interactive HTML',
             'interactive_activity' => 'Interactive activity',
         ],
@@ -716,6 +721,7 @@ return [
         ],
         'sections' => [
             'drag_drop' => 'Drag & drop configuration',
+            'image_upload' => 'Image upload settings',
         ],
         'table' => [
             'bank' => 'Bank',
@@ -738,6 +744,7 @@ return [
             'points' => 'Points (max :max)',
             'question_fallback' => 'Question #…',
             'student_answer' => 'Student answer',
+            'uploaded_images' => 'Uploaded images',
         ],
         'infolist' => [
             'attempt' => 'Attempt',

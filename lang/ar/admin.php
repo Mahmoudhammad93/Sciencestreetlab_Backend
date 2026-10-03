@@ -674,12 +674,16 @@ return [
             'points' => 'النقاط',
             'sort_order' => 'ترتيب العرض',
             'tag_slug' => 'معرّف الوسم',
+            'upload_max_images' => 'الحد الأقصى لعدد الصور',
+            'upload_max_size_mb' => 'الحد الأقصى لحجم الصورة (ميجابايت)',
+            'upload_required' => 'مطلوب رفع صورة',
         ],
         'helpers' => [
             'matching_options' => 'أضف عنصرًا يسارًا ويمينًا لكل زوج، بنفس مفتاح التوصيل.',
             'ordering_options' => 'رتّب العناصر بالترتيب الصحيح (الأول في الأعلى).',
             'single_choice_options' => 'حدّد إجابة صحيحة واحدة فقط.',
             'multiple_choice_options' => 'يمكنك تحديد أكثر من إجابة صحيحة.',
+            'upload_formats' => 'الصيغ المسموحة: JPEG، PNG، WebP',
         ],
         'types' => [
             'single_choice' => 'اختيار واحد',
@@ -692,6 +696,7 @@ return [
             'ordering' => 'ترتيب',
             'drag_drop' => 'سحب وإفلات',
             'numeric' => 'رقمي',
+            'image_upload' => 'رفع صورة',
             'interactive_html' => 'HTML تفاعلي',
             'interactive_activity' => 'نشاط تفاعلي',
         ],
@@ -716,6 +721,7 @@ return [
         ],
         'sections' => [
             'drag_drop' => 'إعداد السحب والإفلات',
+            'image_upload' => 'إعداد رفع الصورة',
         ],
         'table' => [
             'bank' => 'البنك',
@@ -738,6 +744,7 @@ return [
             'points' => 'النقاط (الحد الأقصى :max)',
             'question_fallback' => 'سؤال #…',
             'student_answer' => 'إجابة الطالب',
+            'uploaded_images' => 'الصور المرفوعة',
         ],
         'infolist' => [
             'attempt' => 'المحاولة',

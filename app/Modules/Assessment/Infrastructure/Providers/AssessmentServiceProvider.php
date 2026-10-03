@@ -12,6 +12,7 @@ use App\Modules\Assessment\Application\Services\QuestionSelectionService;
 use App\Modules\Assessment\Application\Services\QuizAttemptService;
 use App\Modules\Assessment\Infrastructure\Grading\DragDropGrader;
 use App\Modules\Assessment\Infrastructure\Grading\FillBlankGrader;
+use App\Modules\Assessment\Infrastructure\Grading\ImageUploadGrader;
 use App\Modules\Assessment\Infrastructure\Grading\InteractiveHtmlGrader;
 use App\Modules\Assessment\Infrastructure\Grading\LongAnswerGrader;
 use App\Modules\Assessment\Infrastructure\Grading\MatchingGrader;
@@ -40,6 +41,7 @@ final class AssessmentServiceProvider extends ModuleServiceProvider
                 new MultipleChoiceGrader,
                 new ShortAnswerGrader,
                 new LongAnswerGrader,
+                new ImageUploadGrader,
                 new FillBlankGrader,
                 new MatchingGrader,
                 new OrderingGrader,

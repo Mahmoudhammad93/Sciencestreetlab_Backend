@@ -48,6 +48,24 @@ final class QuizReviewPresenter
             $payload['client_result'] = $answer->client_result;
         }
 
+        if ($question?->question_type === QuestionType::ImageUpload) {
+            $answer->loadMissing('media');
+            $payload['images'] = $answer->getMedia(QuizAttemptAnswer::MEDIA_COLLECTION)->map(
+                fn ($media) => [
+                    'id' => $media->id,
+                    'mime_type' => $media->mime_type,
+                    'size' => $media->size,
+                    'url' => url(sprintf(
+                        '/api/v1/quiz-attempts/%d/questions/%d/images/%d',
+                        $answer->quiz_attempt_id,
+                        $answer->question_id,
+                        $media->id,
+                    )),
+                ]
+            )->values()->all();
+            $payload['type'] = 'image_upload';
+        }
+
         if ($question && $ids !== []) {
             $question->loadMissing('options');
             $payload['labels'] = $question->options
@@ -107,6 +125,10 @@ final class QuizReviewPresenter
             QuestionType::InteractiveHtml, QuestionType::InteractiveActivity => [
                 'expected' => $key['expected'] ?? null,
             ],
+            QuestionType::ImageUpload => [
+                'manual_review' => true,
+            ],
+            default => null,
         };
     }
 

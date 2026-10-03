@@ -7,6 +7,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\QuizAttemptResource\Pages;
 use App\Modules\Assessment\Application\Services\ManualQuizReviewService;
 use App\Modules\Assessment\Domain\Enums\AttemptStatus;
+use App\Modules\Assessment\Domain\Enums\QuestionType;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\QuizAttempt;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\QuizAttemptAnswer;
 use Filament\Forms;
@@ -16,6 +17,8 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\HtmlString;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class QuizAttemptResource extends Resource
 {
@@ -114,7 +117,12 @@ class QuizAttemptResource extends Resource
                                 ->schema([
                                     Forms\Components\Placeholder::make('answer_text_'.$answer->id)
                                         ->label(__('admin.quiz_attempts.grade_form.student_answer'))
-                                        ->content((string) ($answer->text_answer ?: '—')),
+                                        ->content((string) ($answer->text_answer ?: '—'))
+                                        ->visible(fn (): bool => $question?->question_type !== QuestionType::ImageUpload),
+                                    Forms\Components\Placeholder::make('answer_images_'.$answer->id)
+                                        ->label(__('admin.quiz_attempts.grade_form.uploaded_images'))
+                                        ->content(fn (): HtmlString => self::imagePreviewHtml($answer, $record))
+                                        ->visible(fn (): bool => $question?->question_type === QuestionType::ImageUpload),
                                     Forms\Components\TextInput::make('points_'.$answer->id)
                                         ->label(__('admin.quiz_attempts.grade_form.points', ['max' => $max]))
                                         ->numeric()
@@ -166,5 +174,30 @@ class QuizAttemptResource extends Resource
     public static function canCreate(): bool
     {
         return false;
+    }
+
+    private static function imagePreviewHtml(QuizAttemptAnswer $answer, QuizAttempt $attempt): HtmlString
+    {
+        $answer->loadMissing('media');
+        $mediaItems = $answer->getMedia(QuizAttemptAnswer::MEDIA_COLLECTION);
+        if ($mediaItems->isEmpty()) {
+            return new HtmlString('<span>—</span>');
+        }
+
+        $parts = $mediaItems->map(function (Media $media) use ($attempt, $answer): string {
+            $url = route('admin.quiz-attempt-images.show', [
+                'attempt' => $attempt->id,
+                'question' => $answer->question_id,
+                'media' => $media->id,
+            ]);
+
+            return sprintf(
+                '<a href="%s" target="_blank" rel="noopener" class="block mb-2"><img src="%s" alt="answer" style="max-width:320px;max-height:240px;border-radius:8px;object-fit:contain;background:#111" /></a>',
+                e($url),
+                e($url),
+            );
+        })->implode('');
+
+        return new HtmlString($parts);
     }
 }

@@ -6,6 +6,7 @@ namespace App\Modules\Assessment\Http\Resources;
 
 use App\Modules\Assessment\Application\Services\InteractiveQuestionStorageService;
 use App\Modules\Assessment\Domain\Enums\QuestionType;
+use App\Modules\Assessment\Domain\Support\ImageUploadQuestionConfig;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\Question;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -56,6 +57,10 @@ final class StudentQuestionResource extends JsonResource
             $data['items'] = $this->localizeDragDropList($config['items'] ?? [], $locale);
             $data['drop_zones'] = $this->localizeDragDropList($config['zones'] ?? $config['drop_zones'] ?? [], $locale);
             // Never expose correct_mappings / answer_key.
+        }
+
+        if ($question->question_type === QuestionType::ImageUpload) {
+            $data['upload'] = ImageUploadQuestionConfig::fromQuestion($question)->toStudentArray();
         }
 
         if ($this->includeExplanation) {

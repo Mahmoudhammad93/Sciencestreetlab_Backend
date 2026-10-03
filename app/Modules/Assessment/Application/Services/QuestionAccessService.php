@@ -79,9 +79,16 @@ final class QuestionAccessService
 
     public function authorizeAttempt(User $user, QuizAttempt $attempt): void
     {
-        if ($attempt->user_id !== $user->id) {
-            throw new DomainException('QUESTION_ACCESS_DENIED: You are not allowed to access this attempt.', 403);
+        if ($attempt->user_id === $user->id) {
+            return;
         }
+
+        // Staff who can access Filament assessment tools may review uploads.
+        if ($user->hasAnyRole(['super_admin', 'content_manager'])) {
+            return;
+        }
+
+        throw new DomainException('QUESTION_ACCESS_DENIED: You are not allowed to access this attempt.', 403);
     }
 
     public function assertQuestionOnAttempt(QuizAttempt $attempt, Question $question, QuizAttemptService $attempts): void

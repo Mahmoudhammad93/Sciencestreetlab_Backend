@@ -7,12 +7,14 @@ namespace App\Modules\Assessment\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Modules\Assessment\Application\Services\OfficialQuizScoreService;
 use App\Modules\Assessment\Application\Services\QuestionAccessService;
+use App\Modules\Assessment\Application\Services\QuizAnswerImageUploadService;
 use App\Modules\Assessment\Application\Services\QuizAttemptService;
 use App\Modules\Assessment\Domain\Enums\AttemptStatus;
 use App\Modules\Assessment\Http\Requests\StartQuizRequest;
 use App\Modules\Assessment\Http\Requests\SubmitAnswerRequest;
 use App\Modules\Assessment\Http\Requests\SubmitInteractiveResultRequest;
 use App\Modules\Assessment\Http\Requests\SubmitQuizRequest;
+use App\Modules\Assessment\Http\Requests\UploadQuizAnswerImageRequest;
 use App\Modules\Assessment\Http\Resources\QuizAttemptResource;
 use App\Modules\Assessment\Http\Resources\QuizResource;
 use App\Modules\Assessment\Http\Resources\QuizResultResource;
@@ -25,7 +27,9 @@ use App\Modules\Learning\Infrastructure\Persistence\Models\Lesson;
 use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Response;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class QuizAttemptController extends Controller
 {
@@ -33,6 +37,7 @@ final class QuizAttemptController extends Controller
         private readonly CourseAccessService $access,
         private readonly QuizAttemptService $quizAttempts,
         private readonly QuestionAccessService $questionAccess,
+        private readonly QuizAnswerImageUploadService $imageUploads,
     ) {}
 
     public function showQuiz(Request $request, Quiz $quiz): JsonResponse
@@ -198,6 +203,87 @@ final class QuizAttemptController extends Controller
                 'server_verified' => false,
                 'message' => 'Interactive result stored. Final score is calculated on quiz submit.',
             ],
+        ]);
+    }
+
+    public function uploadImage(
+        UploadQuizAnswerImageRequest $request,
+        QuizAttempt $attempt,
+        Question $question,
+    ): JsonResponse {
+        try {
+            $this->questionAccess->authorizeAttempt($request->user(), $attempt);
+            $this->questionAccess->assertQuestionOnAttempt($attempt, $question, $this->quizAttempts);
+            $result = $this->imageUploads->upload(
+                $attempt,
+                $question,
+                $request->file('image'),
+                $request->boolean('replace', false),
+            );
+        } catch (DomainException $e) {
+            return ApiError::fromDomain($e);
+        } catch (ValidationException $e) {
+            return ApiError::validation($e);
+        }
+
+        return response()->json([
+            'data' => [
+                'attempt_id' => $attempt->id,
+                'question_id' => $question->id,
+                'saved' => true,
+                'media_id' => $result['media']->id,
+                'images' => $result['images'],
+            ],
+        ], 201);
+    }
+
+    public function deleteImage(
+        Request $request,
+        QuizAttempt $attempt,
+        Question $question,
+        int $media,
+    ): JsonResponse {
+        try {
+            $this->questionAccess->authorizeAttempt($request->user(), $attempt);
+            $this->questionAccess->assertQuestionOnAttempt($attempt, $question, $this->quizAttempts);
+            $answer = $this->imageUploads->deleteImage($attempt, $question, $media);
+        } catch (DomainException $e) {
+            return ApiError::fromDomain($e);
+        }
+
+        return response()->json([
+            'data' => [
+                'attempt_id' => $attempt->id,
+                'question_id' => $question->id,
+                'deleted' => true,
+                'images' => $this->imageUploads->publicImageList($answer, $attempt),
+            ],
+        ]);
+    }
+
+    public function showImage(
+        Request $request,
+        QuizAttempt $attempt,
+        Question $question,
+        int $media,
+    ): StreamedResponse|JsonResponse {
+        try {
+            $this->questionAccess->authorizeAttempt($request->user(), $attempt);
+            $this->questionAccess->assertQuestionOnAttempt($attempt, $question, $this->quizAttempts);
+            $item = $this->imageUploads->resolveMedia($attempt, $question, $media);
+        } catch (DomainException $e) {
+            return ApiError::fromDomain($e);
+        }
+
+        $path = $item->getPath();
+        if (! is_string($path) || ! is_file($path)) {
+            return ApiError::make('Image not found.', 'QUESTION_NOT_FOUND', 404);
+        }
+
+        return Response::file($path, [
+            'Content-Type' => $item->mime_type ?: 'application/octet-stream',
+            'Content-Disposition' => 'inline; filename="'.$item->file_name.'"',
+            'Cache-Control' => 'private, max-age=3600',
         ]);
     }
 

@@ -23,6 +23,18 @@ Route::middleware('auth:sanctum')->group(function (): void {
         '/quiz-attempts/{attempt}/questions/{question}/interactive-result',
         [QuizAttemptController::class, 'interactiveResult']
     );
+    Route::post(
+        '/quiz-attempts/{attempt}/questions/{question}/image',
+        [QuizAttemptController::class, 'uploadImage']
+    );
+    Route::get(
+        '/quiz-attempts/{attempt}/questions/{question}/images/{media}',
+        [QuizAttemptController::class, 'showImage']
+    );
+    Route::delete(
+        '/quiz-attempts/{attempt}/questions/{question}/images/{media}',
+        [QuizAttemptController::class, 'deleteImage']
+    );
 
     // Legacy attempt aliases (keep LearningFlow / e-learning tests working)
     Route::get('/attempts/{attempt}', [QuizController::class, 'showAttempt']);

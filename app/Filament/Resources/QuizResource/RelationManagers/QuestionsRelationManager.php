@@ -7,6 +7,7 @@ namespace App\Filament\Resources\QuizResource\RelationManagers;
 use App\Modules\Assessment\Domain\Enums\QuestionDifficulty;
 use App\Modules\Assessment\Domain\Enums\QuestionStatus;
 use App\Modules\Assessment\Domain\Enums\QuestionType;
+use App\Modules\Assessment\Domain\Support\ImageUploadQuestionConfig;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\Question;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\QuizAttemptAnswer;
 use App\Modules\Assessment\Infrastructure\Persistence\Models\QuizAttemptQuestion;
@@ -87,6 +88,31 @@ final class QuestionsRelationManager extends RelationManager
                 ->rows(2)
                 ->columnSpanFull(),
 
+            Forms\Components\Section::make(__('admin.questions.sections.image_upload'))
+                ->schema([
+                    Forms\Components\TextInput::make('interactive_config.upload.max_images')
+                        ->label(__('admin.questions.fields.upload_max_images'))
+                        ->numeric()
+                        ->minValue(1)
+                        ->maxValue(10)
+                        ->default(1)
+                        ->required(),
+                    Forms\Components\TextInput::make('interactive_config.upload.max_size_mb')
+                        ->label(__('admin.questions.fields.upload_max_size_mb'))
+                        ->numeric()
+                        ->minValue(1)
+                        ->maxValue(20)
+                        ->default(5)
+                        ->required()
+                        ->helperText(__('admin.questions.helpers.upload_formats')),
+                    Forms\Components\Toggle::make('interactive_config.upload.required')
+                        ->label(__('admin.questions.fields.upload_required'))
+                        ->default(true),
+                ])
+                ->visible(fn (Get $get): bool => $get('question_type') === QuestionType::ImageUpload->value)
+                ->columns(2)
+                ->columnSpanFull(),
+
             Forms\Components\Repeater::make('options')
                 ->relationship()
                 ->label(__('admin.questions.fields.options'))
@@ -117,7 +143,8 @@ final class QuestionsRelationManager extends RelationManager
                 ->orderColumn('sort_order')
                 ->reorderable()
                 ->defaultItems(fn (Get $get): int => match ($get('question_type')) {
-                    QuestionType::LongAnswer->value => 0,
+                    QuestionType::LongAnswer->value,
+                    QuestionType::ImageUpload->value => 0,
                     default => 2,
                 })
                 ->minItems(fn (Get $get): int => match ($get('question_type')) {
@@ -192,7 +219,7 @@ final class QuestionsRelationManager extends RelationManager
                     ->label(__('admin.questions.table.options_count'))
                     ->formatStateUsing(fn ($state, Question $record): string => in_array(
                         $record->question_type,
-                        [QuestionType::LongAnswer, QuestionType::ShortAnswer, QuestionType::Numeric, QuestionType::FillBlank],
+                        [QuestionType::LongAnswer, QuestionType::ShortAnswer, QuestionType::Numeric, QuestionType::FillBlank, QuestionType::ImageUpload],
                         true,
                     ) ? '—' : (string) $state),
                 Tables\Columns\IconColumn::make('is_legacy')
@@ -209,6 +236,7 @@ final class QuestionsRelationManager extends RelationManager
                         $data['sort_order'] = (int) $this->getOwnerRecord()->questions()->max('sort_order') + 1;
                         $data['status'] = $data['status'] ?? QuestionStatus::Published->value;
                         $data['difficulty'] = $data['difficulty'] ?? QuestionDifficulty::Medium->value;
+                        $data = self::normalizeImageUploadConfig($data);
                         self::assertChoiceCorrectness($data);
 
                         return $data;
@@ -218,6 +246,7 @@ final class QuestionsRelationManager extends RelationManager
                 Tables\Actions\EditAction::make()
                     ->label(__('admin.common.actions.edit'))
                     ->mutateFormDataUsing(function (array $data): array {
+                        $data = self::normalizeImageUploadConfig($data);
                         self::assertChoiceCorrectness($data);
 
                         return $data;
@@ -251,6 +280,7 @@ final class QuestionsRelationManager extends RelationManager
             QuestionType::SingleChoice,
             QuestionType::MultipleChoice,
             QuestionType::LongAnswer,
+            QuestionType::ImageUpload,
             QuestionType::Matching,
             QuestionType::Ordering,
             QuestionType::TrueFalse,
@@ -351,6 +381,32 @@ final class QuestionsRelationManager extends RelationManager
                 'options' => __('admin.questions.validation.min_options'),
             ]);
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public static function normalizeImageUploadConfig(array $data): array
+    {
+        if (($data['question_type'] ?? null) !== QuestionType::ImageUpload->value) {
+            return $data;
+        }
+
+        $existing = is_array($data['interactive_config'] ?? null) ? $data['interactive_config'] : [];
+        $upload = is_array($existing['upload'] ?? null) ? $existing['upload'] : [];
+        $maxImages = (int) ($upload['max_images'] ?? ImageUploadQuestionConfig::DEFAULT_MAX_IMAGES);
+        $maxSize = (float) ($upload['max_size_mb'] ?? ImageUploadQuestionConfig::DEFAULT_MAX_SIZE_MB);
+        $required = array_key_exists('required', $upload) ? (bool) $upload['required'] : true;
+
+        $data['interactive_config'] = ImageUploadQuestionConfig::mergeIntoInteractiveConfig(
+            $existing,
+            $maxImages,
+            $maxSize,
+            $required,
+        );
+
+        return $data;
     }
 
     public static function questionHasHistoricalAnswers(Question $question): bool
