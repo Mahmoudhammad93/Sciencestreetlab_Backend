@@ -11,6 +11,7 @@ use App\Modules\Certification\Jobs\GenerateCertificatePdfJob;
 use App\Modules\Learning\Domain\Enums\EnrollmentStatus;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Enrollment;
 use DomainException;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 final class CertificateIssuanceService
@@ -19,7 +20,12 @@ final class CertificateIssuanceService
         private readonly CertificateNumberGenerator $numberGenerator,
     ) {}
 
-    public function issue(Enrollment $enrollment): Certificate
+    /**
+     * Issue a certificate when the enrollment is completed and a template is configured.
+     * Returns null when issuance is skipped (already issued, or missing/inactive template).
+     * Never throws ModelNotFoundException for optional template lookup.
+     */
+    public function issue(Enrollment $enrollment): ?Certificate
     {
         $enrollment->loadMissing('course', 'user');
 
@@ -36,6 +42,18 @@ final class CertificateIssuanceService
         }
 
         $template = $this->resolveTemplate($enrollment);
+
+        if ($template === null) {
+            Log::warning('certificate.template_missing', [
+                'enrollment_id' => $enrollment->id,
+                'user_id' => $enrollment->user_id,
+                'course_id' => $enrollment->course_id,
+                'course_certificate_template_id' => $enrollment->course?->certificate_template_id,
+                'message' => 'Skipping certificate issuance: no active CertificateTemplate available.',
+            ]);
+
+            return null;
+        }
 
         $certificate = Certificate::query()->create([
             'certificate_number' => $this->numberGenerator->next(),
@@ -58,22 +76,29 @@ final class CertificateIssuanceService
         return $certificate;
     }
 
-    private function resolveTemplate(Enrollment $enrollment): CertificateTemplate
+    private function resolveTemplate(Enrollment $enrollment): ?CertificateTemplate
     {
-        if ($enrollment->course->certificate_template_id) {
+        $courseTemplateId = $enrollment->course?->certificate_template_id;
+
+        if ($courseTemplateId) {
             $template = CertificateTemplate::query()
-                ->where('id', $enrollment->course->certificate_template_id)
+                ->where('id', $courseTemplateId)
                 ->where('is_active', true)
                 ->first();
 
             if ($template) {
                 return $template;
             }
+
+            Log::warning('certificate.course_template_inactive_or_missing', [
+                'course_id' => $enrollment->course_id,
+                'certificate_template_id' => $courseTemplateId,
+            ]);
         }
 
         return CertificateTemplate::query()
             ->where('is_active', true)
             ->orderBy('id')
-            ->firstOrFail();
+            ->first();
     }
 }
