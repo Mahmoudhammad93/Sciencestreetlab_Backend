@@ -16,9 +16,14 @@ use Throwable;
 final class HomeSlideImageVariantService
 {
     /** @var list<int> */
-    public const WIDTHS = [480, 768, 1200, 1600];
+    public const WIDTHS = [480, 640, 768, 1200, 1600];
 
-    public const SIZES = '(max-width: 640px) 75vw, (max-width: 1024px) 50vw, 560px';
+    /**
+     * Match actual hero float size (~80vw mobile, capped desktop) so
+     * ~308px CSS @2x prefers 640w rather than oversized 768/1200.
+     */
+    public const SIZES = '(max-width: 640px) 80vw, (max-width: 1024px) 50vw, 560px';
+
 
     /**
      * @return array{
@@ -74,8 +79,11 @@ final class HomeSlideImageVariantService
             return $empty;
         }
 
-        // Prefer a mid-size as the src fallback (mobile-first progressive enhancement).
-        $fallback = $variants['urls'][768] ?? $variants['urls'][480] ?? $originalUrl;
+        // Mobile-first src fallback (preload href / img src without srcset).
+        $fallback = $variants['urls'][480]
+            ?? $variants['urls'][640]
+            ?? $variants['urls'][768]
+            ?? $originalUrl;
 
         return [
             'image_url' => $fallback,
@@ -102,7 +110,8 @@ final class HomeSlideImageVariantService
 
         $base = pathinfo($diskPath, PATHINFO_FILENAME);
         foreach (self::WIDTHS as $width) {
-            Storage::disk('public')->delete($this->variantRelativePath($base, $width));
+            Storage::disk('public')->delete("home-slides/variants/{$base}-w{$width}.webp");
+            Storage::disk('public')->delete("home-slides/variants/{$base}-w{$width}.jpg");
         }
     }
 
@@ -230,7 +239,7 @@ final class HomeSlideImageVariantService
         Storage::disk('public')->makeDirectory('home-slides/variants');
         $destAbsolute = Storage::disk('public')->path($relativeDest);
 
-        $qualities = $targetWidth <= 480 ? [80, 72, 64] : [82, 75];
+        $qualities = $targetWidth <= 480 ? [80, 72, 64] : ($targetWidth <= 640 ? [80, 74] : [82, 75]);
         $written = false;
         foreach ($qualities as $quality) {
             $ok = $canWebp
@@ -240,7 +249,8 @@ final class HomeSlideImageVariantService
             if ($ok) {
                 $written = true;
                 $size = @filesize($destAbsolute) ?: 0;
-                if ($targetWidth > 480 || $size <= 200_000) {
+                $budget = $targetWidth <= 480 ? 200_000 : ($targetWidth <= 640 ? 140_000 : PHP_INT_MAX);
+                if ($size <= $budget) {
                     break;
                 }
             }
