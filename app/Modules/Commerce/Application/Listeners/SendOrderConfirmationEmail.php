@@ -6,61 +6,98 @@ namespace App\Modules\Commerce\Application\Listeners;
 
 use App\Modules\Commerce\Application\Services\EnrollmentQrCodeRenderer;
 use App\Modules\Commerce\Application\Services\GuestOrderCapabilityService;
-use App\Modules\Commerce\Domain\Events\OrderFulfilled;
+use App\Modules\Commerce\Application\Services\GuestPurchaseClaimService;
+use App\Modules\Commerce\Application\Support\GuestTokenHasher;
+use App\Modules\Commerce\Application\Support\OrderPaymentMethod;
+use App\Modules\Commerce\Domain\Enums\OrderStatus;
+use App\Modules\Commerce\Domain\Events\OrderPaid;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Order;
 use App\Modules\Commerce\Mail\OrderConfirmationMail;
-use App\Modules\Learning\Infrastructure\Persistence\Models\Enrollment;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Throwable;
 
+/**
+ * EMAIL 1 — order receipt ("تم استلام طلبك").
+ *
+ * Triggered on OrderPaid (online) and invoked directly after COD checkout acceptance.
+ * Never waits for Bosta Delivered / OrderFulfilled.
+ */
 final class SendOrderConfirmationEmail implements ShouldQueue
 {
     public int $tries = 3;
+
+    /** Mail must not run until OrderPaid transaction commits. */
+    public bool $afterCommit = true;
 
     private const CLAIM_TTL_SECONDS = 900;
 
     public function __construct(
         private readonly EnrollmentQrCodeRenderer $qrCodes,
         private readonly GuestOrderCapabilityService $guestCapabilities,
+        private readonly GuestPurchaseClaimService $guestClaims,
     ) {}
 
-    public function handle(OrderFulfilled $event): void
+    public function handle(OrderPaid $event): void
     {
-        $orderId = $event->order->id;
+        $this->sendForOrderId($event->order->id);
+    }
 
+    /**
+     * COD checkout acceptance path (no OrderPaid until delivery cash collection).
+     */
+    public function sendForAcceptedOrder(Order $order): void
+    {
+        $this->sendForOrderId($order->id);
+    }
+
+    private function sendForOrderId(int $orderId): void
+    {
         if (! $this->claim($orderId)) {
             return;
         }
 
         try {
-            $order = Order::query()->with(['items.product', 'user', 'payment'])->find($orderId);
+            $order = Order::query()->with(['items.product', 'user', 'payment', 'bostaShipment'])->find($orderId);
 
-            // Guest recipient is always the immutable billing snapshot email.
-            $recipient = $order?->user?->email
-                ?: (is_array($order?->billing_address) ? ($order->billing_address['email'] ?? null) : null);
+            $recipient = $this->recipientEmail($order);
 
-            if (! $order || ! is_string($recipient) || $recipient === '') {
+            if (! $order || $recipient === null) {
                 $this->releaseClaim($orderId);
 
                 return;
             }
 
             $rawStatusToken = null;
+            $accountActivationUrl = null;
             if ($order->is_guest && $order->user_id === null) {
-                // Mint at send-time: raw status tokens cannot be recovered from hashes.
-                // Rotates any prior active status capability so retries stay single-active.
                 $rawStatusToken = $this->guestCapabilities->rotateStatusTokenForDelivery($order);
+
+                try {
+                    $claim = $this->guestClaims->ensureClaimForOrder($order);
+                    if (is_string($claim['raw_token']) && $claim['raw_token'] !== '') {
+                        $frontend = rtrim((string) config('sciencestreet.frontend_url'), '/');
+                        $accountActivationUrl = $frontend.'/claim/'.$claim['raw_token'];
+                    }
+                } catch (Throwable) {
+                    // Ownership claim is best-effort on receipt; status token remains primary.
+                }
             }
 
             $mailLocale = $this->resolveMailLocale($order);
 
+            // Receipt must not imply course access for delivery-gated orders.
+            $enrollmentQrs = $order->fulfilled_at !== null
+                ? $this->enrollmentQrs($order)
+                : [];
+
             Mail::to($recipient)->send(new OrderConfirmationMail(
                 $order,
-                $this->enrollmentQrs($order),
+                $enrollmentQrs,
                 $rawStatusToken,
                 $mailLocale,
+                $accountActivationUrl,
             ));
         } catch (Throwable $exception) {
             $this->releaseClaim($orderId);
@@ -69,6 +106,27 @@ final class SendOrderConfirmationEmail implements ShouldQueue
         }
 
         $this->markSent($orderId);
+    }
+
+    private function recipientEmail(?Order $order): ?string
+    {
+        if ($order === null) {
+            return null;
+        }
+
+        // Prefer immutable billing snapshot so admin-placed / mismatched user_id
+        // orders still email the customer, never an unrelated account by default.
+        $billing = GuestTokenHasher::normalizeEmail((string) ($order->billing_address['email'] ?? ''));
+        if ($billing !== '' && filter_var($billing, FILTER_VALIDATE_EMAIL)) {
+            return $billing;
+        }
+
+        $userEmail = GuestTokenHasher::normalizeEmail((string) ($order->user?->email ?? ''));
+        if ($userEmail !== '' && filter_var($userEmail, FILTER_VALIDATE_EMAIL)) {
+            return $userEmail;
+        }
+
+        return null;
     }
 
     private function resolveMailLocale(Order $order): string
@@ -86,13 +144,13 @@ final class SendOrderConfirmationEmail implements ShouldQueue
     private function claim(int $orderId): bool
     {
         return DB::transaction(function () use ($orderId): bool {
-            $order = Order::query()->whereKey($orderId)->lockForUpdate()->first();
+            $order = Order::query()->with('payment')->whereKey($orderId)->lockForUpdate()->first();
 
-            if (! $order || $order->fulfilled_at === null) {
+            if (! $order || $order->confirmation_email_sent_at !== null) {
                 return false;
             }
 
-            if ($order->confirmation_email_sent_at !== null) {
+            if (! $this->isAcceptedForReceipt($order)) {
                 return false;
             }
 
@@ -105,6 +163,34 @@ final class SendOrderConfirmationEmail implements ShouldQueue
 
             return true;
         });
+    }
+
+    private function isAcceptedForReceipt(Order $order): bool
+    {
+        if (in_array($order->status, [
+            OrderStatus::Cancelled->value,
+            OrderStatus::Refunded->value,
+        ], true) || $order->cancelled_at !== null) {
+            return false;
+        }
+
+        if ($order->paid_at !== null) {
+            return true;
+        }
+
+        // COD is accepted at checkout (processing) before cash collection / paid_at.
+        if (OrderPaymentMethod::isCashOnDelivery($order)
+            && in_array($order->status, [
+                OrderStatus::Processing->value,
+                OrderStatus::Paid->value,
+                OrderStatus::Shipped->value,
+                OrderStatus::Delivered->value,
+            ], true)
+        ) {
+            return true;
+        }
+
+        return false;
     }
 
     private function releaseClaim(int $orderId): void
@@ -124,8 +210,6 @@ final class SendOrderConfirmationEmail implements ShouldQueue
     }
 
     /**
-     * One QR per enrollment created for a course item on this order.
-     *
      * @return list<array{course_name: string, verification_url: string, qr_png: string, filename: string}>
      */
     private function enrollmentQrs(Order $order): array
@@ -133,13 +217,17 @@ final class SendOrderConfirmationEmail implements ShouldQueue
         $qrs = [];
         $seen = [];
 
+        if ($order->user_id === null) {
+            return [];
+        }
+
         foreach ($order->items as $item) {
             $courseId = $item->metadata['course_id'] ?? $item->product?->course_id;
             if (! $courseId) {
                 continue;
             }
 
-            $enrollment = Enrollment::query()
+            $enrollment = \App\Modules\Learning\Infrastructure\Persistence\Models\Enrollment::query()
                 ->with(['course', 'user'])
                 ->where('user_id', $order->user_id)
                 ->where('course_id', $courseId)

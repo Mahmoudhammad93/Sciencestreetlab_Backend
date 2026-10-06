@@ -7,6 +7,7 @@ namespace App\Modules\Commerce\Application\Services;
 use App\Models\User;
 use App\Modules\Catalog\Domain\Enums\ProductType;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\Product;
+use App\Modules\Commerce\Application\Listeners\SendOrderConfirmationEmail;
 use App\Modules\Commerce\Application\Support\DeliveryAddressValidator;
 use App\Modules\Commerce\Application\Support\MicroscopePurchaseOptions;
 use App\Modules\Commerce\Application\Support\OrderPaymentMethod;
@@ -294,6 +295,18 @@ final class CheckoutService
                 $result['order'] = $result['order']->fresh(['items', 'payment', 'bostaShipment']) ?? $result['order'];
             } catch (Throwable $e) {
                 Log::error('COD checkout Bosta shipment ensure failed', [
+                    'order_id' => $result['order']->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            // EMAIL 1: COD is accepted at checkout (no OrderPaid until delivery cash collection).
+            try {
+                app(SendOrderConfirmationEmail::class)->sendForAcceptedOrder(
+                    $result['order']->fresh(['items', 'payment', 'user', 'bostaShipment']) ?? $result['order']
+                );
+            } catch (Throwable $e) {
+                Log::error('COD order confirmation email failed', [
                     'order_id' => $result['order']->id,
                     'error' => $e->getMessage(),
                 ]);

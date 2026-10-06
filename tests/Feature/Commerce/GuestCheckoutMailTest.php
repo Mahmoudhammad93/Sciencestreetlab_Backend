@@ -14,6 +14,7 @@ use App\Modules\Commerce\Infrastructure\Persistence\Models\GuestOrderCapability;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\GuestPurchaseClaim;
 use App\Modules\Commerce\Mail\GuestCourseClaimMail;
 use App\Modules\Commerce\Mail\OrderConfirmationMail;
+use App\Modules\Commerce\Mail\OrderDeliveredMail;
 use App\Modules\Learning\Domain\Enums\AccessType;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -57,7 +58,7 @@ final class GuestCheckoutMailTest extends TestCase
             $url = $mail->viewOrderUrl();
 
             $this->assertTrue($mail->hasTo('guest@example.com'));
-            $this->assertStringContainsString('تأكيد طلبك من Science Street Lab', $mail->envelope()->subject);
+            $this->assertStringContainsString('تم استلام طلبك', $mail->envelope()->subject);
             $this->assertStringContainsString('/order-status/'.$orderNumber.'?token=', $url);
             $this->assertStringContainsString($url, $html);
 
@@ -124,8 +125,8 @@ final class GuestCheckoutMailTest extends TestCase
         ])->assertOk();
         $this->postJson('/api/v1/payments/mock/'.$pay->json('data.payment_id').'/complete')->assertOk();
 
-        Mail::assertSent(GuestCourseClaimMail::class, function (GuestCourseClaimMail $mail): bool {
-            return str_contains($mail->envelope()->subject, 'تفعيل الكورس الخاص بك');
+        Mail::assertSent(OrderDeliveredMail::class, function (OrderDeliveredMail $mail): bool {
+            return str_contains($mail->envelope()->subject, 'تم توصيل طلبك');
         });
 
         $claim = GuestPurchaseClaim::query()->firstOrFail();
@@ -204,10 +205,102 @@ final class GuestCheckoutMailTest extends TestCase
             $url = $mail->viewOrderUrl();
 
             return $mail->hasTo($user->email)
-                && str_contains($mail->envelope()->subject, 'Your Science Street Lab Order Confirmation')
+                && str_contains($mail->envelope()->subject, 'We received your order')
                 && str_contains($url, '/account/orders/'.$checkout->json('data.order_number'))
                 && ! str_contains($url, 'token=');
         });
+    }
+
+    public function test_guest_cod_sends_confirmation_to_billing_email(): void
+    {
+        Mail::fake();
+        config([
+            'sciencestreet.frontend_url' => 'https://app.example.test',
+            'sciencestreet.default_locale' => 'ar',
+            'bosta.enabled' => true,
+            'bosta.use_fake' => true,
+        ]);
+
+        $kit = $this->kit();
+        $this->withHeader('X-Cart-Session', 'guestcodmail01')
+            ->postJson('/api/v1/cart/items', ['product_id' => $kit->id])->assertCreated();
+
+        $checkout = $this->withHeader('X-Cart-Session', 'guestcodmail01')
+            ->postJson('/api/v1/checkout', [
+                'payment_method' => 'cod',
+                'billing_address' => $this->billing(['email' => 'guest-cod@example.test']),
+                'shipping_address' => $this->billing(['email' => 'guest-cod@example.test']),
+            ])->assertCreated();
+
+        $order = \App\Modules\Commerce\Infrastructure\Persistence\Models\Order::query()
+            ->findOrFail((int) $checkout->json('data.id'));
+
+        $this->assertTrue((bool) $order->is_guest);
+        $this->assertNull($order->user_id);
+        $this->assertNotNull($order->confirmation_email_sent_at);
+
+        Mail::assertSent(OrderConfirmationMail::class, function (OrderConfirmationMail $mail): bool {
+            return $mail->hasTo('guest-cod@example.test')
+                && str_contains($mail->envelope()->subject, 'تم استلام طلبك');
+        });
+        Mail::assertSent(OrderConfirmationMail::class, 1);
+    }
+
+    public function test_admin_web_session_does_not_own_guest_checkout_or_steal_confirmation_recipient(): void
+    {
+        Mail::fake();
+        config([
+            'sciencestreet.frontend_url' => 'https://app.example.test',
+            'sciencestreet.default_locale' => 'ar',
+            'bosta.enabled' => true,
+            'bosta.use_fake' => true,
+        ]);
+
+        $admin = User::factory()->create(['email' => 'admin-session@sciencestreetlab.com']);
+        $this->actingAs($admin, 'web');
+
+        $kit = $this->kit();
+        $this->withHeader('X-Cart-Session', 'guestadminmail01')
+            ->postJson('/api/v1/cart/items', ['product_id' => $kit->id])->assertCreated();
+
+        $checkout = $this->withHeader('X-Cart-Session', 'guestadminmail01')
+            ->postJson('/api/v1/checkout', [
+                'payment_method' => 'cod',
+                'billing_address' => $this->billing(['email' => 'guest@example.test']),
+                'shipping_address' => $this->billing(['email' => 'guest@example.test']),
+            ])->assertCreated();
+
+        $order = \App\Modules\Commerce\Infrastructure\Persistence\Models\Order::query()
+            ->findOrFail((int) $checkout->json('data.id'));
+
+        $this->assertTrue((bool) $order->is_guest);
+        $this->assertNull($order->user_id);
+        $this->assertNotSame($admin->id, $order->user_id);
+
+        Mail::assertSent(OrderConfirmationMail::class, function (OrderConfirmationMail $mail) use ($admin): bool {
+            return $mail->hasTo('guest@example.test')
+                && ! $mail->hasTo($admin->email);
+        });
+    }
+
+    public function test_failed_online_payment_does_not_send_confirmation(): void
+    {
+        Mail::fake();
+        config(['commerce.payment_gateway' => 'mock']);
+
+        $kit = $this->kit();
+        $this->withHeader('X-Cart-Session', 'guestfailmail01')
+            ->postJson('/api/v1/cart/items', ['product_id' => $kit->id])->assertCreated();
+        $checkout = $this->withHeader('X-Cart-Session', 'guestfailmail01')
+            ->postJson('/api/v1/checkout', [
+                'billing_address' => $this->billing(),
+                'shipping_address' => $this->billing(),
+            ])->assertCreated();
+
+        $order = \App\Modules\Commerce\Infrastructure\Persistence\Models\Order::query()
+            ->findOrFail((int) $checkout->json('data.id'));
+        $this->assertNull($order->confirmation_email_sent_at);
+        Mail::assertNothingSent();
     }
 
     public function test_english_guest_confirmation_subject_when_locale_en(): void
@@ -236,7 +329,7 @@ final class GuestCheckoutMailTest extends TestCase
             mailLocale: 'en',
         );
 
-        $this->assertStringContainsString('Your Science Street Lab Order Confirmation', $mail->envelope()->subject);
+        $this->assertStringContainsString('We received your order', $mail->envelope()->subject);
         $this->assertStringContainsString('token=raw-status-token-for-url-only', $mail->viewOrderUrl());
         $this->assertStringNotContainsString(GuestTokenHasher::hash('raw-status-token-for-url-only'), $mail->viewOrderUrl());
     }
@@ -281,11 +374,12 @@ final class GuestCheckoutMailTest extends TestCase
     }
 
     /**
+     * @param  array<string, mixed>  $overrides
      * @return array<string, mixed>
      */
-    private function billing(): array
+    private function billing(array $overrides = []): array
     {
-        return [
+        return array_merge([
             'first_name' => 'Guest',
             'last_name' => 'Buyer',
             'email' => 'guest@example.com',
@@ -297,6 +391,6 @@ final class GuestCheckoutMailTest extends TestCase
             'district_name' => 'Nasr City',
             'bosta_district_id' => 'district-nasr',
             'bosta_city_id' => 'FceDyHXwpSYYF9zGW',
-        ];
+        ], $overrides);
     }
 }

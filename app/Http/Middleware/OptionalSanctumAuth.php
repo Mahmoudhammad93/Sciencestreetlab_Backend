@@ -22,7 +22,21 @@ final class OptionalSanctumAuth
     public function handle(Request $request, Closure $next): Response
     {
         $bearer = $request->bearerToken();
+
+        // Storefront API is Bearer-only. A Filament admin cookie on the same host
+        // must never own guest cart/checkout when no customer Bearer is present.
         if (! is_string($bearer) || $bearer === '') {
+            Auth::guard('web')->forgetUser();
+
+            // Keep Sanctum::actingAs / already-resolved sanctum identities (tests + token guards).
+            $sanctumUser = Auth::guard('sanctum')->user();
+            if ($sanctumUser !== null) {
+                Auth::setUser($sanctumUser);
+                $request->setUserResolver(static fn () => $sanctumUser);
+            } else {
+                $request->setUserResolver(static fn () => null);
+            }
+
             return $next($request);
         }
 
@@ -33,6 +47,8 @@ final class OptionalSanctumAuth
         if ($user !== null) {
             Auth::setUser($user);
             $request->setUserResolver(static fn () => $user);
+        } else {
+            $request->setUserResolver(static fn () => null);
         }
 
         return $next($request);

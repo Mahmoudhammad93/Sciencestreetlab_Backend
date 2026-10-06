@@ -25,6 +25,7 @@ final class OrderConfirmationMail extends Mailable
         public readonly array $enrollmentQrs = [],
         public readonly ?string $rawStatusToken = null,
         public readonly ?string $mailLocale = null,
+        public readonly ?string $accountActivationUrl = null,
     ) {}
 
     public function envelope(): Envelope
@@ -51,6 +52,8 @@ final class OrderConfirmationMail extends Mailable
                 'paymentStatus' => $this->order->payment?->status ?? $this->order->status,
                 'enrollmentQrs' => $this->enrollmentQrs,
                 'viewOrderLabel' => $this->withMailLocale(fn (): string => __('mail.view_order')),
+                'accountActivationUrl' => $this->accountActivationUrl,
+                'accountActivationLabel' => $this->withMailLocale(fn (): string => __('mail.create_account_to_track_order')),
             ],
         );
     }

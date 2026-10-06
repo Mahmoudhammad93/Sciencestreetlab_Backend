@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Commerce\Infrastructure\Providers;
 
 use App\Modules\Commerce\Application\Listeners\CreateBostaShipmentOnOrderPaid;
+use App\Modules\Commerce\Application\Listeners\SendOrderConfirmationEmail;
 use App\Modules\Commerce\Application\Services\BostaShipmentService;
 use App\Modules\Commerce\Application\Services\BostaWebhookService;
 use App\Modules\Commerce\Application\Services\CartService;
@@ -101,5 +102,6 @@ final class CommerceServiceProvider extends ModuleServiceProvider
         parent::boot();
 
         Event::listen(OrderPaid::class, CreateBostaShipmentOnOrderPaid::class);
+        Event::listen(OrderPaid::class, SendOrderConfirmationEmail::class);
     }
 }

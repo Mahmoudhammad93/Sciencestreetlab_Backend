@@ -57,14 +57,20 @@ final class ResolvesCart
 
     private function resolveAuthenticatedUser(Request $request): ?User
     {
-        if ($user = $request->user()) {
+        // After OptionalSanctumAuth: Bearer customer, Sanctum::actingAs, or null —
+        // never a bare Filament/web session identity.
+        $user = $request->user();
+        if ($user instanceof User) {
             return $user;
         }
 
-        if (! $request->bearerToken()) {
+        $bearer = $request->bearerToken();
+        if (! is_string($bearer) || $bearer === '') {
             return null;
         }
 
-        return Auth::guard('sanctum')->setRequest($request)->user();
+        $user = Auth::guard('sanctum')->setRequest($request)->user();
+
+        return $user instanceof User ? $user : null;
     }
 }

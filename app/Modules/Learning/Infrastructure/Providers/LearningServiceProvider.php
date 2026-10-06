@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Modules\Learning\Infrastructure\Providers;
 
-use App\Modules\Commerce\Application\Listeners\SendOrderConfirmationEmail;
 use App\Modules\Commerce\Domain\Events\OrderFulfilled;
 use App\Modules\Learning\Application\Listeners\GrantEnrollmentOnOrderFulfilled;
 use App\Modules\Learning\Application\Services\CourseAccessService;
@@ -35,6 +34,5 @@ final class LearningServiceProvider extends ModuleServiceProvider
 
         Event::listen(OrderFulfilled::class, GrantEnrollmentOnOrderFulfilled::class);
         Event::listen(OrderFulfilled::class, \App\Modules\Commerce\Application\Listeners\EnsureGuestPurchaseClaimOnOrderFulfilled::class);
-        Event::listen(OrderFulfilled::class, SendOrderConfirmationEmail::class);
     }
 }
