@@ -121,8 +121,29 @@ final class OrderFulfillmentService
 
     /**
      * Authoritative Bosta DELIVERED path: mark paid (COD), set delivered, fulfill.
+     * Does not invent provider state — caller already mapped Bosta → Delivered.
      */
     public function fulfillFromBostaDelivery(Order $order): Order
+    {
+        return $this->fulfillAsDelivered($order);
+    }
+
+    /**
+     * Authoritative admin/manual DELIVERED path.
+     *
+     * Marks the order fulfilled via the same OrderFulfilled pipeline as Bosta.
+     * Does NOT mutate Bosta shipment / provider_status (provider remains distinct).
+     */
+    public function fulfillFromAdminDelivery(Order $order): Order
+    {
+        return $this->fulfillAsDelivered($order);
+    }
+
+    /**
+     * Shared delivered → paid (if needed) → status delivered → fulfill (OrderFulfilled).
+     * Idempotent via paid_at / fulfilled_at / status guards.
+     */
+    private function fulfillAsDelivered(Order $order): Order
     {
         return DB::transaction(function () use ($order): Order {
             /** @var Order $locked */
@@ -150,8 +171,9 @@ final class OrderFulfillmentService
     /**
      * Apply an admin status/notes update.
      *
-     * For Bosta-gated Egypt orders: admin status changes (including Shipped)
-     * MUST NOT unlock the course — only Bosta DELIVERED does.
+     * For Bosta-gated Egypt orders: Shipped / Processing etc. do NOT unlock access.
+     * Explicit Delivered (admin confirmation or status save) uses the same
+     * fulfillFromAdminDelivery path as Bosta's fulfillFromBostaDelivery.
      *
      * @param  array{status?: string, notes?: string|null}  $data
      */
@@ -161,10 +183,16 @@ final class OrderFulfillmentService
         $notes = array_key_exists('notes', $data) ? $data['notes'] : $order->notes;
 
         if ($this->defersFulfillmentUntilDelivery($order)) {
-            $updates = [];
             if ($notes !== $order->notes) {
-                $updates['notes'] = $notes;
+                $order->update(['notes' => $notes]);
+                $order = $order->fresh(['items']) ?? $order;
             }
+
+            if ($newStatus === OrderStatus::Delivered->value) {
+                return $this->fulfillFromAdminDelivery($order);
+            }
+
+            $updates = [];
             if ($newStatus !== $order->status) {
                 $updates['status'] = $newStatus;
             }

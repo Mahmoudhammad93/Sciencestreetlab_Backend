@@ -598,6 +598,10 @@ return [
             'update_bosta' => 'Update Bosta shipping',
             'sync_bosta' => 'Sync status from Bosta',
             'sync_bosta_help' => 'Fetches the authoritative shipment status from Bosta and applies the same transition rules as webhooks. Does not create a shipment.',
+            'mark_delivered' => 'Confirm delivery',
+            'mark_delivered_confirm_title' => 'Confirm order delivery',
+            'mark_delivered_confirm_body' => 'This will mark the order as delivered/fulfilled, trigger customer account access (activation or login email), grant applicable course access, and send the delivered/activation email. It does not change Bosta provider shipment status.',
+            'mark_delivered_confirm_submit' => 'Confirm delivery',
         ],
         'bosta_status' => [
             'cancelled' => 'Cancelled',
@@ -615,6 +619,7 @@ return [
             'new_bosta_status' => 'New Bosta status',
             'new_bosta_status_help' => 'Delivered unlocks course access. Delivered cannot be downgraded.',
             'order_status' => 'Order status',
+            'status_delivered_via_action_help' => 'Use “Confirm delivery” to mark Delivered. That runs fulfillment, activation/access email, and course access. Saving the dropdown alone cannot skip that lifecycle.',
             'local_shipment_status' => 'Local shipment status',
             'bosta_provider_status' => 'Bosta status',
             'last_status_source' => 'Last status source',
@@ -643,6 +648,9 @@ return [
             'bosta_synced' => 'Synced from Bosta',
             'bosta_synced_body' => 'Previous: :previous → Current: :current (Bosta: :provider)',
             'no_bosta' => 'No Bosta shipment on this order',
+            'marked_delivered' => 'Order marked delivered',
+            'marked_delivered_body' => 'Fulfillment lifecycle ran (access/activation email and course entitlements where applicable).',
+            'mark_delivered_failed' => 'Failed to mark order delivered',
         ],
         'placeholders' => [
             'course_gate_active' => 'Active (fulfilled_at set)',

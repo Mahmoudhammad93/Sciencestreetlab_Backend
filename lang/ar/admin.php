@@ -598,6 +598,10 @@ return [
             'update_bosta' => 'تحديث شحن Bosta',
             'sync_bosta' => 'تحديث الحالة من Bosta',
             'sync_bosta_help' => 'يجلب حالة الشحنة الرسمية من Bosta ويطبّق نفس قواعد التحويل الخاصة بالـ webhook. لا ينشئ شحنة جديدة.',
+            'mark_delivered' => 'تأكيد تسليم الطلب',
+            'mark_delivered_confirm_title' => 'تأكيد تسليم الطلب',
+            'mark_delivered_confirm_body' => 'سيؤدي هذا إلى تعليم الطلب كمُسلَّم/مكتمل، وتشغيل مسار وصول العميل (تفعيل الحساب أو تسجيل الدخول)، ومنح صلاحية الدورة إن وُجدت، وإرسال بريد التسليم/التفعيل. لن يغيّر حالة الشحنة لدى Bosta.',
+            'mark_delivered_confirm_submit' => 'تأكيد التسليم',
         ],
         'bosta_status' => [
             'cancelled' => 'ملغى',
@@ -615,6 +619,7 @@ return [
             'new_bosta_status' => 'حالة Bosta الجديدة',
             'new_bosta_status_help' => 'التسليم يفتح الوصول للدورة. لا يمكن خفض حالة «تم التسليم».',
             'order_status' => 'حالة الطلب',
+            'status_delivered_via_action_help' => 'استخدم «تأكيد تسليم الطلب» لتعليم الطلب كمُسلَّم. ذلك يشغّل الإكمال وبريد التفعيل/الوصول وصلاحية الدورة. حفظ القائمة المنسدلة وحده لا يتجاوز هذه الدورة.',
             'local_shipment_status' => 'حالة الشحنة لدينا',
             'bosta_provider_status' => 'حالة Bosta',
             'last_status_source' => 'مصدر آخر تحديث للحالة',
@@ -643,6 +648,9 @@ return [
             'bosta_synced' => 'تمت المزامنة من Bosta',
             'bosta_synced_body' => 'السابقة: :previous → الحالية: :current (Bosta: :provider)',
             'no_bosta' => 'لا توجد شحنة Bosta لهذا الطلب',
+            'marked_delivered' => 'تم تعليم الطلب كمُسلَّم',
+            'marked_delivered_body' => 'تم تشغيل دورة الإكمال (بريد التفعيل/الوصول وصلاحيات الدورة عند الحاجة).',
+            'mark_delivered_failed' => 'تعذّر تعليم الطلب كمُسلَّم',
         ],
         'placeholders' => [
             'course_gate_active' => 'نشط (تم تعيين fulfilled_at)',

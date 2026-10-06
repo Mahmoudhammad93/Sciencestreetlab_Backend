@@ -46,16 +46,52 @@ class OrderResource extends Resource
     {
         return $form->schema([
             Forms\Components\TextInput::make('order_number')->disabled(),
-            Forms\Components\Select::make('status')->options([
-                'pending' => 'Pending',
-                'awaiting_payment' => 'Awaiting Payment',
-                'paid' => 'Paid',
-                'processing' => 'Processing',
-                'shipped' => 'Shipped',
-                'delivered' => 'Delivered',
-                'cancelled' => 'Cancelled',
-                'refunded' => 'Refunded',
-            ])->required(),
+            Forms\Components\Select::make('status')
+                ->options(function (?Order $record): array {
+                    $options = [
+                        'pending' => 'Pending',
+                        'awaiting_payment' => 'Awaiting Payment',
+                        'paid' => 'Paid',
+                        'processing' => 'Processing',
+                        'shipped' => 'Shipped',
+                        'cancelled' => 'Cancelled',
+                        'refunded' => 'Refunded',
+                    ];
+
+                    // Delivered is an explicit fulfillment action for delivery-gated orders
+                    // that are not yet fulfilled — prevents silent split-brain via Save.
+                    $allowDeliveredInSelect = $record === null
+                        || $record->status === 'delivered'
+                        || $record->fulfilled_at !== null
+                        || ! (bool) $record->requires_delivery_fulfillment;
+
+                    if ($allowDeliveredInSelect) {
+                        $options = [
+                            'pending' => 'Pending',
+                            'awaiting_payment' => 'Awaiting Payment',
+                            'paid' => 'Paid',
+                            'processing' => 'Processing',
+                            'shipped' => 'Shipped',
+                            'delivered' => 'Delivered',
+                            'cancelled' => 'Cancelled',
+                            'refunded' => 'Refunded',
+                        ];
+                    }
+
+                    return $options;
+                })
+                ->helperText(function (?Order $record): ?string {
+                    if ($record !== null
+                        && (bool) $record->requires_delivery_fulfillment
+                        && $record->fulfilled_at === null
+                        && $record->status !== 'delivered'
+                    ) {
+                        return __('admin.orders.fields.status_delivered_via_action_help');
+                    }
+
+                    return null;
+                })
+                ->required(),
             Forms\Components\TextInput::make('total')->numeric()->prefix('EGP')->disabled(),
             Forms\Components\Textarea::make('notes'),
             Forms\Components\Section::make(__('admin.orders.sections.customer'))

@@ -31,6 +31,37 @@ class EditOrder extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            Actions\Action::make('markDelivered')
+                ->label(__('admin.orders.actions.mark_delivered'))
+                ->icon('heroicon-o-check-badge')
+                ->color('success')
+                ->visible(fn (): bool => $this->recordNeedsExplicitDeliveryConfirmation())
+                ->requiresConfirmation()
+                ->modalHeading(__('admin.orders.actions.mark_delivered_confirm_title'))
+                ->modalDescription(__('admin.orders.actions.mark_delivered_confirm_body'))
+                ->modalSubmitActionLabel(__('admin.orders.actions.mark_delivered_confirm_submit'))
+                ->action(function (): void {
+                    /** @var Order $order */
+                    $order = $this->getRecord();
+
+                    try {
+                        app(OrderFulfillmentService::class)->fulfillFromAdminDelivery($order);
+                        $this->refreshFormData(['status', 'notes']);
+                        $this->record->refresh();
+
+                        Notification::make()
+                            ->title(__('admin.orders.notifications.marked_delivered'))
+                            ->body(__('admin.orders.notifications.marked_delivered_body'))
+                            ->success()
+                            ->send();
+                    } catch (Throwable $e) {
+                        Notification::make()
+                            ->title(__('admin.orders.notifications.mark_delivered_failed'))
+                            ->body($e->getMessage())
+                            ->danger()
+                            ->send();
+                    }
+                }),
             Actions\Action::make('syncBostaStatus')
                 ->label(__('admin.orders.actions.sync_bosta'))
                 ->icon('heroicon-o-arrow-path')
@@ -110,5 +141,22 @@ class EditOrder extends EditRecord
 
         return $order->bostaShipment !== null
             && filled($order->bostaShipment->external_shipment_id);
+    }
+
+    /**
+     * Show explicit Confirm Delivery when fulfillment lifecycle has not completed.
+     * Includes split-brain recovery: status=delivered but fulfilled_at still null.
+     */
+    private function recordNeedsExplicitDeliveryConfirmation(): bool
+    {
+        /** @var Order $order */
+        $order = $this->getRecord();
+
+        if ($order->fulfilled_at !== null) {
+            return false;
+        }
+
+        return (bool) $order->requires_delivery_fulfillment
+            || $order->status === 'delivered';
     }
 }
