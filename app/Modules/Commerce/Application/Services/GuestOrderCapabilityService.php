@@ -70,16 +70,20 @@ final class GuestOrderCapabilityService
      * Mint a fresh status capability for legitimate delivery (e.g. confirmation email).
      *
      * Raw tokens cannot be recovered from hashes, so delivery must mint at send-time.
-     * Any previous active status capability for the order is revoked first so retries
-     * never accumulate unlimited active status rows (still at most one active).
+     *
+     * IMPORTANT: do NOT revoke prior active status tokens here. Checkout returns a
+     * status token for the immediate /order-status redirect; the confirmation email
+     * needs its own raw token. Revoking the checkout token caused guests to see
+     * "order not found / unauthorized" right after a successful checkout.
+     *
+     * Refund/cancel still calls revokeAllForOrder(). Email idempotency is handled
+     * by confirmation_email_sent_at, not by single-active status rows.
      *
      * @return string raw status token (caller must deliver once; never log/persist raw)
      */
     public function rotateStatusTokenForDelivery(Order $order): string
     {
         return DB::transaction(function () use ($order): string {
-            $this->revokeActive($order, GuestOrderCapability::TYPE_STATUS);
-
             $statusRaw = GuestTokenHasher::generateRaw();
 
             GuestOrderCapability::query()->create([

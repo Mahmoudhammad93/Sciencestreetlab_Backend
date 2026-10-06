@@ -301,10 +301,19 @@ final class CheckoutService
             }
 
             // EMAIL 1: COD is accepted at checkout (no OrderPaid until delivery cash collection).
+            // Confirmation mints a fresh status token for the email — return THAT token to the
+            // client so post-checkout /order-status?token= is not already revoked.
             try {
-                app(SendOrderConfirmationEmail::class)->sendForAcceptedOrder(
+                $statusToken = app(SendOrderConfirmationEmail::class)->sendForAcceptedOrder(
                     $result['order']->fresh(['items', 'payment', 'user', 'bostaShipment']) ?? $result['order']
                 );
+                if (
+                    is_array($result['guest_tokens'])
+                    && is_string($statusToken)
+                    && $statusToken !== ''
+                ) {
+                    $result['guest_tokens']['status_token'] = $statusToken;
+                }
             } catch (Throwable $e) {
                 Log::error('COD order confirmation email failed', [
                     'order_id' => $result['order']->id,

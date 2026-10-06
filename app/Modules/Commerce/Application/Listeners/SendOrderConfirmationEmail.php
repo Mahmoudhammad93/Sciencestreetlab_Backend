@@ -6,7 +6,6 @@ namespace App\Modules\Commerce\Application\Listeners;
 
 use App\Modules\Commerce\Application\Services\EnrollmentQrCodeRenderer;
 use App\Modules\Commerce\Application\Services\GuestOrderCapabilityService;
-use App\Modules\Commerce\Application\Services\GuestPurchaseClaimService;
 use App\Modules\Commerce\Application\Support\GuestTokenHasher;
 use App\Modules\Commerce\Application\Support\OrderPaymentMethod;
 use App\Modules\Commerce\Domain\Enums\OrderStatus;
@@ -36,7 +35,6 @@ final class SendOrderConfirmationEmail implements ShouldQueue
     public function __construct(
         private readonly EnrollmentQrCodeRenderer $qrCodes,
         private readonly GuestOrderCapabilityService $guestCapabilities,
-        private readonly GuestPurchaseClaimService $guestClaims,
     ) {}
 
     public function handle(OrderPaid $event): void
@@ -46,17 +44,22 @@ final class SendOrderConfirmationEmail implements ShouldQueue
 
     /**
      * COD checkout acceptance path (no OrderPaid until delivery cash collection).
+     *
+     * @return string|null Raw guest status token embedded in the email (when minted),
+     *                     so checkout can return the SAME token the browser redirects with.
      */
-    public function sendForAcceptedOrder(Order $order): void
+    public function sendForAcceptedOrder(Order $order): ?string
     {
-        $this->sendForOrderId($order->id);
+        return $this->sendForOrderId($order->id);
     }
 
-    private function sendForOrderId(int $orderId): void
+    private function sendForOrderId(int $orderId): ?string
     {
         if (! $this->claim($orderId)) {
-            return;
+            return null;
         }
+
+        $rawStatusToken = null;
 
         try {
             $order = Order::query()->with(['items.product', 'user', 'payment', 'bostaShipment'])->find($orderId);
@@ -66,23 +69,12 @@ final class SendOrderConfirmationEmail implements ShouldQueue
             if (! $order || $recipient === null) {
                 $this->releaseClaim($orderId);
 
-                return;
+                return null;
             }
 
-            $rawStatusToken = null;
-            $accountActivationUrl = null;
+            // Guest-safe "View order" only. Account activation is EMAIL 2 on Delivered.
             if ($order->is_guest && $order->user_id === null) {
                 $rawStatusToken = $this->guestCapabilities->rotateStatusTokenForDelivery($order);
-
-                try {
-                    $claim = $this->guestClaims->ensureClaimForOrder($order);
-                    if (is_string($claim['raw_token']) && $claim['raw_token'] !== '') {
-                        $frontend = rtrim((string) config('sciencestreet.frontend_url'), '/');
-                        $accountActivationUrl = $frontend.'/claim/'.$claim['raw_token'];
-                    }
-                } catch (Throwable) {
-                    // Ownership claim is best-effort on receipt; status token remains primary.
-                }
             }
 
             $mailLocale = $this->resolveMailLocale($order);
@@ -97,7 +89,7 @@ final class SendOrderConfirmationEmail implements ShouldQueue
                 $enrollmentQrs,
                 $rawStatusToken,
                 $mailLocale,
-                $accountActivationUrl,
+                null,
             ));
         } catch (Throwable $exception) {
             $this->releaseClaim($orderId);
@@ -106,6 +98,8 @@ final class SendOrderConfirmationEmail implements ShouldQueue
         }
 
         $this->markSent($orderId);
+
+        return $rawStatusToken;
     }
 
     private function recipientEmail(?Order $order): ?string

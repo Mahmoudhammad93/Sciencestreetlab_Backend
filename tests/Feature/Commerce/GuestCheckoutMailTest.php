@@ -171,7 +171,15 @@ final class GuestCheckoutMailTest extends TestCase
 
         // Simulate listener retry / duplicate fulfillment after already sent.
         $order = \App\Modules\Commerce\Infrastructure\Persistence\Models\Order::query()->findOrFail($orderId);
+        $before = GuestOrderCapability::query()
+            ->where('order_id', $orderId)
+            ->where('type', 'status')
+            ->whereNull('revoked_at')
+            ->where('expires_at', '>', now())
+            ->count();
+
         event(new \App\Modules\Commerce\Domain\Events\OrderFulfilled($order));
+        event(new \App\Modules\Commerce\Domain\Events\OrderPaid($order->fresh() ?? $order));
 
         $activeStatus = GuestOrderCapability::query()
             ->where('order_id', $orderId)
@@ -180,7 +188,9 @@ final class GuestCheckoutMailTest extends TestCase
             ->where('expires_at', '>', now())
             ->count();
 
-        $this->assertSame(1, $activeStatus);
+        // Checkout token + confirmation email token may both be active; retries must not mint more.
+        $this->assertSame($before, $activeStatus);
+        $this->assertLessThanOrEqual(2, $activeStatus);
         Mail::assertSent(OrderConfirmationMail::class, 1);
     }
 
@@ -239,11 +249,36 @@ final class GuestCheckoutMailTest extends TestCase
         $this->assertNull($order->user_id);
         $this->assertNotNull($order->confirmation_email_sent_at);
 
+        $access = (string) $checkout->json('guest.access_token');
+        $this->assertNotSame('', $access);
+        $this->getJson('/api/v1/guest/orders/'.$order->order_number.'?token='.$access)
+            ->assertOk()
+            ->assertJsonPath('data.order_number', $order->order_number);
+
         Mail::assertSent(OrderConfirmationMail::class, function (OrderConfirmationMail $mail): bool {
+            $url = $mail->viewOrderUrl();
+
             return $mail->hasTo('guest-cod@example.test')
-                && str_contains($mail->envelope()->subject, 'تم استلام طلبك');
+                && str_contains($mail->envelope()->subject, 'تم استلام طلبك')
+                && $mail->accountActivationUrl === null
+                && str_contains($url, '/order-status/')
+                && str_contains($url, 'token=');
         });
         Mail::assertSent(OrderConfirmationMail::class, 1);
+
+        // Email mints its own status token without revoking the checkout redirect token.
+        $emailToken = null;
+        Mail::assertSent(OrderConfirmationMail::class, function (OrderConfirmationMail $mail) use (&$emailToken): bool {
+            parse_str((string) parse_url($mail->viewOrderUrl(), PHP_URL_QUERY), $query);
+            $emailToken = (string) ($query['token'] ?? '');
+
+            return $emailToken !== '';
+        });
+        $this->assertNotSame('', (string) $emailToken);
+        $this->getJson('/api/v1/guest/orders/'.$order->order_number.'?token='.$emailToken)
+            ->assertOk();
+        $this->getJson('/api/v1/guest/orders/'.$order->order_number.'?token='.$access)
+            ->assertOk();
     }
 
     public function test_admin_web_session_does_not_own_guest_checkout_or_steal_confirmation_recipient(): void
