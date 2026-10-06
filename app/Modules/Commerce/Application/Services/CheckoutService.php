@@ -17,6 +17,8 @@ use App\Modules\Commerce\Infrastructure\Persistence\Models\Coupon;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Order;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\OrderItem;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Payment;
+use App\Modules\SocialAttribution\Application\Services\SnapshotOrderAttribution;
+use App\Modules\SocialAttribution\Domain\Data\AttributionContext;
 use DomainException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -30,6 +32,7 @@ final class CheckoutService
         private readonly BostaShipmentService $bostaShipments,
         private readonly GuestOrderCapabilityService $guestCapabilities,
         private readonly ShippingPricingService $shippingPricing,
+        private readonly SnapshotOrderAttribution $snapshotOrderAttribution,
     ) {}
 
     /**
@@ -102,6 +105,7 @@ final class CheckoutService
         ?array $shippingAddress = null,
         ?string $notes = null,
         PaymentMethod $paymentMethod = PaymentMethod::Online,
+        ?AttributionContext $attribution = null,
     ): array {
         $cart->load('items.product');
 
@@ -280,6 +284,16 @@ final class CheckoutService
                     'error' => $e->getMessage(),
                 ]);
             }
+        }
+
+        // Fail-soft: never blocks checkout / totals / ownership.
+        try {
+            $this->snapshotOrderAttribution->handle($result['order'], $attribution);
+        } catch (Throwable $e) {
+            Log::error('Order attribution snapshot threw (checkout continues)', [
+                'order_id' => $result['order']->id,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         return [

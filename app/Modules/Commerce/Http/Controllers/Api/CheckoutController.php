@@ -12,6 +12,7 @@ use App\Modules\Commerce\Application\Support\OrderPaymentEligibility;
 use App\Modules\Commerce\Domain\Enums\PaymentMethod;
 use App\Modules\Commerce\Http\Support\ResolvesCart;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Order;
+use App\Modules\SocialAttribution\Application\Support\ResolvesAttributionContext;
 use App\Shared\Contracts\PaymentGatewayInterface;
 use DomainException;
 use Illuminate\Http\JsonResponse;
@@ -27,6 +28,7 @@ final class CheckoutController extends Controller
         private readonly CheckoutService $checkoutService,
         private readonly GuestOrderCapabilityService $guestCapabilities,
         private readonly OrderPaymentEligibility $paymentEligibility,
+        private readonly ResolvesAttributionContext $resolvesAttribution,
     ) {}
 
     public function quote(Request $request): JsonResponse
@@ -148,6 +150,7 @@ final class CheckoutController extends Controller
                 $validated['shipping_address'] ?? null,
                 $validated['notes'] ?? null,
                 $paymentMethod,
+                $this->resolvesAttribution->fromRequest($request),
             );
         } catch (ValidationException $e) {
             throw $e;

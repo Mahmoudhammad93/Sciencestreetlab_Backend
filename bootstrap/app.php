@@ -21,6 +21,12 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\PreferBearerTokenOverSession::class,
         ]);
 
+        // Opaque first-party attribution visitor UUID — not an auth secret.
+        // Must remain readable across /go redirects (browsers + local HTTP clients).
+        $middleware->encryptCookies(except: [
+            'ssl_attr_sid',
+        ]);
+
         $middleware->validateCsrfTokens(except: [
             'api/*',
         ]);
