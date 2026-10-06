@@ -72,15 +72,19 @@ final class BostaPackageDetailsBuilder
     private function itemDisplayName(OrderItem $item): string
     {
         $name = trim((string) $item->product_name);
-        if ($name !== '') {
-            return $name;
+        if ($name === '') {
+            $sku = trim((string) $item->product_sku);
+            $name = $sku !== '' ? $sku : 'Product';
         }
 
-        $sku = trim((string) $item->product_sku);
-        if ($sku !== '') {
-            return $sku;
+        $bookLanguage = MicroscopePurchaseOptions::bookLanguageFromMetadata(
+            is_array($item->metadata) ? $item->metadata : null
+        );
+        if ($bookLanguage !== null) {
+            $label = MicroscopePurchaseOptions::displayBookLanguage($bookLanguage, 'en');
+            $name .= ' - Book: '.$label;
         }
 
-        return 'Product';
+        return $name;
     }
 }

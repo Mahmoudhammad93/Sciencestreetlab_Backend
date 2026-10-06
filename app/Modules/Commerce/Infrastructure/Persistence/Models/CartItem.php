@@ -10,12 +10,20 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CartItem extends Model
 {
-    protected $fillable = ['cart_id', 'product_id', 'quantity', 'unit_price'];
+    protected $fillable = [
+        'cart_id',
+        'product_id',
+        'quantity',
+        'unit_price',
+        'metadata',
+        'options_key',
+    ];
 
     protected function casts(): array
     {
         return [
             'unit_price' => 'decimal:2',
+            'metadata' => 'array',
         ];
     }
 

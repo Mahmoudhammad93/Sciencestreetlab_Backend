@@ -8,10 +8,13 @@ use App\Http\Controllers\Controller;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\Product;
 use App\Modules\Commerce\Application\Services\CartService;
 use App\Modules\Commerce\Application\Services\CouponService;
+use App\Modules\Commerce\Application\Support\MicroscopePurchaseOptions;
 use App\Modules\Commerce\Http\Support\ResolvesCart;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\CartItem;
+use DomainException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 final class CartController extends Controller
 {
@@ -48,6 +51,7 @@ final class CartController extends Controller
             'product_id' => ['required_without:slug', 'nullable', 'integer', 'exists:products,id'],
             'slug' => ['required_without:product_id', 'nullable', 'string', 'max:255'],
             'quantity' => ['integer', 'min:1', 'max:99'],
+            'book_language' => ['nullable', 'string', Rule::in(MicroscopePurchaseOptions::allowedBookLanguages())],
         ]);
 
         $product = isset($validated['product_id'])
@@ -60,11 +64,24 @@ final class CartController extends Controller
 
         $cart = $this->resolvesCart->fromRequest($request);
 
-        $item = $this->cartService->addItem(
-            $cart,
-            $product,
-            $validated['quantity'] ?? 1
-        );
+        $options = [];
+        if (array_key_exists('book_language', $validated) && $validated['book_language'] !== null) {
+            $options['book_language'] = $validated['book_language'];
+        }
+
+        try {
+            $item = $this->cartService->addItem(
+                $cart,
+                $product,
+                $validated['quantity'] ?? 1,
+                $options,
+            );
+        } catch (DomainException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'code' => 'MICROSCOPE_BOOK_LANGUAGE_REQUIRED',
+            ], 422);
+        }
 
         return response()->json(['data' => $item->load('product')], 201);
     }

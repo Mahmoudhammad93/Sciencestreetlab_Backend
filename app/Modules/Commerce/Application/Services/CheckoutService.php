@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Modules\Catalog\Domain\Enums\ProductType;
 use App\Modules\Catalog\Infrastructure\Persistence\Models\Product;
 use App\Modules\Commerce\Application\Support\DeliveryAddressValidator;
+use App\Modules\Commerce\Application\Support\MicroscopePurchaseOptions;
 use App\Modules\Commerce\Application\Support\OrderPaymentMethod;
 use App\Modules\Commerce\Domain\Enums\OrderStatus;
 use App\Modules\Commerce\Domain\Enums\PaymentMethod;
@@ -113,6 +114,8 @@ final class CheckoutService
             throw new DomainException('Cannot checkout with an empty cart.');
         }
 
+        $this->cartService->assertMicroscopeOptionsValid($cart);
+
         $this->assertBilling($billingAddress);
 
         $requiresShipping = $this->cartRequiresShipping($cart);
@@ -162,18 +165,20 @@ final class CheckoutService
                 $subtotal += $lineTotal;
 
                 $lines[] = [
+                    'cart_item' => $item,
                     'product' => $product,
                     'quantity' => $qty,
                     'unit_price' => $unitPrice,
                     'total_price' => $lineTotal,
+                    'metadata' => is_array($item->metadata) ? $item->metadata : [],
                 ];
             }
 
             // Refresh coupon calc against authoritative line prices by syncing cart item prices.
             foreach ($lines as $line) {
-                $cart->items
-                    ->firstWhere('product_id', $line['product']->id)
-                    ?->update(['unit_price' => $line['unit_price']]);
+                /** @var \App\Modules\Commerce\Infrastructure\Persistence\Models\CartItem $cartItem */
+                $cartItem = $line['cart_item'];
+                $cartItem->update(['unit_price' => $line['unit_price']]);
             }
             $cart->unsetRelation('items');
             $cart->load('items.product');
@@ -218,6 +223,20 @@ final class CheckoutService
             foreach ($lines as $line) {
                 /** @var Product $product */
                 $product = $line['product'];
+                $itemMetadata = [
+                    'product_type' => $product->type->value,
+                    'course_id' => $product->course_id,
+                    'course_plan_id' => $product->course_plan_id,
+                    'free_shipping' => (bool) ($product->free_shipping ?? false),
+                ];
+
+                $bookLanguage = MicroscopePurchaseOptions::bookLanguageFromMetadata(
+                    $line['metadata'] ?? null
+                );
+                if ($bookLanguage !== null) {
+                    $itemMetadata['book_language'] = $bookLanguage;
+                }
+
                 OrderItem::query()->create([
                     'order_id' => $order->id,
                     'product_id' => $product->id,
@@ -226,12 +245,7 @@ final class CheckoutService
                     'quantity' => $line['quantity'],
                     'unit_price' => $line['unit_price'],
                     'total_price' => $line['total_price'],
-                    'metadata' => [
-                        'product_type' => $product->type->value,
-                        'course_id' => $product->course_id,
-                        'course_plan_id' => $product->course_plan_id,
-                        'free_shipping' => (bool) ($product->free_shipping ?? false),
-                    ],
+                    'metadata' => $itemMetadata,
                 ]);
             }
 
