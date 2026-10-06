@@ -11,7 +11,7 @@ final class PublicFrontendUrlConfigTest extends TestCase
     public function test_ip_frontend_url_is_replaced_when_app_url_is_a_domain(): void
     {
         config([
-            'app.url' => 'https://app.sciencestreetlab.com',
+            'app.url' => 'https://sciencestreetlab.com',
             'sciencestreet.frontend_url' => 'http://13.39.47.202',
         ]);
 
@@ -21,7 +21,7 @@ final class PublicFrontendUrlConfigTest extends TestCase
         $method->invoke($provider);
 
         $this->assertSame(
-            'https://app.sciencestreetlab.com',
+            'https://sciencestreetlab.com',
             config('sciencestreet.frontend_url'),
         );
     }
@@ -30,7 +30,7 @@ final class PublicFrontendUrlConfigTest extends TestCase
     {
         config([
             'app.url' => 'http://13.39.47.202',
-            'sciencestreet.frontend_url' => 'https://app.sciencestreetlab.com',
+            'sciencestreet.frontend_url' => 'https://sciencestreetlab.com',
             'filesystems.disks.public.url' => 'http://13.39.47.202/storage',
         ]);
 
@@ -39,9 +39,9 @@ final class PublicFrontendUrlConfigTest extends TestCase
         $method->setAccessible(true);
         $method->invoke($provider);
 
-        $this->assertSame('https://app.sciencestreetlab.com', config('app.url'));
+        $this->assertSame('https://sciencestreetlab.com', config('app.url'));
         $this->assertSame(
-            'https://app.sciencestreetlab.com/storage',
+            'https://sciencestreetlab.com/storage',
             config('filesystems.disks.public.url'),
         );
     }

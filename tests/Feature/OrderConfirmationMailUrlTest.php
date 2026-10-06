@@ -17,7 +17,7 @@ final class OrderConfirmationMailUrlTest extends TestCase
     public function test_default_view_order_url_uses_account_orders_path(): void
     {
         config([
-            'sciencestreet.frontend_url' => 'https://app.sciencestreetlab.com',
+            'sciencestreet.frontend_url' => 'https://sciencestreetlab.com',
             'sciencestreet.order_url_template' => null,
         ]);
 
@@ -40,11 +40,13 @@ final class OrderConfirmationMailUrlTest extends TestCase
         $url = $mail->viewOrderUrl();
 
         $this->assertSame(
-            'https://app.sciencestreetlab.com/account/orders/SS-TESTORDER1',
+            'https://sciencestreetlab.com/account/orders/SS-TESTORDER1',
             $url
         );
+        $this->assertStringNotContainsString('wp-signup.php', $url);
+        $this->assertStringNotContainsString('app.sciencestreetlab.com', $url);
         $this->assertDoesNotMatchRegularExpression(
-            '#https://app\.sciencestreetlab\.com/orders/SS-TESTORDER1$#',
+            '#https://sciencestreetlab\.com/orders/SS-TESTORDER1$#',
             $url
         );
     }

@@ -8,6 +8,9 @@ return [
 
     'allowed_origins' => array_filter([
         env('FRONTEND_URL', 'http://localhost:5173'),
+        'https://sciencestreetlab.com',
+        'https://www.sciencestreetlab.com',
+        // Legacy subdomain kept during DNS cutover; nginx redirects it to apex.
         'https://app.sciencestreetlab.com',
         'http://app.sciencestreetlab.com',
         'http://localhost:5173',
