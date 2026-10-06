@@ -22,6 +22,7 @@ use App\Modules\Commerce\Infrastructure\Persistence\Models\Order;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\OrderItem;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Payment;
 use App\Modules\Commerce\Mail\OrderConfirmationMail;
+use App\Modules\Commerce\Mail\OrderDeliveredMail;
 use App\Modules\Learning\Domain\Enums\AccessType;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Enrollment;
@@ -250,7 +251,8 @@ final class BostaShippingFulfillmentTest extends TestCase
             'user_id' => $user->id,
             'course_id' => $course->id,
         ]);
-        Mail::assertNothingSent();
+        Mail::assertSent(OrderConfirmationMail::class, 1);
+        Mail::assertNotSent(OrderDeliveredMail::class);
 
         $this->postJson('/api/v1/webhooks/bosta', [
             'external_shipment_id' => $order->bostaShipment->external_shipment_id,
@@ -268,6 +270,7 @@ final class BostaShippingFulfillmentTest extends TestCase
             'course_id' => $course->id,
         ]);
         Mail::assertSent(OrderConfirmationMail::class, 1);
+        Mail::assertSent(OrderDeliveredMail::class, 1);
     }
 
     public function test_admin_shipped_does_not_unlock_bosta_order(): void
@@ -305,6 +308,7 @@ final class BostaShippingFulfillmentTest extends TestCase
         $this->assertSame(ShipmentStatus::Delivered, $order->bostaShipment->fresh()->status);
         $this->assertNotNull($order->fresh()->fulfilled_at);
         Mail::assertSent(OrderConfirmationMail::class, 1);
+        Mail::assertSent(OrderDeliveredMail::class, 1);
     }
 
     public function test_invalid_webhook_secret_is_rejected(): void
@@ -391,7 +395,8 @@ final class BostaShippingFulfillmentTest extends TestCase
             'user_id' => $user->id,
             'course_id' => $course->id,
         ]);
-        Mail::assertNothingSent();
+        Mail::assertSent(OrderConfirmationMail::class, 1);
+        Mail::assertNotSent(OrderDeliveredMail::class);
     }
 
     public function test_non_delivered_statuses_do_not_grant_course_access(): void
@@ -416,7 +421,8 @@ final class BostaShippingFulfillmentTest extends TestCase
             ]);
         }
 
-        Mail::assertNothingSent();
+        Mail::assertSent(OrderConfirmationMail::class);
+        Mail::assertNotSent(OrderDeliveredMail::class);
     }
 
     public function test_cancelled_returned_failed_statuses_do_not_fulfill(): void
@@ -453,7 +459,8 @@ final class BostaShippingFulfillmentTest extends TestCase
             ]);
         }
 
-        Mail::assertNothingSent();
+        Mail::assertSent(OrderConfirmationMail::class);
+        Mail::assertNotSent(OrderDeliveredMail::class);
     }
 
     public function test_out_of_order_event_cannot_regress_delivered_state(): void
@@ -483,6 +490,7 @@ final class BostaShippingFulfillmentTest extends TestCase
         $this->assertSame(ShipmentStatus::Delivered, $shipment->status);
         $this->assertSame(1, Enrollment::query()->where('user_id', $user->id)->where('course_id', $course->id)->count());
         Mail::assertSent(OrderConfirmationMail::class, 1);
+        Mail::assertSent(OrderDeliveredMail::class, 1);
     }
 
     public function test_terminal_failure_is_not_overwritten_by_mid_journey_or_delivered(): void
@@ -520,7 +528,8 @@ final class BostaShippingFulfillmentTest extends TestCase
             'user_id' => $user->id,
             'course_id' => $course->id,
         ]);
-        Mail::assertNothingSent();
+        Mail::assertSent(OrderConfirmationMail::class, 1);
+        Mail::assertNotSent(OrderDeliveredMail::class);
     }
 
     public function test_configured_verifier_rejects_missing_and_wrong_auth_header(): void
@@ -552,11 +561,79 @@ final class BostaShippingFulfillmentTest extends TestCase
         $this->postJson('/api/v1/webhooks/bosta', $payload, ['Authorization' => 'wrong'])
             ->assertUnauthorized();
 
-        $this->postJson('/api/v1/webhooks/bosta', $payload, ['Authorization' => 'real-looking-secret'])
+        $this->postJson('/api/v1/webhooks/bosta', $payload, ['Authorization' => 'Bearer real-looking-secret'])
             ->assertOk()
             ->assertJsonPath('status', 'delivered');
 
         $this->assertNotNull($order->fresh()->fulfilled_at);
+
+        // Duplicate Delivered with raw secret — idempotent.
+        $this->postJson('/api/v1/webhooks/bosta', $payload, ['Authorization' => 'real-looking-secret'])
+            ->assertOk()
+            ->assertJsonPath('duplicate', true);
+    }
+
+    public function test_configured_verifier_rejects_wrong_header_name(): void
+    {
+        [$user, , $product] = $this->kitWithCourse();
+        $order = $this->checkoutAndPayKit($user, $product);
+
+        config([
+            'bosta.webhook_auth_ready' => true,
+            'bosta.webhook_signature_ready' => true,
+            'bosta.webhook_secret' => 'real-looking-secret',
+            'bosta.webhook_auth_header' => 'Authorization',
+        ]);
+
+        $this->app->instance(
+            \App\Modules\Commerce\Domain\Contracts\BostaWebhookVerifierInterface::class,
+            $this->app->make(\App\Modules\Commerce\Infrastructure\Shipping\Bosta\ConfiguredBostaWebhookVerifier::class)
+        );
+
+        $payload = [
+            '_id' => $order->bostaShipment->external_shipment_id,
+            'state' => 41,
+            'type' => 'SEND',
+        ];
+
+        $this->postJson('/api/v1/webhooks/bosta', $payload, [
+            'X-Bosta-Webhook-Secret' => 'real-looking-secret',
+        ])->assertUnauthorized();
+
+        $this->assertNull($order->fresh()->fulfilled_at);
+        $this->assertSame(
+            \App\Modules\Commerce\Domain\Enums\ShipmentStatus::Created,
+            $order->bostaShipment->fresh()->status
+        );
+    }
+
+    public function test_configured_verifier_unknown_shipment_is_safe(): void
+    {
+        config([
+            'bosta.webhook_auth_ready' => true,
+            'bosta.webhook_signature_ready' => true,
+            'bosta.webhook_secret' => 'real-looking-secret',
+            'bosta.webhook_auth_header' => 'Authorization',
+        ]);
+
+        $this->app->instance(
+            \App\Modules\Commerce\Domain\Contracts\BostaWebhookVerifierInterface::class,
+            $this->app->make(\App\Modules\Commerce\Infrastructure\Shipping\Bosta\ConfiguredBostaWebhookVerifier::class)
+        );
+
+        $beforeShipments = \App\Modules\Commerce\Infrastructure\Persistence\Models\Shipment::query()->count();
+        $beforeOrders = \App\Modules\Commerce\Infrastructure\Persistence\Models\Order::query()->count();
+
+        $this->postJson('/api/v1/webhooks/bosta', [
+            '_id' => 'WEBHOOK-CONNECTIVITY-TEST-NONEXISTENT',
+            'state' => 45,
+            'type' => 'SEND',
+        ], ['Authorization' => 'real-looking-secret'])
+            ->assertOk()
+            ->assertJsonPath('outcome', 'ignored_unknown_shipment');
+
+        $this->assertSame($beforeShipments, \App\Modules\Commerce\Infrastructure\Persistence\Models\Shipment::query()->count());
+        $this->assertSame($beforeOrders, \App\Modules\Commerce\Infrastructure\Persistence\Models\Order::query()->count());
     }
 
     public function test_official_numeric_delivered_state_fulfills_once(): void
@@ -589,6 +666,7 @@ final class BostaShippingFulfillmentTest extends TestCase
 
         $this->assertSame(1, Enrollment::query()->where('user_id', $user->id)->where('course_id', $course->id)->count());
         Mail::assertSent(OrderConfirmationMail::class, 1);
+        Mail::assertSent(OrderDeliveredMail::class, 1);
     }
 
     public function test_paid_physical_order_creates_exactly_one_bosta_shipment_and_retries_same_row(): void
@@ -616,6 +694,20 @@ final class BostaShippingFulfillmentTest extends TestCase
                         'tracking_url' => null,
                         'provider_status' => '10',
                         'raw' => ['cod' => 0],
+                    ];
+                }
+
+                public function getDelivery(
+                    string $externalShipmentId,
+                    ?string $trackingNumber = null,
+                    ?string $businessReference = null,
+                ): array {
+                    return [
+                        'external_shipment_id' => $externalShipmentId,
+                        'tracking_number' => $trackingNumber,
+                        'provider_status' => '10',
+                        'type' => 'SEND',
+                        'raw' => [],
                     ];
                 }
             }
@@ -762,6 +854,20 @@ final class BostaShippingFulfillmentTest extends TestCase
                         'tracking_url' => 'https://bosta.test/track/TRK-LEGACY',
                         'provider_status' => '10',
                         'raw' => ['cod' => 0],
+                    ];
+                }
+
+                public function getDelivery(
+                    string $externalShipmentId,
+                    ?string $trackingNumber = null,
+                    ?string $businessReference = null,
+                ): array {
+                    return [
+                        'external_shipment_id' => $externalShipmentId,
+                        'tracking_number' => $trackingNumber ?? 'TRK-LEGACY',
+                        'provider_status' => '10',
+                        'type' => 'SEND',
+                        'raw' => [],
                     ];
                 }
             }

@@ -6,26 +6,23 @@ namespace App\Modules\Commerce\Application\Services;
 
 use App\Modules\Commerce\Application\Support\BostaWebhookResult;
 use App\Modules\Commerce\Domain\Enums\ShipmentProvider;
-use App\Modules\Commerce\Domain\Enums\ShipmentStatus;
-use App\Modules\Commerce\Domain\Events\ShipmentDelivered;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Shipment;
 use App\Modules\Commerce\Infrastructure\Shipping\Bosta\BostaStatusMapper;
-use Illuminate\Support\Facades\DB;
+use App\Modules\Commerce\Domain\Contracts\BostaClientInterface;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
+use RuntimeException;
+use Throwable;
 
 /**
- * Idempotent Bosta webhook processor.
- *
- * Resolves shipments by stored Bosta external_shipment_id only.
- * Never invents orders/shipments. Never treats Unknown as Delivered.
- * Never downgrades Delivered (or other terminal statuses) via stale events.
+ * Resolves Bosta webhook payloads and delegates to the central status processor.
  */
 final class BostaWebhookService
 {
     public function __construct(
         private readonly BostaStatusMapper $statusMapper,
-        private readonly OrderFulfillmentService $fulfillment,
+        private readonly BostaShipmentStatusService $statusProcessor,
+        private readonly BostaClientInterface $bostaClient,
     ) {}
 
     /**
@@ -40,117 +37,107 @@ final class BostaWebhookService
 
         $providerStatus = $this->extractProviderStatus($payload);
         $deliveryType = $this->extractDeliveryType($payload);
-        $mapped = $this->statusMapper->map($providerStatus, $deliveryType);
 
-        return DB::transaction(function () use ($externalId, $providerStatus, $mapped, $payload): BostaWebhookResult {
-            /** @var Shipment|null $shipment */
-            $shipment = Shipment::query()
-                ->where('provider', ShipmentProvider::Bosta->value)
-                ->where('external_shipment_id', $externalId)
-                ->lockForUpdate()
-                ->first();
+        /** @var Shipment|null $shipment */
+        $shipment = Shipment::query()
+            ->where('provider', ShipmentProvider::Bosta->value)
+            ->where('external_shipment_id', $externalId)
+            ->first();
 
-            if ($shipment === null) {
-                Log::warning('Bosta webhook for unknown shipment ignored', [
-                    'external_shipment_id' => $externalId,
-                    'provider_status' => $providerStatus,
-                    'mapped_status' => $mapped->value,
-                    'outcome' => BostaWebhookResult::OUTCOME_IGNORED_UNKNOWN_SHIPMENT,
-                ]);
-
-                return new BostaWebhookResult(
-                    outcome: BostaWebhookResult::OUTCOME_IGNORED_UNKNOWN_SHIPMENT,
-                    externalShipmentId: $externalId,
-                    providerStatus: $providerStatus,
-                    mappedStatus: $mapped,
-                );
+        if ($shipment === null) {
+            $tracking = $this->extractTrackingNumber($payload);
+            if ($tracking !== null && $tracking !== '') {
+                $shipment = Shipment::query()
+                    ->where('provider', ShipmentProvider::Bosta->value)
+                    ->where('tracking_number', $tracking)
+                    ->first();
             }
+        }
 
-            $alreadyDelivered = $shipment->status === ShipmentStatus::Delivered;
-            $isTerminalFailure = $shipment->status->isTerminalFailure();
-            $previousStatus = $shipment->status;
-
-            $updates = [
-                'provider_status' => $providerStatus,
-                'last_webhook_at' => now(),
-                'metadata' => array_merge($shipment->metadata ?? [], [
-                    'last_webhook_payload' => $this->sanitizePayload($payload),
-                ]),
-            ];
-
-            $outcome = BostaWebhookResult::OUTCOME_PROCESSED;
-            $shouldFulfill = false;
-
-            if ($alreadyDelivered) {
-                // Duplicate / stale after delivered: refresh webhook metadata only.
-                $outcome = BostaWebhookResult::OUTCOME_DUPLICATE;
-            } elseif ($isTerminalFailure && $mapped !== $shipment->status) {
-                // Cancelled/Failed: do not regress to mid-journey or jump to delivered via stale events.
-                $outcome = BostaWebhookResult::OUTCOME_IGNORED_TERMINAL;
-            } elseif ($mapped === ShipmentStatus::Unknown) {
-                $outcome = BostaWebhookResult::OUTCOME_IGNORED_UNKNOWN_STATUS;
-            } else {
-                $updates['status'] = $mapped;
-
-                if (in_array($mapped, [
-                    ShipmentStatus::PickedUp,
-                    ShipmentStatus::InTransit,
-                    ShipmentStatus::OutForDelivery,
-                ], true) && $shipment->shipped_at === null) {
-                    $updates['shipped_at'] = now();
-                }
-
-                if ($mapped === ShipmentStatus::Delivered) {
-                    $updates['delivered_at'] = now();
-                    $updates['status'] = ShipmentStatus::Delivered;
-                    $shouldFulfill = true;
-                }
-            }
-
-            $shipment->update($updates);
-            $shipment = $shipment->fresh(['order.items']) ?? $shipment;
-
-            $fulfilled = false;
-            if ($shouldFulfill && $shipment->status === ShipmentStatus::Delivered) {
-                event(new ShipmentDelivered($shipment));
-
-                $order = $shipment->order;
-                if ($order !== null) {
-                    $this->fulfillment->fulfillFromBostaDelivery($order);
-                    $fulfilled = true;
-                }
-
-                $shipment = $shipment->fresh(['order']) ?? $shipment;
-            }
-
-            Log::info('Bosta webhook processed', [
-                'outcome' => $outcome,
-                'duplicate' => $outcome === BostaWebhookResult::OUTCOME_DUPLICATE,
+        if ($shipment === null) {
+            $mapped = $this->statusMapper->map($providerStatus, $deliveryType);
+            Log::warning('Bosta webhook for unknown shipment ignored', [
+                'source' => 'webhook',
                 'external_shipment_id' => $externalId,
-                'local_shipment_id' => $shipment->id,
-                'local_order_id' => $shipment->order_id,
                 'provider_status' => $providerStatus,
-                'previous_status' => $previousStatus->value,
-                'normalized_status' => $shipment->status->value,
                 'mapped_status' => $mapped->value,
-                'fulfilled' => $fulfilled,
+                'outcome' => BostaWebhookResult::OUTCOME_IGNORED_UNKNOWN_SHIPMENT,
             ]);
 
             return new BostaWebhookResult(
-                outcome: $outcome,
-                shipment: $shipment,
+                outcome: BostaWebhookResult::OUTCOME_IGNORED_UNKNOWN_SHIPMENT,
                 externalShipmentId: $externalId,
                 providerStatus: $providerStatus,
                 mappedStatus: $mapped,
-                duplicate: $outcome === BostaWebhookResult::OUTCOME_DUPLICATE,
-                fulfilled: $fulfilled,
             );
-        });
+        }
+
+        return $this->statusProcessor->apply(
+            shipment: $shipment,
+            providerStatus: $providerStatus,
+            deliveryType: $deliveryType,
+            rawPayload: $payload,
+            source: 'webhook',
+        );
     }
 
     /**
-     * Official webhook identifies the delivery by `_id`.
-     *
+     * Authoritative GET from Bosta + central status processor.
+     */
+    public function syncFromBosta(Shipment $shipment, string $source = 'reconciliation'): BostaWebhookResult
+    {
+        if ($shipment->provider !== ShipmentProvider::Bosta) {
+            throw new InvalidArgumentException('Shipment is not a Bosta shipment.');
+        }
+
+        $externalId = trim((string) ($shipment->external_shipment_id ?? ''));
+        if ($externalId === '') {
+            throw new InvalidArgumentException('Shipment has no Bosta external id.');
+        }
+
+        $shipment->loadMissing('order');
+        $tracking = trim((string) ($shipment->tracking_number ?? ''));
+        $businessReference = trim((string) ($shipment->order?->order_number ?? ''));
+
+        try {
+            $delivery = $this->bostaClient->getDelivery(
+                $externalId,
+                $tracking !== '' ? $tracking : null,
+                $businessReference !== '' ? $businessReference : null,
+            );
+        } catch (Throwable $e) {
+            Log::warning('Bosta delivery status fetch failed', [
+                'source' => $source,
+                'local_shipment_id' => $shipment->id,
+                'local_order_id' => $shipment->order_id,
+                'external_shipment_id' => $externalId,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw new RuntimeException('Unable to fetch Bosta delivery status: '.$e->getMessage(), 0, $e);
+        }
+
+        $providerStatus = isset($delivery['provider_status']) ? (string) $delivery['provider_status'] : null;
+        $deliveryType = isset($delivery['type']) ? (string) $delivery['type'] : 'SEND';
+        $raw = is_array($delivery['raw'] ?? null) ? $delivery['raw'] : $delivery;
+
+        // Keep local tracking in sync when Bosta returns a newer number.
+        $tracking = $delivery['tracking_number'] ?? null;
+        if (is_string($tracking) && $tracking !== '' && $shipment->tracking_number !== $tracking) {
+            $shipment->update(['tracking_number' => $tracking]);
+            $shipment = $shipment->fresh() ?? $shipment;
+        }
+
+        return $this->statusProcessor->apply(
+            shipment: $shipment,
+            providerStatus: $providerStatus,
+            deliveryType: $deliveryType,
+            rawPayload: $raw,
+            source: $source,
+        );
+    }
+
+    /**
      * @param  array<string, mixed>  $payload
      */
     private function extractExternalId(array $payload): ?string
@@ -165,13 +152,10 @@ final class BostaWebhookService
             return $this->extractExternalId($payload['data']);
         }
 
-        // trackingNumber alone is insufficient when _id is missing — avoid ambiguous matches.
         return null;
     }
 
     /**
-     * Official field: `state` (Number). Legacy string `status` still accepted in tests.
-     *
      * @param  array<string, mixed>  $payload
      */
     private function extractProviderStatus(array $payload): ?string
@@ -190,8 +174,6 @@ final class BostaWebhookService
     }
 
     /**
-     * Official field: `type` (SEND | EXCHANGE | …). Defaults to SEND for our outbound deliveries.
-     *
      * @param  array<string, mixed>  $payload
      */
     private function extractDeliveryType(array $payload): string
@@ -211,19 +193,19 @@ final class BostaWebhookService
 
     /**
      * @param  array<string, mixed>  $payload
-     * @return array<string, mixed>
      */
-    private function sanitizePayload(array $payload): array
+    private function extractTrackingNumber(array $payload): ?string
     {
-        unset(
-            $payload['signature'],
-            $payload['secret'],
-            $payload['apiKey'],
-            $payload['api_key'],
-            $payload['authorization'],
-            $payload['Authorization'],
-        );
+        foreach (['trackingNumber', 'tracking_number', 'trackingNo', 'tracking_no'] as $key) {
+            if (! empty($payload[$key]) && is_scalar($payload[$key])) {
+                return (string) $payload[$key];
+            }
+        }
 
-        return $payload;
+        if (isset($payload['data']) && is_array($payload['data'])) {
+            return $this->extractTrackingNumber($payload['data']);
+        }
+
+        return null;
     }
 }

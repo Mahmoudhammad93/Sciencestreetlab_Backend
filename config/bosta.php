@@ -103,4 +103,11 @@ return [
     'http_timeout_seconds' => (int) env('BOSTA_HTTP_TIMEOUT', 20),
     'http_retries' => (int) env('BOSTA_HTTP_RETRIES', 2),
     'http_retry_sleep_ms' => (int) env('BOSTA_HTTP_RETRY_SLEEP_MS', 250),
+
+    /*
+    | Safety-net reconciliation (webhook remains primary).
+    */
+    'reconcile_lookback_days' => (int) env('BOSTA_RECONCILE_LOOKBACK_DAYS', 30),
+    'reconcile_chunk_size' => (int) env('BOSTA_RECONCILE_CHUNK_SIZE', 50),
+    'reconcile_max_per_run' => (int) env('BOSTA_RECONCILE_MAX_PER_RUN', 200),
 ];

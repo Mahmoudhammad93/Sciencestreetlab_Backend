@@ -123,6 +123,156 @@ final class HttpBostaClient implements BostaClientInterface
     }
 
     /**
+     * Authoritative delivery details via POST /api/v2/deliveries/search.
+     *
+     * GET /api/v2/deliveries/{id} is not available on the Bosta host we use.
+     * Search by trackingNumbers (preferred) or businessReference; match _id when possible.
+     *
+     * @return array{
+     *     external_shipment_id: string,
+     *     tracking_number: ?string,
+     *     provider_status: ?string,
+     *     type: string,
+     *     raw: array<string, mixed>
+     * }
+     */
+    public function getDelivery(
+        string $externalShipmentId,
+        ?string $trackingNumber = null,
+        ?string $businessReference = null,
+    ): array {
+        $this->assertReady(requireContract: false);
+
+        $externalShipmentId = trim($externalShipmentId);
+        if ($externalShipmentId === '') {
+            throw new RuntimeException('Bosta delivery id is required.');
+        }
+
+        $trackingNumber = $trackingNumber !== null ? trim($trackingNumber) : '';
+        $businessReference = $businessReference !== null ? trim($businessReference) : '';
+
+        $data = null;
+        if ($trackingNumber !== '') {
+            $data = $this->searchDelivery(['trackingNumbers' => [$trackingNumber]], $externalShipmentId);
+        }
+        if ($data === null && $businessReference !== '') {
+            $data = $this->searchDelivery(['businessReference' => $businessReference], $externalShipmentId);
+        }
+        if ($data === null) {
+            throw new RuntimeException(
+                'Bosta delivery search requires tracking number or business reference '
+                .'(GET /deliveries/{id} is unavailable).'
+            );
+        }
+
+        $id = (string) ($data['_id'] ?? $data['id'] ?? $externalShipmentId);
+        $tracking = $data['trackingNumber'] ?? $data['tracking_number'] ?? null;
+        if (is_array($tracking)) {
+            $tracking = $tracking['number'] ?? $tracking['value'] ?? null;
+        }
+        $providerStatus = $this->normalizeProviderStatus($data['state'] ?? $data['status'] ?? null);
+        $type = $this->normalizeDeliveryType($data['type'] ?? 'SEND');
+
+        return [
+            'external_shipment_id' => $id !== '' ? $id : $externalShipmentId,
+            'tracking_number' => is_scalar($tracking) && (string) $tracking !== '' ? (string) $tracking : null,
+            'provider_status' => $providerStatus,
+            'type' => $type,
+            'raw' => $this->sanitizeRaw($data),
+        ];
+    }
+
+    private function normalizeDeliveryType(mixed $type): string
+    {
+        if (is_array($type)) {
+            $type = $type['code'] ?? $type['value'] ?? $type['name'] ?? 'SEND';
+        }
+
+        if (is_numeric($type)) {
+            // Official create uses type 10 for SEND/Deliver.
+            return ((int) $type === 10) ? 'SEND' : (string) (int) $type;
+        }
+
+        if (is_scalar($type) && trim((string) $type) !== '') {
+            return strtoupper(trim((string) $type));
+        }
+
+        return 'SEND';
+    }
+
+    /**
+     * @param  array<string, mixed>  $body
+     * @return array<string, mixed>|null
+     */
+    private function searchDelivery(array $body, string $externalShipmentId): ?array
+    {
+        $url = $this->baseUrl().'/api/v2/deliveries/search';
+
+        try {
+            $response = Http::withHeaders($this->authHeaders())
+                ->acceptJson()
+                ->asJson()
+                ->timeout((int) config('bosta.http_timeout_seconds', 20))
+                ->retry(
+                    (int) config('bosta.http_retries', 2),
+                    (int) config('bosta.http_retry_sleep_ms', 250),
+                    function ($exception): bool {
+                        return $exception instanceof ConnectionException;
+                    },
+                    throw: false,
+                )
+                ->post($url, $body);
+        } catch (ConnectionException $e) {
+            Log::warning('Bosta delivery search connection failure', [
+                'external_shipment_id' => $externalShipmentId,
+                'error' => $e->getMessage(),
+            ]);
+
+            throw new RuntimeException('Bosta get delivery timed out or could not connect.', 0, $e);
+        }
+
+        $json = $response->json();
+        $json = is_array($json) ? $json : null;
+
+        if (! $response->successful()) {
+            Log::warning('Bosta delivery search non-2xx', [
+                'external_shipment_id' => $externalShipmentId,
+                'http_status' => $response->status(),
+                'message' => is_array($json) ? ($json['message'] ?? null) : null,
+            ]);
+
+            throw new RuntimeException('Bosta get delivery failed with HTTP '.$response->status());
+        }
+
+        if (! is_array($json) || ($json['success'] ?? null) === false) {
+            throw new RuntimeException(
+                'Bosta delivery search rejected: '
+                .(is_array($json) && is_string($json['message'] ?? null) ? $json['message'] : 'success=false')
+            );
+        }
+
+        $deliveries = $json['data']['deliveries'] ?? null;
+        if (! is_array($deliveries) || $deliveries === []) {
+            return null;
+        }
+
+        foreach ($deliveries as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $id = (string) ($row['_id'] ?? $row['id'] ?? '');
+            if ($id !== '' && $id === $externalShipmentId) {
+                return $row;
+            }
+        }
+
+        // trackingNumbers / businessReference filters return a single match.
+        $first = $deliveries[0] ?? null;
+
+        return is_array($first) ? $first : null;
+    }
+
+    /**
      * Bosta returns state as either a code string/int or {code, value}.
      */
     private function normalizeProviderStatus(mixed $state): string

@@ -28,4 +28,24 @@ interface BostaClientInterface
      * }
      */
     public function createShipment(Order $order): array;
+
+    /**
+     * Read authoritative delivery details from Bosta.
+     *
+     * Official read path used in production: POST {BOSTA_API_URL}/api/v2/deliveries/search
+     * with trackingNumbers (preferred) or businessReference. GET /deliveries/{id} is not available.
+     *
+     * @return array{
+     *     external_shipment_id: string,
+     *     tracking_number: ?string,
+     *     provider_status: ?string,
+     *     type: string,
+     *     raw: array<string, mixed>
+     * }
+     */
+    public function getDelivery(
+        string $externalShipmentId,
+        ?string $trackingNumber = null,
+        ?string $businessReference = null,
+    ): array;
 }

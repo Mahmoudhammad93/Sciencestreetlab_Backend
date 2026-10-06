@@ -46,6 +46,63 @@ final class FakeBostaClient implements BostaClientInterface
         ];
     }
 
+    /**
+     * @var array<string, array{state: int|string, type?: string, tracking_number?: string|null}>
+     */
+    private static array $deliveryStates = [];
+
+    /**
+     * Test helper: seed authoritative Bosta state for getDelivery().
+     */
+    public static function setDeliveryState(
+        string $externalShipmentId,
+        int|string $state,
+        string $type = 'SEND',
+        ?string $trackingNumber = null,
+    ): void {
+        self::$deliveryStates[$externalShipmentId] = [
+            'state' => $state,
+            'type' => $type,
+            'tracking_number' => $trackingNumber,
+        ];
+    }
+
+    public static function clearDeliveryStates(): void
+    {
+        self::$deliveryStates = [];
+    }
+
+    public function getDelivery(
+        string $externalShipmentId,
+        ?string $trackingNumber = null,
+        ?string $businessReference = null,
+    ): array {
+        if (app()->environment('production')) {
+            throw new \RuntimeException('FakeBostaClient must not fetch deliveries in production.');
+        }
+
+        $externalShipmentId = trim($externalShipmentId);
+        $seeded = self::$deliveryStates[$externalShipmentId] ?? null;
+        $state = $seeded['state'] ?? 10;
+        $type = strtoupper((string) ($seeded['type'] ?? 'SEND'));
+        $tracking = $seeded['tracking_number'] ?? $trackingNumber ?? ('TRK-'.$externalShipmentId);
+
+        return [
+            'external_shipment_id' => $externalShipmentId,
+            'tracking_number' => $tracking,
+            'provider_status' => (string) $state,
+            'type' => $type,
+            'raw' => [
+                '_id' => $externalShipmentId,
+                'trackingNumber' => $tracking,
+                'businessReference' => $businessReference,
+                'state' => ['code' => $state, 'value' => (string) $state],
+                'type' => $type,
+                'driver' => 'fake',
+            ],
+        ];
+    }
+
     private function collectibleCodAmount(Order $order): float|int
     {
         if (! OrderPaymentMethod::isCashOnDelivery($order)) {

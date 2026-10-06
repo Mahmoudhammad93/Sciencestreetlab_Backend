@@ -6,6 +6,8 @@ namespace Tests\Feature\Filament;
 
 use App\Filament\Resources\OrderResource\Pages\EditOrder;
 use App\Models\User;
+use App\Modules\Commerce\Application\Services\BostaShipmentReconciliationService;
+use App\Modules\Commerce\Application\Services\BostaShipmentStatusService;
 use App\Modules\Commerce\Application\Support\MicroscopePurchaseOptions;
 use App\Modules\Commerce\Domain\Enums\ShipmentProvider;
 use App\Modules\Commerce\Domain\Enums\ShipmentStatus;
@@ -114,6 +116,39 @@ final class OrderEditPageTest extends TestCase
             ->assertSuccessful()
             ->assertSee('TRK-1')
             ->assertSee('ext-test-1');
+    }
+
+    public function test_filament_bosta_sync_action_can_resolve_reconciliation_service(): void
+    {
+        $this->assertTrue(class_exists(BostaShipmentReconciliationService::class));
+        $this->assertTrue(class_exists(BostaShipmentStatusService::class));
+
+        $service = app(BostaShipmentReconciliationService::class);
+        $this->assertInstanceOf(BostaShipmentReconciliationService::class, $service);
+        $this->assertInstanceOf(BostaShipmentStatusService::class, app(BostaShipmentStatusService::class));
+
+        $order = $this->makeOrder([
+            'product_name' => 'ميكروسكوب شارع العلوم',
+            'metadata' => ['book_language' => 'ar'],
+            'requires_delivery_fulfillment' => true,
+        ]);
+
+        Shipment::query()->create([
+            'order_id' => $order->id,
+            'provider' => ShipmentProvider::Bosta,
+            'external_shipment_id' => 'ext-sync-resolve-1',
+            'tracking_number' => 'TRK-SYNC-1',
+            'status' => ShipmentStatus::InTransit,
+            'provider_status' => '24',
+            'metadata' => [],
+        ]);
+
+        // Loads EditOrder (which type-hints the reconciliation service for syncBostaStatus)
+        // without BindingResolutionException — proves Filament action dependency is deployable.
+        Livewire::actingAs($this->admin())
+            ->test(EditOrder::class, ['record' => $order->getRouteKey()])
+            ->assertSuccessful()
+            ->assertActionExists('syncBostaStatus');
     }
 
     public function test_order_2648_equivalent_fixture_loads(): void
