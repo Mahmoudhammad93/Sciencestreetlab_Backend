@@ -123,12 +123,12 @@ final class CertificateVisualFidelityArchitectureTest extends TestCase
         Sanctum::actingAs($user);
         $preview = $this->getJson('/api/v1/certificates/'.$certificate->uuid.'/preview')->assertOk();
         $this->assertStringContainsString('Toka Student', (string) $preview->json('data.html'));
-        $this->assertSame('template-v3', $preview->json('data.template_version'));
+        $this->assertSame('template-v4', $preview->json('data.template_version'));
         $this->assertSame($preview->json('data.render_fingerprint'), data_get($certificate->fresh()->metadata, 'layout_snapshot') ? $preview->json('data.render_fingerprint') : null);
 
         $bytes = $this->get("/api/v1/certificates/{$certificate->uuid}/download")->assertOk()->streamedContent();
         $this->assertSame(1, $this->pdfPageCount($bytes));
-        $this->assertSame('template-v3', data_get($certificate->fresh()->metadata, 'pdf_renderer'));
+        $this->assertSame('template-v4', data_get($certificate->fresh()->metadata, 'pdf_renderer'));
         $this->assertNotSame('stale', data_get($certificate->fresh()->metadata, 'render_fingerprint'));
     }
 

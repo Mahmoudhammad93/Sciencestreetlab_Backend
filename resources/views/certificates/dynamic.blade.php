@@ -176,7 +176,7 @@
         $lsCss = (!empty($forBrowser) ? $ls : 'normal');
         $elBg = is_string($el['background_color'] ?? null) ? $el['background_color'] : '';
         $valign = (string) ($el['vertical_align'] ?? '');
-        $flex = $valign === 'middle'
+        $flex = ($valign === 'middle' && ! empty($embed))
             ? 'display:flex;align-items:center;justify-content:'.($align === 'left' ? 'flex-start' : ($align === 'right' ? 'flex-end' : 'center')).';'
             : 'display:block;';
         $fill = $elBg !== '' ? 'background:'.$elBg.';' : '';
