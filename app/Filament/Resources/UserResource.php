@@ -8,10 +8,13 @@ use App\Filament\Forms\Components\ImageDropzone;
 use App\Filament\Resources\UserResource\Pages;
 use App\Models\User;
 use Filament\Forms;
+use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Form;
+use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
 
 class UserResource extends Resource
 {
@@ -69,6 +72,19 @@ class UserResource extends Resource
                     ->label(__('admin.users.fields.password'))
                     ->password()
                     ->revealable()
+                    ->suffixAction(
+                        Action::make('generatePassword')
+                            ->label(__('admin.users.fields.password_generate'))
+                            ->icon('heroicon-m-key')
+                            ->color('gray')
+                            ->tooltip(__('admin.users.fields.password_generate'))
+                            ->extraAttributes([
+                                'x-on:click' => 'isPasswordRevealed = true',
+                            ], merge: true)
+                            ->action(function (Set $set): void {
+                                $set('password', Str::password(20));
+                            })
+                    )
                     ->autocomplete('new-password')
                     ->helperText(fn (string $operation): ?string => $operation === 'edit'
                         ? __('admin.users.fields.password_keep_help')

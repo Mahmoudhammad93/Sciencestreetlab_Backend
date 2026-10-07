@@ -46,6 +46,7 @@ final class UserPasswordFieldTest extends TestCase
             ->assertFormFieldExists('password')
             ->assertFormSet(['password' => null])
             ->assertSee(__('admin.users.fields.password_keep_help'))
+            ->assertSee(__('admin.users.fields.password_generate'))
             ->assertSeeHtml('isPasswordRevealed')
             ->assertDontSee($storedHash);
     }
@@ -65,7 +66,42 @@ final class UserPasswordFieldTest extends TestCase
             ->test(CreateUser::class)
             ->assertSuccessful()
             ->assertSeeHtml('isPasswordRevealed')
-            ->assertSeeHtml("isPasswordRevealed = true");
+            ->assertSeeHtml("isPasswordRevealed = true")
+            ->assertSee(__('admin.users.fields.password_generate'));
+    }
+
+    public function test_generate_password_action_fills_a_strong_plaintext_value(): void
+    {
+        $admin = $this->admin();
+        $user = User::factory()->create([
+            'password' => Hash::make('original-user-secret'),
+        ]);
+        $originalHash = $user->getRawOriginal('password');
+
+        $component = Livewire::actingAs($admin)
+            ->test(EditUser::class, ['record' => $user->getRouteKey()])
+            ->assertFormSet(['password' => null])
+            ->callFormComponentAction('password', 'generatePassword')
+            ->assertHasNoFormErrors();
+
+        $generated = $component->get('data.password');
+        $this->assertIsString($generated);
+        $this->assertGreaterThanOrEqual(16, strlen($generated));
+        $this->assertNotSame('original-user-secret', $generated);
+        $this->assertNotSame($originalHash, $generated);
+        $this->assertFalse(Hash::isHashed($generated));
+        $this->assertMatchesRegularExpression('/[A-Za-z]/', $generated);
+        $this->assertMatchesRegularExpression('/[0-9]/', $generated);
+
+        $component->call('save')->assertHasNoFormErrors();
+
+        $user->refresh();
+        $stored = $user->getRawOriginal('password');
+        $this->assertNotSame($generated, $stored);
+        $this->assertTrue(Hash::isHashed($stored));
+        $this->assertTrue(Hash::check($generated, $stored));
+        $this->assertFalse(Hash::check('original-user-secret', $stored));
+        $this->assertNotSame($originalHash, $stored);
     }
 
     public function test_saving_edit_with_empty_password_preserves_existing_hash(): void
