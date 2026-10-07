@@ -143,6 +143,18 @@ final class CertificateFontRegistry
         return 'DejaVu Sans';
     }
 
+    public static function quoteCssFamily(string $family): string
+    {
+        $family = trim($family);
+        if ($family === '' || str_contains($family, ',')) {
+            return $family !== '' ? $family : "'DejaVu Sans', sans-serif";
+        }
+
+        $clean = trim($family, " \t\n\r'\"");
+
+        return "'".$clean."', 'DejaVu Sans', sans-serif";
+    }
+
     /**
      * @return array{family: string, substituted: bool, requested: string, warning: ?string}
      */

@@ -47,6 +47,7 @@ final class CertificateVisualFidelityArchitectureTest extends TestCase
         $this->assertStringContainsString('left:8.08', $html);
         $this->assertStringContainsString('%', $html);
         $this->assertStringNotContainsString('background-size: cover', $html);
+        $this->assertMatchesRegularExpression("/font-family:'DejaVu Sans'|font-family:Cairo/", $html);
 
         $preview = app(CertificateTemplateRenderer::class)->canonicalView($certificate->fresh(['user', 'course', 'template']), true);
         $pdfHtml = app(CertificateTemplateRenderer::class)->renderForCertificate($certificate->fresh(['user', 'course', 'template']));

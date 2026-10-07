@@ -74,6 +74,7 @@
         .ssl-cert-el-text {
             white-space: pre-wrap;
             word-wrap: break-word;
+            word-spacing: 0.15em;
             line-height: 1.25;
         }
         .ssl-cert-el-line {
@@ -161,7 +162,9 @@
         } else {
             $box = "left:{$x}mm;top:{$y}mm;width:{$ew}mm;height:{$eh}mm;opacity:{$op};{$xf}";
         }
-        $familyCss = (string) ($el['font_family_css'] ?? $pdfFamily);
+        $familyCss = \App\Modules\Certification\Application\Support\CertificateFontRegistry::quoteCssFamily(
+            (string) ($el['font_family_css'] ?? $pdfFamily)
+        );
         $lsCss = (!empty($forBrowser) ? $ls : 'normal');
     @endphp
     @if($type === 'text')

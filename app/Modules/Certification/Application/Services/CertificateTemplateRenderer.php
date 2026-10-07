@@ -80,7 +80,15 @@ final class CertificateTemplateRenderer
             $elements[] = $this->prepareElement($element, $merged, $signaturePath, $forBrowser, $page);
         }
 
-        usort($elements, fn ($a, $b) => ((int) ($a['z_index'] ?? 0)) <=> ((int) ($b['z_index'] ?? 0)));
+        usort($elements, function (array $a, array $b): int {
+            $layer = static fn (array $el): int => match ($el['type'] ?? 'text') {
+                'svg', 'image', 'decoration' => 0,
+                'line', 'qr', 'signature_block' => 1,
+                default => 2,
+            };
+
+            return [$layer($a), (int) ($a['z_index'] ?? 0)] <=> [$layer($b), (int) ($b['z_index'] ?? 0)];
+        });
 
         $dropRaster = $this->layouts->shouldDropRasterBackground($layout, $backgroundPath);
         $bgUrl = $dropRaster ? null : $this->publicAssetUrl($backgroundPath, $forBrowser);
