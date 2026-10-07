@@ -20,12 +20,42 @@ final class CertificatePdfGenerator
     public function generate(Certificate $certificate): string
     {
         $certificate->loadMissing(['user', 'course', 'template']);
+        $this->renderer->hydrateIssuedSnapshot($certificate);
+        $certificate->refresh()->loadMissing(['user', 'course', 'template']);
 
         $html = $this->renderer->renderForCertificate($certificate);
         $pdf = $this->makePdf($html, $this->pageFromCertificate($certificate));
 
         $path = "certificates/{$certificate->uuid}.pdf";
         Storage::disk('local')->put($path, $pdf->output());
+
+        return $path;
+    }
+
+    /**
+     * Rebuild stale generic PDFs, then return the current stored path.
+     */
+    public function ensureGenerated(Certificate $certificate): string
+    {
+        $this->renderer->hydrateIssuedSnapshot($certificate);
+        $certificate->refresh();
+        $meta = is_array($certificate->metadata) ? $certificate->metadata : [];
+        $path = is_string($certificate->pdf_path) ? $certificate->pdf_path : '';
+        $pdfFresh = ($meta['pdf_renderer'] ?? null) === CertificateTemplateRenderer::RENDERER_VERSION
+            && $path !== ''
+            && Storage::disk('local')->exists($path);
+
+        if (! $pdfFresh) {
+            $path = $this->generate($certificate);
+            $certificate->refresh();
+            $meta = is_array($certificate->metadata) ? $certificate->metadata : [];
+            $certificate->update([
+                'pdf_path' => $path,
+                'metadata' => array_merge($meta, [
+                    'pdf_renderer' => CertificateTemplateRenderer::RENDERER_VERSION,
+                ]),
+            ]);
+        }
 
         return $path;
     }

@@ -20,6 +20,8 @@ final class CertificateLayoutPresets
 
     public const NAVY_PORTRAIT_ACHIEVEMENT = 'navy_portrait_achievement';
 
+    public const ARTWORK_LANDSCAPE_OVERLAY = 'artwork_landscape_overlay';
+
     /** @return array<string, string> */
     public static function options(): array
     {
@@ -70,6 +72,7 @@ final class CertificateLayoutPresets
                 accent: '#1a2a5c',
                 ribbon: '#F97316',
             ),
+            self::ARTWORK_LANDSCAPE_OVERLAY => self::artworkLandscapeOverlay(),
             default => self::landscapeCompletion(
                 border: '#2828a0',
                 nameColor: '#2828a0',
@@ -77,6 +80,62 @@ final class CertificateLayoutPresets
                 deco: 'signpost',
             ),
         };
+    }
+
+    /**
+     * Image-only admin templates: keep the uploaded artwork and overlay
+     * issued identity fields. No extra chrome/border.
+     *
+     * @return array{page: array<string, mixed>, elements: list<array<string, mixed>>, defaults: array<string, string>}
+     */
+    public static function artworkLandscapeOverlay(): array
+    {
+        return [
+            'page' => [
+                'orientation' => 'landscape',
+                'width_mm' => 297,
+                'height_mm' => 210,
+                'background_color' => '#FFFFFF',
+                'border_color' => '#2828a0',
+                'border_width_mm' => 0,
+                'preset' => self::ARTWORK_LANDSCAPE_OVERLAY,
+            ],
+            'defaults' => [],
+            'elements' => [
+                [
+                    'id' => 'student',
+                    'type' => 'text',
+                    'content' => '{{ student_name }}',
+                    'x' => 30, 'y' => 88, 'width' => 237, 'height' => 18,
+                    'z_index' => 10, 'font_family' => 'DejaVu Sans', 'font_size' => 28,
+                    'font_weight' => '700', 'color' => '#1a2a5c', 'text_align' => 'center',
+                ],
+                [
+                    'id' => 'course',
+                    'type' => 'text',
+                    'content' => '{{ course_name }}',
+                    'x' => 40, 'y' => 118, 'width' => 217, 'height' => 14,
+                    'z_index' => 10, 'font_family' => 'DejaVu Sans', 'font_size' => 16,
+                    'font_weight' => '400', 'color' => '#1a2a5c', 'text_align' => 'center',
+                ],
+                [
+                    'id' => 'number',
+                    'type' => 'text',
+                    'content' => '{{ certificate_number }}',
+                    'x' => 20, 'y' => 188, 'width' => 90, 'height' => 8,
+                    'z_index' => 10, 'font_family' => 'DejaVu Sans', 'font_size' => 9,
+                    'font_weight' => '400', 'color' => '#64748b', 'text_align' => 'left',
+                ],
+                [
+                    'id' => 'date',
+                    'type' => 'text',
+                    'content' => '{{ completion_date }}',
+                    'x' => 187, 'y' => 188, 'width' => 90, 'height' => 8,
+                    'z_index' => 10, 'font_family' => 'DejaVu Sans', 'font_size' => 9,
+                    'font_weight' => '400', 'color' => '#64748b', 'text_align' => 'right',
+                ],
+            ],
+        ];
     }
 
     /**

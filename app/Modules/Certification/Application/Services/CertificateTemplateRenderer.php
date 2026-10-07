@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\View;
 
 final class CertificateTemplateRenderer
 {
+    public const RENDERER_VERSION = 'template-v1';
+
     public function __construct(
         private readonly CertificateQrCodeRenderer $qrCodes,
     ) {}
@@ -46,9 +48,15 @@ final class CertificateTemplateRenderer
      * @param  array<string, mixed>|null  $layout
      * @param  array<string, string|null>  $variables
      */
-    public function renderHtml(?array $layout, array $variables, ?string $backgroundPath = null, ?string $signaturePath = null): string
-    {
-        $layout = $this->normalizeLayout($layout);
+    public function renderHtml(
+        ?array $layout,
+        array $variables,
+        ?string $backgroundPath = null,
+        ?string $signaturePath = null,
+        bool $forBrowser = false,
+        bool $embed = false,
+    ): string {
+        $layout = $this->resolveLayout($layout, $backgroundPath);
         $page = $layout['page'];
         $defaults = is_array($layout['defaults'] ?? null) ? $layout['defaults'] : [];
         $merged = array_merge($defaults, array_filter($variables, fn ($v) => $v !== null && $v !== ''));
@@ -58,25 +66,27 @@ final class CertificateTemplateRenderer
             if (! is_array($element)) {
                 continue;
             }
-            // Hidden elements stay in layout_config but are omitted from preview/PDF.
             if (array_key_exists('visible', $element) && ! $element['visible']) {
                 continue;
             }
-            $elements[] = $this->prepareElement($element, $merged, $signaturePath);
+            $elements[] = $this->prepareElement($element, $merged, $signaturePath, $forBrowser);
         }
 
         usort($elements, fn ($a, $b) => ((int) ($a['z_index'] ?? 0)) <=> ((int) ($b['z_index'] ?? 0)));
 
-        $bgUrl = $this->publicAssetUrl($backgroundPath);
+        $bgUrl = $this->publicAssetUrl($backgroundPath, $forBrowser);
 
-        return View::make('certificates.dynamic', [
+        $html = View::make('certificates.dynamic', [
             'page' => $page,
             'elements' => $elements,
             'backgroundUrl' => $bgUrl,
+            'embed' => $embed,
         ])->render();
+
+        return $this->sanitizeHtml($html);
     }
 
-    public function renderForCertificate(Certificate $certificate): string
+    public function renderForCertificate(Certificate $certificate, bool $forBrowser = false, bool $embed = false): string
     {
         $certificate->loadMissing(['user', 'course', 'template']);
         $meta = is_array($certificate->metadata) ? $certificate->metadata : [];
@@ -98,6 +108,8 @@ final class CertificateTemplateRenderer
             $variables,
             is_string($background) ? $background : null,
             is_string($signature) ? $signature : null,
+            $forBrowser,
+            $embed,
         );
     }
 
@@ -115,13 +127,81 @@ final class CertificateTemplateRenderer
     }
 
     /**
-     * Build snapshot metadata for historical correctness.
+     * Persist a renderer snapshot for certificates issued before template-v1.
+     * Does not change user_id, course_id, template_id, or certificate_number.
+     */
+    public function hydrateIssuedSnapshot(Certificate $certificate): bool
+    {
+        $certificate->loadMissing(['user', 'course', 'template']);
+        $meta = is_array($certificate->metadata) ? $certificate->metadata : [];
+
+        if (($meta['renderer'] ?? null) === self::RENDERER_VERSION && is_array($meta['layout_snapshot'] ?? null)) {
+            return false;
+        }
+
+        $template = $certificate->template;
+        if ($template === null) {
+            return false;
+        }
+
+        $snapshot = $this->buildIssuanceSnapshot($template, $this->variablesFromCertificate($certificate));
+
+        $certificate->update([
+            'metadata' => array_merge($meta, $snapshot, [
+                'renderer' => self::RENDERER_VERSION,
+                'hydrated_at' => now()->toIso8601String(),
+            ]),
+        ]);
+
+        return true;
+    }
+
+    /**
+     * Canonical payload shared by HTML preview and PDF generation.
      *
+     * @return array<string, mixed>
+     */
+    public function canonicalView(Certificate $certificate, bool $forBrowser = false): array
+    {
+        $this->hydrateIssuedSnapshot($certificate);
+        $certificate->refresh()->loadMissing(['user', 'course', 'template']);
+
+        $variables = $this->variablesFromCertificate($certificate);
+        $meta = is_array($certificate->metadata) ? $certificate->metadata : [];
+        $page = is_array(data_get($meta, 'layout_snapshot.page'))
+            ? $meta['layout_snapshot']['page']
+            : [
+                'width_mm' => $meta['page_width_mm'] ?? 297,
+                'height_mm' => $meta['page_height_mm'] ?? 210,
+                'orientation' => $meta['orientation'] ?? 'landscape',
+            ];
+
+        return [
+            'html' => $this->renderForCertificate($certificate, $forBrowser, $forBrowser),
+            'student_name' => $variables['student_name'],
+            'course_title' => $variables['course_name'],
+            'completion_date' => $variables['completion_date'],
+            'issue_date' => $variables['issue_date'],
+            'certificate_number' => $variables['certificate_number'],
+            'template_id' => $certificate->template_id,
+            'template_slug' => (string) ($meta['template_slug'] ?? $certificate->template?->slug ?? ''),
+            'page' => [
+                'width_mm' => (float) ($page['width_mm'] ?? 297),
+                'height_mm' => (float) ($page['height_mm'] ?? 210),
+                'orientation' => (string) ($page['orientation'] ?? 'landscape'),
+            ],
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function buildIssuanceSnapshot(CertificateTemplate $template, array $variables): array
     {
-        $layout = $this->normalizeLayout(is_array($template->layout_config) ? $template->layout_config : null);
+        $layout = $this->resolveLayout(
+            is_array($template->layout_config) ? $template->layout_config : null,
+            $template->background_path,
+        );
         $defaults = is_array($layout['defaults'] ?? null) ? $layout['defaults'] : [];
         $merged = array_merge($defaults, $variables);
 
@@ -150,6 +230,7 @@ final class CertificateTemplateRenderer
             'orientation' => $layout['page']['orientation'] ?? 'landscape',
             'page_width_mm' => $layout['page']['width_mm'] ?? 297,
             'page_height_mm' => $layout['page']['height_mm'] ?? 210,
+            'renderer' => self::RENDERER_VERSION,
         ];
     }
 
@@ -215,11 +296,28 @@ final class CertificateTemplateRenderer
     }
 
     /**
+     * @param  array<string, mixed>|null  $layout
+     * @return array{page: array<string, mixed>, elements: list<array<string, mixed>>, defaults: array<string, string>}
+     */
+    public function resolveLayout(?array $layout, ?string $backgroundPath = null): array
+    {
+        $hasArtwork = is_string($backgroundPath) && trim($backgroundPath) !== '';
+        $rawElements = is_array($layout['elements'] ?? null) ? $layout['elements'] : [];
+        $rawEmpty = $layout === null || $layout === [] || $rawElements === [];
+
+        if ($rawEmpty && $hasArtwork) {
+            return $this->normalizeLayout(CertificateLayoutPresets::artworkLandscapeOverlay());
+        }
+
+        return $this->normalizeLayout($layout);
+    }
+
+    /**
      * @param  array<string, mixed>  $element
      * @param  array<string, string|null>  $variables
      * @return array<string, mixed>
      */
-    private function prepareElement(array $element, array $variables, ?string $signaturePath): array
+    private function prepareElement(array $element, array $variables, ?string $signaturePath, bool $forBrowser): array
     {
         $type = (string) ($element['type'] ?? 'text');
         $prepared = $element;
@@ -236,15 +334,16 @@ final class CertificateTemplateRenderer
             $prepared['signature_url'] = $this->publicAssetUrl(
                 is_string($element['signature_path'] ?? null)
                     ? $element['signature_path']
-                    : $signaturePath
+                    : $signaturePath,
+                $forBrowser
             );
         }
 
         if ($type === 'image' || $type === 'svg') {
             $prepared['image_url'] = $this->publicAssetUrl(
-                is_string($element['asset'] ?? null) ? $element['asset'] : null
+                is_string($element['asset'] ?? null) ? $element['asset'] : null,
+                $forBrowser
             );
-            // Prefer filesystem/data for DomPDF; keep sanitized markup for browser preview fallback.
             if ($type === 'svg' && is_string($element['svg_markup'] ?? null) && $element['svg_markup'] !== '') {
                 $prepared['svg_markup'] = $element['svg_markup'];
             }
@@ -263,7 +362,7 @@ final class CertificateTemplateRenderer
         return $prepared;
     }
 
-    private function publicAssetUrl(?string $path): ?string
+    private function publicAssetUrl(?string $path, bool $forBrowser = false): ?string
     {
         if (! is_string($path) || trim($path) === '') {
             return null;
@@ -274,11 +373,19 @@ final class CertificateTemplateRenderer
         }
 
         $normalized = PublicMediaUrl::toDiskPath($path) ?? ltrim($path, '/');
-        if ($normalized !== '' && Storage::disk('public')->exists($normalized)) {
-            // DomPDF prefers absolute filesystem paths for local assets.
+        if (! $forBrowser && $normalized !== '' && Storage::disk('public')->exists($normalized)) {
             return Storage::disk('public')->path($normalized);
         }
 
         return PublicMediaUrl::make($path);
+    }
+
+    private function sanitizeHtml(string $html): string
+    {
+        $html = (string) preg_replace('#<script\b[^>]*>.*?</script>#is', '', $html);
+        $html = (string) preg_replace('/\son\w+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $html);
+        $html = (string) preg_replace('/javascript:/i', '', $html);
+
+        return $html;
     }
 }

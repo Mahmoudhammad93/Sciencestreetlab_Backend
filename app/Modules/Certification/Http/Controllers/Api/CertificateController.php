@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Modules\Certification\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Certification\Application\Services\CertificatePdfGenerator;
+use App\Modules\Certification\Application\Services\CertificateTemplateRenderer;
 use App\Modules\Certification\Infrastructure\Persistence\Models\Certificate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -36,19 +38,40 @@ final class CertificateController extends Controller
         return response()->json(['data' => $this->transform($certificate)]);
     }
 
-    public function download(Request $request, string $uuid): StreamedResponse|JsonResponse
+    public function preview(Request $request, string $uuid, CertificateTemplateRenderer $renderer): JsonResponse
     {
         $certificate = Certificate::query()
             ->where('uuid', $uuid)
             ->where('user_id', $request->user()->id)
+            ->with(['user:id,name', 'course:id,slug,title', 'template'])
             ->firstOrFail();
 
-        if (! $certificate->pdf_path || ! Storage::disk('local')->exists($certificate->pdf_path)) {
+        $payload = $renderer->canonicalView($certificate, forBrowser: true);
+        $payload['uuid'] = $certificate->uuid;
+        $payload['issued_at'] = $certificate->issued_at?->toIso8601String();
+
+        return response()
+            ->json(['data' => $payload])
+            ->header('Content-Type', 'application/json');
+    }
+
+    public function download(Request $request, string $uuid, CertificatePdfGenerator $pdfs): StreamedResponse|JsonResponse
+    {
+        $certificate = Certificate::query()
+            ->where('uuid', $uuid)
+            ->where('user_id', $request->user()->id)
+            ->with(['user:id,name', 'course:id,slug,title', 'template'])
+            ->firstOrFail();
+
+        $path = $pdfs->ensureGenerated($certificate);
+        $certificate->refresh();
+
+        if (! Storage::disk('local')->exists($path)) {
             return response()->json(['message' => 'PDF not ready yet.'], 404);
         }
 
         return Storage::disk('local')->download(
-            $certificate->pdf_path,
+            $path,
             "certificate-{$certificate->certificate_number}.pdf"
         );
     }
@@ -93,8 +116,10 @@ final class CertificateController extends Controller
             'issued_at' => $certificate->issued_at->toIso8601String(),
             'verification_code' => $certificate->verification_code,
             'verification_url' => url('/certificates/verify/'.$certificate->verification_code),
-            'student_name' => (string) ($meta['student_name'] ?? ''),
-            'pdf_available' => $certificate->pdf_path && Storage::disk('local')->exists($certificate->pdf_path),
+            'student_name' => (string) ($meta['student_name'] ?? $certificate->user?->name ?? ''),
+            'template_id' => $certificate->template_id,
+            'preview_available' => true,
+            'pdf_available' => true,
         ];
     }
 }

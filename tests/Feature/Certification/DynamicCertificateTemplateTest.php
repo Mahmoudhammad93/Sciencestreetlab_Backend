@@ -487,6 +487,94 @@ final class DynamicCertificateTemplateTest extends TestCase
         return [$user, $topic, $enrollment, $course];
     }
 
+    public function test_html_preview_is_owned_json_not_pdf(): void
+    {
+        Storage::fake('local');
+        Storage::fake('public');
+
+        $template = CertificateTemplate::query()->create([
+            'slug' => 'html-preview-tpl',
+            'name' => ['en' => 'Preview Tpl', 'ar' => 'معاينة'],
+            'is_active' => true,
+            'layout_config' => CertificateLayoutPresets::layout(CertificateLayoutPresets::CYAN_LANDSCAPE_COMPLETION),
+        ]);
+
+        [$owner, $enrollment] = $this->completedEnrollment('HTML Course', $template->id, 'Nour Hassan');
+        $certificate = app(CertificateIssuanceService::class)->issue($enrollment);
+        $this->assertNotNull($certificate);
+
+        $this->getJson('/api/v1/certificates/'.$certificate->uuid.'/preview')
+            ->assertUnauthorized();
+
+        $other = User::factory()->create();
+        Sanctum::actingAs($other);
+        $this->getJson('/api/v1/certificates/'.$certificate->uuid.'/preview')->assertNotFound();
+        $this->getJson('/api/v1/certificates/'.$certificate->uuid.'/download')->assertNotFound();
+
+        Sanctum::actingAs($owner);
+        $preview = $this->getJson('/api/v1/certificates/'.$certificate->uuid.'/preview')
+            ->assertOk()
+            ->assertHeader('content-type', 'application/json')
+            ->assertJsonPath('data.student_name', 'Nour Hassan')
+            ->assertJsonPath('data.course_title', 'HTML Course')
+            ->assertJsonPath('data.certificate_number', $certificate->certificate_number)
+            ->assertJsonPath('data.template_id', $template->id);
+
+        $this->assertStringNotContainsString('application/pdf', (string) $preview->headers->get('content-type'));
+        $html = (string) $preview->json('data.html');
+        $this->assertStringContainsString('Nour Hassan', $html);
+        $this->assertStringContainsString('HTML Course', $html);
+        $this->assertStringContainsString($certificate->certificate_number, $html);
+        $this->assertStringNotContainsString('<script', $html);
+        $this->assertStringNotContainsString('Science Street Admin', $html);
+        $this->assertStringNotContainsString('Certificate of Completion', $html);
+
+        $download = $this->get("/api/v1/certificates/{$certificate->uuid}/download")
+            ->assertOk();
+        $this->assertStringContainsString('application/pdf', (string) $download->headers->get('content-type'));
+        $this->assertSame(1, $this->pdfPageCount($download->streamedContent()));
+        $this->assertSame($template->id, (int) $preview->json('data.template_id'));
+    }
+
+    public function test_stale_generic_pdf_is_rebuilt_from_assigned_template(): void
+    {
+        Storage::fake('local');
+        Storage::fake('public');
+
+        $template = CertificateTemplate::query()->create([
+            'slug' => 'stale-tpl',
+            'name' => ['en' => 'Stale', 'ar' => 'قديم'],
+            'is_active' => true,
+            'background_path' => 'certificates/blue.jpeg',
+            'layout_config' => [],
+        ]);
+        Storage::disk('public')->put('certificates/blue.jpeg', 'fake-image');
+
+        [$owner, $enrollment] = $this->completedEnrollment('Microscope Course', $template->id, 'Toka Student');
+        $certificate = app(CertificateIssuanceService::class)->issue($enrollment);
+        $this->assertNotNull($certificate);
+
+        $stalePath = "certificates/{$certificate->uuid}.pdf";
+        Storage::disk('local')->put($stalePath, "%PDF-1.4\n1 0 obj<</Type /Pages /Count 2>>endobj\n2 0 obj<</Type /Page>>endobj\n3 0 obj<</Type /Page>>endobj\n%%EOF");
+        $certificate->update([
+            'pdf_path' => $stalePath,
+            'metadata' => [
+                'student_name' => 'Toka Student',
+                'course_title' => 'Microscope Course',
+            ],
+        ]);
+
+        Sanctum::actingAs($owner);
+        $preview = $this->getJson('/api/v1/certificates/'.$certificate->uuid.'/preview')->assertOk();
+        $this->assertStringContainsString('Toka Student', (string) $preview->json('data.html'));
+        $this->assertSame($template->id, (int) $preview->json('data.template_id'));
+        $this->assertSame('template-v1', data_get($certificate->fresh()->metadata, 'renderer'));
+
+        $bytes = $this->get("/api/v1/certificates/{$certificate->uuid}/download")->assertOk()->streamedContent();
+        $this->assertSame(1, $this->pdfPageCount($bytes));
+        $this->assertGreaterThan(200, strlen($bytes));
+    }
+
     private function pdfPageCount(string $bytes): int
     {
         if (preg_match_all('/\/Type\s*\/Page(?!s)\b/', $bytes, $matches)) {
