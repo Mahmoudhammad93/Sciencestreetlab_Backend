@@ -165,10 +165,13 @@
         $op = $el['opacity'] ?? 1;
         $xf = $rot !== 0.0 ? 'transform:rotate('.$rot.'deg);' : '';
         $pct = is_array($el['box_percent'] ?? null) ? $el['box_percent'] : null;
+        $fitWidth = ($el['width_mode'] ?? '') === 'fit-content';
         if ($embed && $pct) {
-            $box = 'left:'.$pct['left'].'%;top:'.$pct['top'].'%;width:'.$pct['width'].'%;height:'.$pct['height'].'%;opacity:'.$op.';'.$xf;
+            $widthCss = $fitWidth ? 'width:fit-content;' : 'width:'.$pct['width'].'%;';
+            $box = 'left:'.$pct['left'].'%;top:'.$pct['top'].'%;'.$widthCss.'height:'.$pct['height'].'%;opacity:'.$op.';'.$xf;
         } else {
-            $box = "left:{$x}mm;top:{$y}mm;width:{$ew}mm;height:{$eh}mm;opacity:{$op};{$xf}";
+            $widthCss = $fitWidth ? 'width:fit-content;' : "width:{$ew}mm;";
+            $box = "left:{$x}mm;top:{$y}mm;{$widthCss}height:{$eh}mm;opacity:{$op};{$xf}";
         }
         $familyCss = \App\Modules\Certification\Application\Support\CertificateFontRegistry::quoteCssFamily(
             (string) ($el['font_family_css'] ?? $pdfFamily)

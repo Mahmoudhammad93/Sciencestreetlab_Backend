@@ -87,7 +87,8 @@ final class CertificateVisualFidelityArchitectureTest extends TestCase
         $html = app(CertificateTemplateRenderer::class)->renderForCertificate($certificate->fresh(['user', 'course', 'template']), true, true);
         $this->assertStringContainsString('Nour Hassan', $html);
         $this->assertStringContainsString('كورس الميكروسكوب', $html);
-        $this->assertStringContainsString('left:0%;top:38.5%;', $html);
+        $this->assertStringContainsString('left:0%;top:19%;', $html);
+        $this->assertStringContainsString('width:fit-content;', $html);
         $this->assertStringContainsString('left:14%;top:45.5%;', $html);
         $this->assertStringContainsString('data:image/jpeg;base64,', $html);
         $this->assertStringContainsString('ssl-cert-artwork', $html);
@@ -125,12 +126,12 @@ final class CertificateVisualFidelityArchitectureTest extends TestCase
         Sanctum::actingAs($user);
         $preview = $this->getJson('/api/v1/certificates/'.$certificate->uuid.'/preview')->assertOk();
         $this->assertStringContainsString('Toka Student', (string) $preview->json('data.html'));
-        $this->assertSame('template-v6', $preview->json('data.template_version'));
+        $this->assertSame('template-v7', $preview->json('data.template_version'));
         $this->assertSame($preview->json('data.render_fingerprint'), data_get($certificate->fresh()->metadata, 'layout_snapshot') ? $preview->json('data.render_fingerprint') : null);
 
         $bytes = $this->get("/api/v1/certificates/{$certificate->uuid}/download")->assertOk()->streamedContent();
         $this->assertSame(1, $this->pdfPageCount($bytes));
-        $this->assertSame('template-v6', data_get($certificate->fresh()->metadata, 'pdf_renderer'));
+        $this->assertSame('template-v7', data_get($certificate->fresh()->metadata, 'pdf_renderer'));
         $this->assertNotSame('stale', data_get($certificate->fresh()->metadata, 'render_fingerprint'));
     }
 
