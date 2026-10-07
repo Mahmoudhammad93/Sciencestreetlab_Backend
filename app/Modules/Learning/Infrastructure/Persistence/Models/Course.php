@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Learning\Infrastructure\Persistence\Models;
 
 use App\Modules\Catalog\Infrastructure\Persistence\Models\Product;
+use App\Modules\Certification\Infrastructure\Persistence\Models\CertificateTemplate;
 use App\Modules\Learning\Domain\Enums\AccessType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -63,5 +64,10 @@ class Course extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function certificateTemplate(): BelongsTo
+    {
+        return $this->belongsTo(CertificateTemplate::class, 'certificate_template_id');
     }
 }

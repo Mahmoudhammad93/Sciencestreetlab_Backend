@@ -9,5 +9,6 @@ Route::get('/certificates/verify/{code}', [CertificateController::class, 'verify
 
 Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/certificates', [CertificateController::class, 'index']);
+    Route::get('/certificates/{uuid}', [CertificateController::class, 'show']);
     Route::get('/certificates/{uuid}/download', [CertificateController::class, 'download']);
 });

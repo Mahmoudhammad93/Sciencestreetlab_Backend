@@ -3,20 +3,28 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page { margin: 0; }
-        body {
-            margin: 0;
+        @page { margin: 0; size: 297mm 210mm; }
+        html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 297mm;
+            height: 210mm;
+            overflow: hidden;
             font-family: DejaVu Sans, sans-serif;
             background: #f8f9ff;
         }
         .certificate {
-            width: 100%;
-            height: 100%;
-            border: 8px solid #2828a0;
-            box-sizing: border-box;
-            padding: 40px 60px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 281mm;
+            height: 194mm;
+            border: 8mm solid #2828a0;
+            padding: 12mm 16mm;
             text-align: center;
-            position: relative;
+            overflow: hidden;
+            page-break-after: avoid;
+            page-break-inside: avoid;
         }
         .brand {
             color: #2828a0;
@@ -55,8 +63,8 @@
         }
         .verify {
             position: absolute;
-            bottom: 30px;
-            left: 40px;
+            bottom: 12mm;
+            left: 12mm;
             font-size: 9px;
             color: #999;
             text-align: left;

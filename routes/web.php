@@ -40,6 +40,9 @@ foreach ($redirects as $from => $to) {
 
 Route::get('/', fn () => redirect()->away($frontend, 301));
 
+Route::get('/certificates/verify/{code}', \App\Modules\Certification\Http\Controllers\CertificateVerificationController::class)
+    ->name('certificates.verify');
+
 Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
     Route::get('/locale/{locale}', \App\Http\Controllers\Admin\SwitchAdminLocaleController::class)
         ->whereIn('locale', ['ar', 'en'])

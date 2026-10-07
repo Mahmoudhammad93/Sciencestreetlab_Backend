@@ -405,7 +405,7 @@ return [
             'description_ar' => 'Long description (Arabic)',
             'description_en' => 'Long description (English)',
             'certificate_template' => 'Certificate template',
-            'certificate_template_help' => 'Optional. Leave empty to use the first active template, or none.',
+            'certificate_template_help' => 'Optional. Leave empty to skip certificate issuance for this course. Only the assigned active template is used — never a generic or first-available template. Course progress still completes if no template is assigned.',
             'estimated_hours' => 'Estimated hours',
             'image' => 'Course image',
             'image_help' => 'Drag and drop an image here… courses catalog and course page.',

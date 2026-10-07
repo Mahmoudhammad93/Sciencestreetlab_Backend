@@ -25,6 +25,17 @@ final class CertificateController extends Controller
         return response()->json(['data' => $certificates]);
     }
 
+    public function show(Request $request, string $uuid): JsonResponse
+    {
+        $certificate = Certificate::query()
+            ->where('uuid', $uuid)
+            ->where('user_id', $request->user()->id)
+            ->with(['course:id,slug,title'])
+            ->firstOrFail();
+
+        return response()->json(['data' => $this->transform($certificate)]);
+    }
+
     public function download(Request $request, string $uuid): StreamedResponse|JsonResponse
     {
         $certificate = Certificate::query()
@@ -56,12 +67,16 @@ final class CertificateController extends Controller
             ], 404);
         }
 
+        $meta = is_array($certificate->metadata) ? $certificate->metadata : [];
+
         return response()->json([
             'valid' => true,
-            'student_name' => $certificate->user->name,
-            'course_title' => $certificate->course->getTranslation('title', app()->getLocale()),
+            'student_name' => (string) ($meta['student_name'] ?? $certificate->user->name),
+            'course_title' => (string) ($meta['course_name'] ?? $meta['course_title'] ?? $certificate->course->getTranslation('title', app()->getLocale())),
             'issued_at' => $certificate->issued_at->toIso8601String(),
+            'completion_date' => (string) ($meta['completion_date'] ?? $certificate->issued_at->format('d/m/Y')),
             'certificate_number' => $certificate->certificate_number,
+            'verification_url' => url('/certificates/verify/'.$certificate->verification_code),
             'pdf_available' => $certificate->pdf_path && Storage::disk('local')->exists($certificate->pdf_path),
         ]);
     }
@@ -69,12 +84,16 @@ final class CertificateController extends Controller
     /** @return array<string, mixed> */
     private function transform(Certificate $certificate): array
     {
+        $meta = is_array($certificate->metadata) ? $certificate->metadata : [];
+
         return [
             'uuid' => $certificate->uuid,
             'certificate_number' => $certificate->certificate_number,
             'course' => $certificate->course,
             'issued_at' => $certificate->issued_at->toIso8601String(),
             'verification_code' => $certificate->verification_code,
+            'verification_url' => url('/certificates/verify/'.$certificate->verification_code),
+            'student_name' => (string) ($meta['student_name'] ?? ''),
             'pdf_available' => $certificate->pdf_path && Storage::disk('local')->exists($certificate->pdf_path),
         ];
     }

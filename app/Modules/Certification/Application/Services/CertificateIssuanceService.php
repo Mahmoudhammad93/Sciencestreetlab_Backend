@@ -11,6 +11,8 @@ use App\Modules\Certification\Jobs\GenerateCertificatePdfJob;
 use App\Modules\Learning\Domain\Enums\EnrollmentStatus;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Enrollment;
 use DomainException;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -18,6 +20,7 @@ final class CertificateIssuanceService
 {
     public function __construct(
         private readonly CertificateNumberGenerator $numberGenerator,
+        private readonly CertificateTemplateRenderer $renderer,
     ) {}
 
     /**
@@ -33,10 +36,7 @@ final class CertificateIssuanceService
             throw new DomainException('Course not completed.');
         }
 
-        $existing = Certificate::query()
-            ->where('enrollment_id', $enrollment->id)
-            ->first();
-
+        $existing = $this->existingCertificate($enrollment);
         if ($existing) {
             return $existing;
         }
@@ -55,25 +55,82 @@ final class CertificateIssuanceService
             return null;
         }
 
-        $certificate = Certificate::query()->create([
-            'certificate_number' => $this->numberGenerator->next(),
-            'verification_code' => Str::random(32),
-            'user_id' => $enrollment->user_id,
-            'course_id' => $enrollment->course_id,
-            'enrollment_id' => $enrollment->id,
-            'template_id' => $template->id,
-            'issued_at' => now(),
-            'metadata' => [
-                'student_name' => $enrollment->user->name,
-                'course_title' => $enrollment->course->getTranslation('title', app()->getLocale()),
-            ],
-        ]);
+        $user = $enrollment->user;
+        if ($user === null) {
+            Log::error('certificate.issuance_missing_user', [
+                'enrollment_id' => $enrollment->id,
+                'user_id' => $enrollment->user_id,
+            ]);
+
+            return null;
+        }
+
+        try {
+            $certificate = DB::transaction(function () use ($enrollment, $template, $user): Certificate {
+                $locked = $this->existingCertificate($enrollment, lock: true);
+                if ($locked) {
+                    return $locked;
+                }
+
+                $certificateNumber = $this->numberGenerator->next();
+                $verificationCode = Str::random(32);
+                $issuedAt = now();
+                $locale = app()->getLocale();
+
+                $variables = [
+                    'student_name' => (string) $user->name,
+                    'course_name' => (string) $enrollment->course->getTranslation('title', $locale),
+                    'completion_date' => $issuedAt->format('d/m/Y'),
+                    'issue_date' => $issuedAt->format('d/m/Y'),
+                    'certificate_number' => $certificateNumber,
+                    'verification_url' => url('/certificates/verify/'.$verificationCode),
+                ];
+
+                $metadata = $this->renderer->buildIssuanceSnapshot($template, $variables);
+                $metadata['course_title'] = $variables['course_name'];
+
+                return Certificate::query()->create([
+                    'certificate_number' => $certificateNumber,
+                    'verification_code' => $verificationCode,
+                    'user_id' => $enrollment->user_id,
+                    'course_id' => $enrollment->course_id,
+                    'enrollment_id' => $enrollment->id,
+                    'template_id' => $template->id,
+                    'issued_at' => $issuedAt,
+                    'metadata' => $metadata,
+                ]);
+            });
+        } catch (UniqueConstraintViolationException) {
+            $certificate = $this->existingCertificate($enrollment);
+            if ($certificate === null) {
+                throw new DomainException('Certificate uniqueness conflict could not be resolved.');
+            }
+
+            return $certificate;
+        }
 
         GenerateCertificatePdfJob::dispatch($certificate);
 
         event(new CertificateIssued($certificate));
 
         return $certificate;
+    }
+
+    private function existingCertificate(Enrollment $enrollment, bool $lock = false): ?Certificate
+    {
+        $query = Certificate::query()->where(function ($q) use ($enrollment): void {
+            $q->where('enrollment_id', $enrollment->id)
+                ->orWhere(function ($inner) use ($enrollment): void {
+                    $inner->where('user_id', $enrollment->user_id)
+                        ->where('course_id', $enrollment->course_id);
+                });
+        });
+
+        if ($lock) {
+            $query->lockForUpdate();
+        }
+
+        return $query->first();
     }
 
     private function resolveTemplate(Enrollment $enrollment): ?CertificateTemplate
@@ -96,9 +153,6 @@ final class CertificateIssuanceService
             ]);
         }
 
-        return CertificateTemplate::query()
-            ->where('is_active', true)
-            ->orderBy('id')
-            ->first();
+        return null;
     }
 }

@@ -8,6 +8,7 @@ use App\Filament\Forms\Components\ImageDropzone;
 use App\Filament\Resources\CourseResource\Pages;
 use App\Filament\Resources\CourseResource\RelationManagers\CoursePlansRelationManager;
 use App\Filament\Resources\CourseResource\RelationManagers\LessonsRelationManager;
+use App\Modules\Certification\Infrastructure\Persistence\Models\CertificateTemplate;
 use App\Modules\Learning\Domain\Enums\AccessType;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
 use Filament\Forms;
@@ -77,6 +78,22 @@ class CourseResource extends Resource
                     ->numeric()
                     ->minValue(0),
             ])->columns(2),
+            Forms\Components\Section::make(__('admin.courses.sections.certificate'))->schema([
+                Forms\Components\Select::make('certificate_template_id')
+                    ->label(__('admin.courses.fields.certificate_template'))
+                    ->relationship(
+                        name: 'certificateTemplate',
+                        titleAttribute: 'slug',
+                        modifyQueryUsing: fn ($query) => $query->orderBy('slug'),
+                    )
+                    ->getOptionLabelFromRecordUsing(
+                        fn (CertificateTemplate $record): string => $record->slug.' — '.$record->getTranslation('name', app()->getLocale())
+                    )
+                    ->searchable()
+                    ->preload()
+                    ->nullable()
+                    ->helperText(__('admin.courses.fields.certificate_template_help')),
+            ]),
             Forms\Components\Section::make(__('admin.courses.sections.image'))->schema([
                 ImageDropzone::make(
                     'image_url',
