@@ -79,6 +79,8 @@ return [
             'user_id' => 'معرّف المستخدم',
             'user_name' => 'الاسم',
             'user_email' => 'البريد',
+            'resolved_at' => 'تاريخ الحل',
+            'resolved_by' => 'حُلّ بواسطة',
             'trace' => 'التتبع',
             'context' => 'السياق',
         ],

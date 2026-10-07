@@ -231,6 +231,17 @@ final class ErrorIncidentCaptureTest extends TestCase
         $this->assertStringNotContainsString('4242424242424242', $blob);
     }
 
+    public function test_reporter_caps_persists_per_request_without_recursion(): void
+    {
+        $recorder = app(ErrorIncidentRecorder::class);
+        ErrorIncidentRecorder::resetRuntimeState();
+        for ($i = 0; $i < 8; $i++) {
+            $recorder->record(new RuntimeException('budget probe '.$i));
+        }
+
+        $this->assertLessThanOrEqual(3, ErrorIncident::query()->count());
+    }
+
     public function test_database_reporter_failure_does_not_recurse(): void
     {
         Schema::rename('error_incidents', 'error_incidents_hidden');

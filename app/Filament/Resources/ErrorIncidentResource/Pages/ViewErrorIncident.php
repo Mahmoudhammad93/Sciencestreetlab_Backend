@@ -23,9 +23,10 @@ class ViewErrorIncident extends ViewRecord
                 ->label(__('admin.error_incidents.actions.copy_debug'))
                 ->icon('heroicon-o-clipboard-document')
                 ->action(function (): void {
-                    /** @var ErrorIncident $record */
                     $record = $this->getRecord();
-                    $this->debugClipboard = $record->toDebugClipboard();
+                    $this->debugClipboard = $record instanceof ErrorIncident
+                        ? $record->toDebugClipboard()
+                        : 'N/A';
                     $this->js('window.navigator?.clipboard?.writeText('.json_encode($this->debugClipboard).')');
                     Notification::make()
                         ->title(__('admin.error_incidents.notifications.copied'))
@@ -36,9 +37,13 @@ class ViewErrorIncident extends ViewRecord
                 ->label(__('admin.error_incidents.actions.resolve'))
                 ->icon('heroicon-o-check')
                 ->color('success')
-                ->visible(fn (): bool => ! $this->getRecord()->isResolved())
+                ->visible(fn (): bool => $this->getRecord() instanceof ErrorIncident && ! $this->getRecord()->isResolved())
                 ->action(function (): void {
-                    $this->getRecord()->markResolved(auth()->id());
+                    $record = $this->getRecord();
+                    if ($record instanceof ErrorIncident) {
+                        $id = auth()->id();
+                        $record->markResolved(is_numeric($id) ? (int) $id : null);
+                    }
                     Notification::make()
                         ->title(__('admin.error_incidents.notifications.resolved'))
                         ->success()
@@ -47,9 +52,12 @@ class ViewErrorIncident extends ViewRecord
             Actions\Action::make('reopen')
                 ->label(__('admin.error_incidents.actions.reopen'))
                 ->icon('heroicon-o-arrow-path')
-                ->visible(fn (): bool => $this->getRecord()->isResolved())
+                ->visible(fn (): bool => $this->getRecord() instanceof ErrorIncident && $this->getRecord()->isResolved())
                 ->action(function (): void {
-                    $this->getRecord()->reopen();
+                    $record = $this->getRecord();
+                    if ($record instanceof ErrorIncident) {
+                        $record->reopen();
+                    }
                     Notification::make()
                         ->title(__('admin.error_incidents.notifications.reopened'))
                         ->success()

@@ -82,66 +82,92 @@ class ErrorIncidentResource extends Resource
                         ? __('admin.error_incidents.status.resolved')
                         : __('admin.error_incidents.status.open')),
                 Infolists\Components\TextEntry::make('occurrences')->label(__('admin.error_incidents.fields.occurrences')),
-                Infolists\Components\TextEntry::make('first_seen_at')->label(__('admin.error_incidents.fields.first_seen'))->dateTime(),
-                Infolists\Components\TextEntry::make('last_seen_at')->label(__('admin.error_incidents.fields.last_seen'))->dateTime(),
+                Infolists\Components\TextEntry::make('first_seen_at')->label(__('admin.error_incidents.fields.first_seen'))->dateTime()->placeholder('N/A'),
+                Infolists\Components\TextEntry::make('last_seen_at')->label(__('admin.error_incidents.fields.last_seen'))->dateTime()->placeholder('N/A'),
+                Infolists\Components\TextEntry::make('resolved_at')
+                    ->label(__('admin.error_incidents.fields.resolved_at'))
+                    ->dateTime()
+                    ->placeholder('N/A'),
+                Infolists\Components\TextEntry::make('resolved_by_display')
+                    ->label(__('admin.error_incidents.fields.resolved_by'))
+                    ->state(fn (?ErrorIncident $record): string => $record?->displayResolverName() ?? 'N/A'),
             ])->columns(3),
             Infolists\Components\Section::make(__('admin.error_incidents.sections.error'))->schema([
-                Infolists\Components\TextEntry::make('exception_class')->label(__('admin.error_incidents.fields.exception'))->copyable(),
-                Infolists\Components\TextEntry::make('message')->label(__('admin.error_incidents.fields.message'))->columnSpanFull(),
-                Infolists\Components\TextEntry::make('file')->label(__('admin.error_incidents.fields.file')),
-                Infolists\Components\TextEntry::make('line')->label(__('admin.error_incidents.fields.line')),
+                Infolists\Components\TextEntry::make('exception_class')
+                    ->label(__('admin.error_incidents.fields.exception'))
+                    ->copyable()
+                    ->placeholder('N/A'),
+                Infolists\Components\TextEntry::make('message')
+                    ->label(__('admin.error_incidents.fields.message'))
+                    ->placeholder('N/A')
+                    ->columnSpanFull(),
+                Infolists\Components\TextEntry::make('file_display')
+                    ->label(__('admin.error_incidents.fields.file'))
+                    ->state(fn (?ErrorIncident $record): string => $record?->display()->file($record->file) ?? 'N/A'),
+                Infolists\Components\TextEntry::make('line')
+                    ->label(__('admin.error_incidents.fields.line'))
+                    ->placeholder('N/A')
+                    ->formatStateUsing(fn (mixed $state): string => is_numeric($state) ? (string) $state : 'N/A'),
             ])->columns(2),
             Infolists\Components\Section::make(__('admin.error_incidents.sections.application'))->schema([
-                Infolists\Components\TextEntry::make('module')->label(__('admin.error_incidents.fields.module')),
-                Infolists\Components\TextEntry::make('source')->label(__('admin.error_incidents.fields.source')),
-                Infolists\Components\TextEntry::make('application_class')
+                Infolists\Components\TextEntry::make('module')
+                    ->label(__('admin.error_incidents.fields.module'))
+                    ->placeholder('N/A'),
+                Infolists\Components\TextEntry::make('source')
+                    ->label(__('admin.error_incidents.fields.source'))
+                    ->placeholder('N/A'),
+                Infolists\Components\TextEntry::make('application_class_display')
                     ->label(__('admin.error_incidents.fields.application_class'))
-                    ->formatStateUsing(fn (?string $state): string => $state ? class_basename($state) : 'N/A'),
-                Infolists\Components\TextEntry::make('application_method')
+                    ->state(fn (?ErrorIncident $record): string => $record?->displayApplicationClass() ?? 'N/A'),
+                Infolists\Components\TextEntry::make('application_method_display')
                     ->label(__('admin.error_incidents.fields.method'))
-                    ->formatStateUsing(fn (?string $state): string => $state ?: 'N/A'),
-                Infolists\Components\TextEntry::make('eloquent_model')
+                    ->state(fn (?ErrorIncident $record): string => $record?->display()->text($record->application_method) ?? 'N/A'),
+                Infolists\Components\TextEntry::make('model_display')
                     ->label(__('admin.error_incidents.fields.model'))
-                    ->formatStateUsing(fn (?string $state): string => $state ?: 'N/A'),
-                Infolists\Components\TextEntry::make('route_name')->label(__('admin.error_incidents.fields.route'))->placeholder('N/A'),
-                Infolists\Components\TextEntry::make('request_method')->label(__('admin.error_incidents.fields.http_method')),
-                Infolists\Components\TextEntry::make('request_path')->label(__('admin.error_incidents.fields.request_path')),
-                Infolists\Components\TextEntry::make('http_status')->label(__('admin.error_incidents.fields.http_status')),
-                Infolists\Components\TextEntry::make('request_id')->label(__('admin.error_incidents.fields.request_id'))->copyable(),
+                    ->state(fn (?ErrorIncident $record): string => $record?->displayModel() ?? 'N/A'),
+                Infolists\Components\TextEntry::make('route_name')
+                    ->label(__('admin.error_incidents.fields.route'))
+                    ->placeholder('N/A'),
+                Infolists\Components\TextEntry::make('request_method')
+                    ->label(__('admin.error_incidents.fields.http_method'))
+                    ->placeholder('N/A'),
+                Infolists\Components\TextEntry::make('request_path')
+                    ->label(__('admin.error_incidents.fields.request_path'))
+                    ->placeholder('N/A'),
+                Infolists\Components\TextEntry::make('http_status')
+                    ->label(__('admin.error_incidents.fields.http_status'))
+                    ->placeholder('N/A'),
+                Infolists\Components\TextEntry::make('request_id')
+                    ->label(__('admin.error_incidents.fields.request_id'))
+                    ->copyable()
+                    ->placeholder('N/A'),
             ])->columns(2),
             Infolists\Components\Section::make(__('admin.error_incidents.sections.user'))->schema([
-                Infolists\Components\TextEntry::make('user_type')
+                Infolists\Components\TextEntry::make('user_type_display')
                     ->label(__('admin.error_incidents.fields.user_type'))
-                    ->formatStateUsing(fn (?string $state): string => match ($state) {
-                        'customer' => __('admin.error_incidents.user_types.customer'),
-                        'admin' => __('admin.error_incidents.user_types.admin'),
-                        'system' => __('admin.error_incidents.user_types.system'),
-                        default => __('admin.error_incidents.user_types.guest'),
-                    }),
-                Infolists\Components\TextEntry::make('user_id')->label(__('admin.error_incidents.fields.user_id'))->placeholder('N/A'),
-                Infolists\Components\TextEntry::make('user.name')->label(__('admin.error_incidents.fields.user_name'))->placeholder('N/A'),
-                Infolists\Components\TextEntry::make('user.email')->label(__('admin.error_incidents.fields.user_email'))->placeholder('N/A'),
+                    ->state(fn (?ErrorIncident $record): string => $record?->display()->userType($record->user_type) ?? 'N/A'),
+                Infolists\Components\TextEntry::make('user_id')
+                    ->label(__('admin.error_incidents.fields.user_id'))
+                    ->placeholder('N/A'),
+                Infolists\Components\TextEntry::make('user_name_display')
+                    ->label(__('admin.error_incidents.fields.user_name'))
+                    ->state(fn (?ErrorIncident $record): string => $record?->displayUserName() ?? 'N/A'),
+                Infolists\Components\TextEntry::make('user_email_display')
+                    ->label(__('admin.error_incidents.fields.user_email'))
+                    ->state(fn (?ErrorIncident $record): string => $record?->displayUserEmail() ?? 'N/A'),
             ])->columns(2),
             Infolists\Components\Section::make(__('admin.error_incidents.sections.trace'))->schema([
-                Infolists\Components\TextEntry::make('trace')
+                Infolists\Components\TextEntry::make('trace_display')
                     ->label(__('admin.error_incidents.fields.trace'))
-                    ->markdown()
-                    ->formatStateUsing(fn (?string $state): string => '```'."\n".($state ?: 'N/A')."\n".'```')
+                    ->state(fn (?ErrorIncident $record): string => $record?->formattedTrace() ?? 'N/A')
+                    ->extraAttributes(['class' => 'font-mono text-xs whitespace-pre-wrap break-all'])
                     ->columnSpanFull(),
             ]),
             Infolists\Components\Section::make(__('admin.error_incidents.sections.context'))->schema([
-                Infolists\Components\TextEntry::make('context')
+                Infolists\Components\TextEntry::make('context_display')
                     ->label(__('admin.error_incidents.fields.context'))
-                    ->formatStateUsing(function (mixed $state): string {
-                        if (! is_array($state) || $state === []) {
-                            return 'N/A';
-                        }
-
-                        $json = json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-
-                        return is_string($json) ? $json : 'N/A';
-                    })
-                    ->extraAttributes(['class' => 'font-mono text-xs whitespace-pre-wrap'])
+                    ->state(fn (?ErrorIncident $record): string => $record?->formattedContext() ?? 'N/A')
+                    ->extraAttributes(['class' => 'font-mono text-xs whitespace-pre-wrap break-all'])
                     ->columnSpanFull(),
             ]),
         ]);
@@ -156,7 +182,7 @@ class ErrorIncidentResource extends Resource
                 Tables\Columns\TextColumn::make('level')
                     ->label(__('admin.error_incidents.fields.severity'))
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn (mixed $state): string => match (is_string($state) ? $state : '') {
                         'critical' => 'danger',
                         'warning' => 'warning',
                         default => 'gray',
@@ -174,7 +200,7 @@ class ErrorIncidentResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('exception_class')
                     ->label(__('admin.error_incidents.fields.exception'))
-                    ->formatStateUsing(fn (?string $state): string => $state ? class_basename($state) : '')
+                    ->formatStateUsing(fn (mixed $state): string => is_string($state) && $state !== '' ? class_basename($state) : '')
                     ->searchable()
                     ->limit(40),
                 Tables\Columns\TextColumn::make('message')
@@ -189,12 +215,13 @@ class ErrorIncidentResource extends Resource
                 Tables\Columns\TextColumn::make('user')
                     ->label(__('admin.error_incidents.fields.user'))
                     ->state(function (ErrorIncident $record): string {
-                        $type = $record->user_type ?: 'guest';
-                        if ($record->user) {
-                            return $type.' #'.$record->user_id.' '.$record->user->name;
+                        $type = is_string($record->user_type) && $record->user_type !== '' ? $record->user_type : 'guest';
+                        $name = $record->displayUserName();
+                        if ($record->user_id) {
+                            return $type.' #'.$record->user_id.($name !== 'N/A' ? ' '.$name : '');
                         }
 
-                        return $type.($record->user_id ? ' #'.$record->user_id : '');
+                        return $type;
                     }),
                 Tables\Columns\TextColumn::make('occurrences')
                     ->label(__('admin.error_incidents.fields.occurrences'))

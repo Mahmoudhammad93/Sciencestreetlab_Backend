@@ -79,6 +79,8 @@ return [
             'user_id' => 'User ID',
             'user_name' => 'Name',
             'user_email' => 'Email',
+            'resolved_at' => 'Resolved at',
+            'resolved_by' => 'Resolved by',
             'trace' => 'Trace',
             'context' => 'Context',
         ],

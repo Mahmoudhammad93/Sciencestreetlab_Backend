@@ -25,6 +25,10 @@ final class ErrorIncidentRecorder
 {
     private static bool $recording = false;
 
+    private static int $persistAttempts = 0;
+
+    private const MAX_PERSISTS_PER_REQUEST = 3;
+
     /** @var array{job:?string,queue:?string,attempts:?int}|null */
     private static ?array $jobContext = null;
 
@@ -55,8 +59,14 @@ final class ErrorIncidentRecorder
         if ($this->shouldIgnore($e, $extra)) {
             return;
         }
+        if (self::$persistAttempts >= self::MAX_PERSISTS_PER_REQUEST) {
+            $this->fallbackLog($e, new \RuntimeException('error_incident_max_per_request'));
+
+            return;
+        }
 
         self::$recording = true;
+        self::$persistAttempts++;
         try {
             $this->persist($e, $extra);
         } catch (Throwable $inner) {
@@ -110,9 +120,16 @@ final class ErrorIncidentRecorder
     public static function resetRuntimeState(): void
     {
         self::$recording = false;
+        self::$persistAttempts = 0;
         self::$jobContext = null;
         self::$commandContext = null;
         self::$sourceHint = null;
+    }
+
+    public static function resetRequestBudget(): void
+    {
+        self::$persistAttempts = 0;
+        self::$recording = false;
     }
 
     /**

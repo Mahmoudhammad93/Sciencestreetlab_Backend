@@ -13,6 +13,10 @@ final class ErrorPathNormalizer
         }
 
         $normalized = str_replace('\\', '/', $path);
+        if (! str_starts_with($normalized, '/') && ! preg_match('#^[A-Za-z]:/#', $normalized)) {
+            return ltrim($normalized, './');
+        }
+
         $base = str_replace('\\', '/', base_path());
 
         if (str_starts_with($normalized, $base)) {

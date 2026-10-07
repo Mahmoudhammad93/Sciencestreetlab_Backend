@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Observability\Infrastructure\Persistence\Models;
 
 use App\Models\User;
+use App\Modules\Observability\Application\Services\ErrorIncidentDisplay;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
@@ -102,68 +103,97 @@ class ErrorIncident extends Model
         ])->save();
     }
 
+    public function display(): ErrorIncidentDisplay
+    {
+        return app(ErrorIncidentDisplay::class);
+    }
+
     public function displayApplicationClass(): string
     {
-        if (! is_string($this->application_class) || $this->application_class === '') {
-            return 'N/A';
-        }
-
-        return class_basename($this->application_class);
+        return $this->display()->classBasename($this->application_class);
     }
 
     public function displayModel(): string
     {
-        if (! is_string($this->eloquent_model) || $this->eloquent_model === '') {
-            return 'N/A';
+        return $this->display()->text($this->eloquent_model);
+    }
+
+    public function formattedTrace(): string
+    {
+        return $this->display()->trace($this->attributes['trace'] ?? $this->trace);
+    }
+
+    public function formattedContext(): string
+    {
+        $raw = $this->attributes['context'] ?? $this->context;
+
+        return $this->display()->context($raw);
+    }
+
+    public function displayUserName(): string
+    {
+        $user = $this->user;
+
+        return is_object($user) && is_string($user->name) && $user->name !== ''
+            ? $user->name
+            : 'N/A';
+    }
+
+    public function displayUserEmail(): string
+    {
+        $user = $this->user;
+
+        return is_object($user) && is_string($user->email) && $user->email !== ''
+            ? $user->email
+            : 'N/A';
+    }
+
+    public function displayResolverName(): string
+    {
+        $resolver = $this->resolver;
+        if (is_object($resolver) && is_string($resolver->name) && $resolver->name !== '') {
+            return $resolver->name;
         }
 
-        return $this->eloquent_model;
+        return $this->display()->text($this->resolved_by);
     }
 
     public function toDebugClipboard(): string
     {
+        $display = $this->display();
         $lines = [
-            'Error ID: '.$this->uuid,
-            'Request ID: '.($this->request_id ?: 'N/A'),
-            'Fingerprint: '.$this->fingerprint,
-            'Severity: '.$this->level,
+            'Error ID: '.$display->text($this->uuid),
+            'Request ID: '.$display->text($this->request_id),
+            'Fingerprint: '.$display->text($this->fingerprint),
+            'Severity: '.$display->text($this->level),
             'Status: '.($this->isResolved() ? 'resolved' : 'open'),
-            'Module: '.($this->module ?: 'N/A'),
-            'Source: '.$this->source,
-            'Exception: '.$this->exception_class,
-            'Message: '.$this->message,
-            'File: '.($this->file ?: 'N/A'),
-            'Line: '.($this->line !== null ? (string) $this->line : 'N/A'),
+            'Module: '.$display->text($this->module),
+            'Source: '.$display->text($this->source),
+            'Exception: '.$display->text($this->exception_class),
+            'Message: '.$display->text($this->message),
+            'File: '.$display->file($this->file),
+            'Line: '.$display->text($this->line),
             'Application Class: '.$this->displayApplicationClass(),
-            'Method: '.($this->application_method ?: 'N/A'),
+            'Method: '.$display->text($this->application_method),
             'Model: '.$this->displayModel(),
-            'Route: '.($this->route_name ?: 'N/A'),
-            'HTTP: '.trim(($this->request_method ?? '').' '.($this->request_path ?? '')),
-            'HTTP Status: '.($this->http_status !== null ? (string) $this->http_status : 'N/A'),
-            'User Type: '.($this->user_type ?: 'N/A'),
-            'User ID: '.($this->user_id !== null ? (string) $this->user_id : 'N/A'),
-            'First Seen: '.optional($this->first_seen_at)?->toIso8601String(),
-            'Last Seen: '.optional($this->last_seen_at)?->toIso8601String(),
-            'Occurrences: '.(string) $this->occurrences,
+            'Route: '.$display->text($this->route_name),
+            'HTTP: '.trim($display->text($this->request_method, '').' '.$display->text($this->request_path, '')),
+            'HTTP Status: '.$display->text($this->http_status),
+            'User Type: '.$display->text($this->user_type),
+            'User ID: '.$display->text($this->user_id),
+            'User Name: '.$this->displayUserName(),
+            'User Email: '.$this->displayUserEmail(),
+            'First Seen: '.optional($this->first_seen_at)?->toIso8601String() ?: 'N/A',
+            'Last Seen: '.optional($this->last_seen_at)?->toIso8601String() ?: 'N/A',
+            'Occurrences: '.$display->text($this->occurrences),
             '',
             'Context:',
-            $this->contextToClipboard(),
+            $this->formattedContext(),
             '',
             'Stack:',
-            (string) ($this->trace ?: 'N/A'),
+            $this->formattedTrace(),
         ];
 
         return implode("\n", $lines);
-    }
-
-    private function contextToClipboard(): string
-    {
-        if (! is_array($this->context) || $this->context === []) {
-            return 'N/A';
-        }
-
-        $json = json_encode($this->context, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-
-        return is_string($json) ? $json : 'N/A';
     }
 }

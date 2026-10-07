@@ -42,6 +42,7 @@ final class ObservabilityServiceProvider extends ModuleServiceProvider
     private function registerRuntimeHooks(): void
     {
         Event::listen(JobProcessing::class, function (JobProcessing $event): void {
+            ErrorIncidentRecorder::resetRequestBudget();
             ErrorIncidentRecorder::setJobContext([
                 'job' => $event->job->resolveName(),
                 'queue' => $event->job->getQueue(),
