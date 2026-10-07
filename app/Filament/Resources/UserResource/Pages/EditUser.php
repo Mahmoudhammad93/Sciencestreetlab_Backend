@@ -17,8 +17,23 @@ class EditUser extends EditRecord
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
+    protected function mutateFormDataBeforeFill(array $data): array
+    {
+        unset($data['password']);
+
+        return $data;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
     protected function mutateFormDataBeforeSave(array $data): array
     {
+        if (! filled($data['password'] ?? null)) {
+            unset($data['password']);
+        }
+
         return ImageDropzone::preserveIfEmpty($data, 'avatar_path', $this->record->avatar_path);
     }
 

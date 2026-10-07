@@ -12,7 +12,6 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Support\Facades\Hash;
 
 class UserResource extends Resource
 {
@@ -67,10 +66,19 @@ class UserResource extends Resource
                     ])
                     ->default('ar'),
                 Forms\Components\TextInput::make('password')
+                    ->label(__('admin.users.fields.password'))
                     ->password()
-                    ->dehydrateStateUsing(fn (?string $state) => filled($state) ? Hash::make($state) : null)
-                    ->dehydrated(fn (?string $state) => filled($state))
-                    ->required(fn (string $operation) => $operation === 'create'),
+                    ->revealable()
+                    ->autocomplete('new-password')
+                    ->helperText(fn (string $operation): ?string => $operation === 'edit'
+                        ? __('admin.users.fields.password_keep_help')
+                        : null)
+                    ->afterStateHydrated(function (Forms\Components\TextInput $component): void {
+                        $component->state(null);
+                    })
+                    ->dehydrated(fn (?string $state): bool => filled($state))
+                    ->dehydrateStateUsing(fn (?string $state): ?string => filled($state) ? $state : null)
+                    ->required(fn (string $operation): bool => $operation === 'create'),
                 Forms\Components\Select::make('roles')
                     ->relationship('roles', 'name')
                     ->multiple()

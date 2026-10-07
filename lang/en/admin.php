@@ -1136,6 +1136,8 @@ return [
         'fields' => [
             'avatar' => 'Profile photo',
             'avatar_help' => 'Drag and drop a profile photo here…',
+            'password' => 'Password',
+            'password_keep_help' => 'Leave blank to keep the current password',
         ],
         'options' => [
             'locale' => [
