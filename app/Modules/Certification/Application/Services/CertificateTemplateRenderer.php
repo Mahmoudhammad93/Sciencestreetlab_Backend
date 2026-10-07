@@ -19,9 +19,9 @@ use Illuminate\Support\Facades\View;
 
 final class CertificateTemplateRenderer
 {
-    public const RENDERER_VERSION = 'template-v2';
+    public const RENDERER_VERSION = 'template-v3';
 
-    public const STYLE_REVISION = 'pdf-nbsp-fit';
+    public const STYLE_REVISION = 'artwork-name-course';
 
     public function __construct(
         private readonly CertificateQrCodeRenderer $qrCodes,
@@ -92,8 +92,7 @@ final class CertificateTemplateRenderer
             return [$layer($a), (int) ($a['z_index'] ?? 0)] <=> [$layer($b), (int) ($b['z_index'] ?? 0)];
         });
 
-        $dropRaster = $this->layouts->shouldDropRasterBackground($layout, $backgroundPath);
-        $bgUrl = $dropRaster ? null : $this->publicAssetUrl($backgroundPath, $forBrowser);
+        $bgUrl = $this->publicAssetUrl($backgroundPath, $forBrowser);
 
         $html = View::make('certificates.dynamic', [
             'page' => $page,
@@ -116,14 +115,10 @@ final class CertificateTemplateRenderer
             : ($certificate->template?->layout_config);
 
         $variables = $this->variablesFromCertificate($certificate);
-        $background = $this->layouts->shouldDropRasterBackground(
-            is_array($layout) ? $layout : null,
-            is_string($meta['background_path'] ?? null)
-                ? $meta['background_path']
-                : $certificate->template?->background_path
-        ) ? null : (is_string($meta['background_path'] ?? null)
-            ? $meta['background_path']
-            : $certificate->template?->background_path);
+        $background = $this->layouts->artworkPath(
+            is_string($meta['background_path'] ?? null) ? $meta['background_path'] : null,
+            $certificate->template,
+        );
         $signature = is_string($meta['signature_path'] ?? null)
             ? $meta['signature_path']
             : data_get($layout, 'page.signature_path');
@@ -170,16 +165,18 @@ final class CertificateTemplateRenderer
 
         $template = $certificate->template;
         if ($template === null) {
-            $imported = $this->layouts->matchingImportedLayout(
-                is_array($meta['layout_snapshot'] ?? null) ? $meta['layout_snapshot'] : null
+            $artwork = $this->layouts->artworkPath(
+                is_string($meta['background_path'] ?? null) ? $meta['background_path'] : null
             );
-            if ($imported === null) {
+            if ($artwork === null && ! $this->layouts->hasStructuredElements(
+                is_array($meta['layout_snapshot'] ?? null) ? $meta['layout_snapshot'] : null
+            )) {
                 return false;
             }
             $template = new CertificateTemplate([
-                'slug' => (string) ($meta['template_slug'] ?? 'imported-resolved'),
-                'layout_config' => $imported,
-                'background_path' => null,
+                'slug' => (string) ($meta['template_slug'] ?? 'artwork-resolved'),
+                'layout_config' => is_array($meta['layout_snapshot'] ?? null) ? $meta['layout_snapshot'] : null,
+                'background_path' => $artwork,
             ]);
         }
 
@@ -248,9 +245,7 @@ final class CertificateTemplateRenderer
         $layout = CertificateDynamicFieldBinder::bind($layout, $variables);
         $defaults = is_array($layout['defaults'] ?? null) ? $layout['defaults'] : [];
         $merged = array_merge($defaults, $variables);
-        $backgroundPath = $this->layouts->shouldDropRasterBackground($layout, $template->background_path)
-            ? null
-            : $template->background_path;
+        $backgroundPath = $this->layouts->artworkPath($template->background_path, $template);
 
         return [
             'student_name' => $merged['student_name'] ?? null,
@@ -349,15 +344,6 @@ final class CertificateTemplateRenderer
     public function resolveLayout(?array $layout, ?string $backgroundPath = null, ?CertificateTemplate $assigned = null): array
     {
         $resolved = $this->layouts->resolve($layout, $backgroundPath, $assigned);
-        $hasArtwork = is_string($backgroundPath) && trim($backgroundPath) !== '';
-
-        if ($this->layouts->hasStructuredElements($resolved)) {
-            return $this->normalizeLayout($resolved);
-        }
-
-        if ($hasArtwork && ! $this->layouts->hasStructuredElements($resolved)) {
-            return $this->normalizeLayout(CertificateLayoutPresets::artworkLandscapeOverlay());
-        }
 
         return $this->normalizeLayout($resolved);
     }
@@ -374,7 +360,16 @@ final class CertificateTemplateRenderer
             return true;
         }
 
-        if ((string) data_get($snapshot, 'page.preset') === CertificateLayoutPresets::ARTWORK_LANDSCAPE_OVERLAY) {
+        $artwork = $this->layouts->artworkPath(
+            is_string($meta['background_path'] ?? null) ? $meta['background_path'] : null,
+            $certificate->template,
+        );
+        $preset = (string) data_get($snapshot, 'page.preset', '');
+        if ($artwork !== null && $preset !== CertificateLayoutPresets::ARTWORK_LANDSCAPE_OVERLAY) {
+            return true;
+        }
+
+        if ($artwork !== null && blank($meta['background_path'] ?? null)) {
             return true;
         }
 
@@ -502,7 +497,14 @@ final class CertificateTemplateRenderer
         }
 
         $normalized = PublicMediaUrl::toDiskPath($path) ?? ltrim($path, '/');
-        if (! $forBrowser && $normalized !== '' && Storage::disk('public')->exists($normalized)) {
+        if ($normalized !== '' && Storage::disk('public')->exists($normalized)) {
+            if ($forBrowser) {
+                $bytes = Storage::disk('public')->get($normalized);
+                $mime = Storage::disk('public')->mimeType($normalized) ?: 'image/jpeg';
+
+                return 'data:'.$mime.';base64,'.base64_encode($bytes);
+            }
+
             return Storage::disk('public')->path($normalized);
         }
 

@@ -53,12 +53,15 @@
             page-break-inside: avoid;
             page-break-before: avoid;
             background: {{ $bg }};
-            @if(!empty($backgroundUrl))
-            background-image: url('{{ $backgroundUrl }}');
-            background-size: 100% 100%;
-            background-position: center;
-            background-repeat: no-repeat;
-            @endif
+        }
+        .ssl-cert-artwork {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: fill;
+            z-index: 0;
+            pointer-events: none;
         }
         .ssl-cert-frame {
             position: absolute;
@@ -135,6 +138,9 @@
 @endunless
 <div class="ssl-cert-root">
 <div class="ssl-cert-page">
+@if(!empty($backgroundUrl))
+    <img class="ssl-cert-artwork" src="{{ $backgroundUrl }}" alt="">
+@endif
 @if($borderW > 0)
     <div class="ssl-cert-frame"></div>
 @endif
@@ -168,9 +174,15 @@
             (string) ($el['font_family_css'] ?? $pdfFamily)
         );
         $lsCss = (!empty($forBrowser) ? $ls : 'normal');
+        $elBg = is_string($el['background_color'] ?? null) ? $el['background_color'] : '';
+        $valign = (string) ($el['vertical_align'] ?? '');
+        $flex = $valign === 'middle'
+            ? 'display:flex;align-items:center;justify-content:'.($align === 'left' ? 'flex-start' : ($align === 'right' ? 'flex-end' : 'center')).';'
+            : 'display:block;';
+        $fill = $elBg !== '' ? 'background:'.$elBg.';' : '';
     @endphp
     @if($type === 'text')
-        <div class="ssl-cert-el ssl-cert-el-text" style="{{ $box }}color:{{ $color }};text-align:{{ $align }};font-weight:normal;font-size:{{ $size }}pt;letter-spacing:{{ $lsCss }};direction:{{ $dir }};font-family:{{ $familyCss }};line-height:{{ $el['line_height'] ?? '1.15' }};unicode-bidi:isolate;display:block;">
+        <div class="ssl-cert-el ssl-cert-el-text" style="{{ $box }}{{ $flex }}{{ $fill }}color:{{ $color }};text-align:{{ $align }};font-weight:{{ $weight }};font-size:{{ $size }}pt;letter-spacing:{{ $lsCss }};direction:{{ $dir }};font-family:{{ $familyCss }};line-height:{{ $el['line_height'] ?? '1.15' }};unicode-bidi:isolate;">
             {!! nl2br($el['resolved'] ?? '') !!}
         </div>
     @elseif($type === 'line')

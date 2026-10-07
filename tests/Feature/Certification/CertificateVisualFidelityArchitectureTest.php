@@ -61,12 +61,12 @@ final class CertificateVisualFidelityArchitectureTest extends TestCase
         $this->assertSame(1, $this->pdfPageCount($bytes));
     }
 
-    public function test_image_only_template_uses_matching_imported_layout(): void
+    public function test_image_only_template_uses_dashboard_artwork_plus_name_and_course(): void
     {
         Storage::fake('local');
         Storage::fake('public');
         $this->importedYellowTemplate();
-        Storage::disk('public')->put('certificates/blue.jpeg', 'fake-image');
+        $this->putArtworkJpeg('certificates/blue.jpeg', 1024, 578);
 
         $jpeg = CertificateTemplate::query()->create([
             'slug' => 'blue-certificate',
@@ -79,13 +79,22 @@ final class CertificateVisualFidelityArchitectureTest extends TestCase
         [$user, $enrollment] = $this->completedEnrollment('كورس الميكروسكوب', $jpeg->id, 'Nour Hassan');
         $certificate = app(CertificateIssuanceService::class)->issue($enrollment);
         $this->assertNotNull($certificate);
-        $this->assertNotSame('artwork_landscape_overlay', data_get($certificate->metadata, 'layout_snapshot.page.preset'));
+        $this->assertSame('artwork_landscape_overlay', data_get($certificate->metadata, 'layout_snapshot.page.preset'));
+        $this->assertSame('certificates/blue.jpeg', data_get($certificate->metadata, 'background_path'));
+        $this->assertEqualsWithDelta(1024 * 25.4 / 96, (float) data_get($certificate->metadata, 'page_width_mm'), 0.2);
+        $this->assertEqualsWithDelta(578 * 25.4 / 96, (float) data_get($certificate->metadata, 'page_height_mm'), 0.2);
 
         $html = app(CertificateTemplateRenderer::class)->renderForCertificate($certificate->fresh(['user', 'course', 'template']), true, true);
         $this->assertStringContainsString('Nour Hassan', $html);
-        $this->assertStringContainsString('HAS COMPLETED SCIENCE STREET', $html);
+        $this->assertStringContainsString('كورس الميكروسكوب', $html);
+        $this->assertStringContainsString('data:image/jpeg;base64,', $html);
+        $this->assertStringContainsString('ssl-cert-artwork', $html);
         $this->assertStringNotContainsString('DOAA ELSAYED', $html);
-        $this->assertStringNotContainsString('certificates/blue.jpeg', $html);
+        $this->assertStringNotContainsString('HAS COMPLETED SCIENCE STREET', $html);
+
+        $path = app(CertificatePdfGenerator::class)->generate($certificate->fresh(['user', 'course', 'template']));
+        $bytes = Storage::disk('local')->get($path);
+        $this->assertSame(1, $this->pdfPageCount($bytes));
     }
 
     public function test_overlay_snapshot_is_rebuilt_and_pdf_cache_invalidates(): void
@@ -114,12 +123,12 @@ final class CertificateVisualFidelityArchitectureTest extends TestCase
         Sanctum::actingAs($user);
         $preview = $this->getJson('/api/v1/certificates/'.$certificate->uuid.'/preview')->assertOk();
         $this->assertStringContainsString('Toka Student', (string) $preview->json('data.html'));
-        $this->assertSame('template-v2', $preview->json('data.template_version'));
+        $this->assertSame('template-v3', $preview->json('data.template_version'));
         $this->assertSame($preview->json('data.render_fingerprint'), data_get($certificate->fresh()->metadata, 'layout_snapshot') ? $preview->json('data.render_fingerprint') : null);
 
         $bytes = $this->get("/api/v1/certificates/{$certificate->uuid}/download")->assertOk()->streamedContent();
         $this->assertSame(1, $this->pdfPageCount($bytes));
-        $this->assertSame('template-v2', data_get($certificate->fresh()->metadata, 'pdf_renderer'));
+        $this->assertSame('template-v3', data_get($certificate->fresh()->metadata, 'pdf_renderer'));
         $this->assertNotSame('stale', data_get($certificate->fresh()->metadata, 'render_fingerprint'));
     }
 
@@ -175,6 +184,18 @@ final class CertificateVisualFidelityArchitectureTest extends TestCase
         );
         $this->assertSame($preview->json('data.template_version'), data_get($fresh->metadata, 'pdf_renderer'));
         $this->assertSame(data_get($fresh->metadata, 'layout_snapshot.page.width_mm'), $preview->json('data.page.width_mm'));
+    }
+
+    private function putArtworkJpeg(string $path, int $width, int $height): void
+    {
+        $image = imagecreatetruecolor($width, $height);
+        $yellow = imagecolorallocate($image, 253, 215, 0);
+        imagefilledrectangle($image, 0, 0, $width, $height, $yellow);
+        ob_start();
+        imagejpeg($image, null, 80);
+        $bytes = (string) ob_get_clean();
+        imagedestroy($image);
+        Storage::disk('public')->put($path, $bytes);
     }
 
     private function importedYellowTemplate(string $slug = 'imported-yellow'): CertificateTemplate

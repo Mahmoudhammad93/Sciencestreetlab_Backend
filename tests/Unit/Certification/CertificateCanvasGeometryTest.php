@@ -46,4 +46,13 @@ final class CertificateCanvasGeometryTest extends TestCase
     {
         $this->assertEqualsWithDelta(297 / 210, CertificateCanvasGeometry::aspectRatio(297, 210), 0.0001);
     }
+
+    public function test_raster_page_converts_pixels_at_css_dpi(): void
+    {
+        $page = CertificateCanvasGeometry::pageFromRaster('/this/file/does-not-exist.jpeg');
+
+        $this->assertEqualsWithDelta(1024 * 25.4 / 96, $page['width_mm'], 0.01);
+        $this->assertEqualsWithDelta(578 * 25.4 / 96, $page['height_mm'], 0.01);
+        $this->assertSame('landscape', $page['orientation']);
+    }
 }

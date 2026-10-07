@@ -69,8 +69,10 @@ final class CertificatePdfGenerator
     public function previewPdf(CertificateTemplate $template): string
     {
         $html = $this->renderer->renderPreview($template);
-        $layout = $this->renderer->normalizeLayout(
-            is_array($template->layout_config) ? $template->layout_config : null
+        $layout = $this->renderer->resolveLayout(
+            is_array($template->layout_config) ? $template->layout_config : null,
+            $template->background_path,
+            $template,
         );
 
         return $this->makePdf($html, $layout['page'])->output();

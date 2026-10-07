@@ -84,19 +84,22 @@ final class CertificateLayoutPresets
 
     /**
      * Image-only admin templates: keep the uploaded artwork and overlay
-     * issued identity fields. No extra chrome/border.
+     * the student name and course title. No extra chrome/border.
      *
      * @return array{page: array<string, mixed>, elements: list<array<string, mixed>>, defaults: array<string, string>}
      */
-    public static function artworkLandscapeOverlay(): array
+    public static function artworkLandscapeOverlay(?float $widthMm = null, ?float $heightMm = null): array
     {
+        $widthMm = $widthMm ?? 297.0;
+        $heightMm = $heightMm ?? 210.0;
+
         return [
             'page' => [
-                'orientation' => 'landscape',
-                'width_mm' => 297,
-                'height_mm' => 210,
+                'orientation' => $widthMm >= $heightMm ? 'landscape' : 'portrait',
+                'width_mm' => $widthMm,
+                'height_mm' => $heightMm,
                 'background_color' => '#FFFFFF',
-                'border_color' => '#2828a0',
+                'border_color' => '#FFFFFF',
                 'border_width_mm' => 0,
                 'preset' => self::ARTWORK_LANDSCAPE_OVERLAY,
             ],
@@ -105,34 +108,37 @@ final class CertificateLayoutPresets
                 [
                     'id' => 'student',
                     'type' => 'text',
+                    'cert_field' => 'student_name',
                     'content' => '{{ student_name }}',
-                    'x' => 30, 'y' => 88, 'width' => 237, 'height' => 18,
-                    'z_index' => 10, 'font_family' => 'DejaVu Sans', 'font_size' => 28,
-                    'font_weight' => '700', 'color' => '#1a2a5c', 'text_align' => 'center',
+                    'x' => $widthMm * 0.08,
+                    'y' => $heightMm * 0.38,
+                    'width' => $widthMm * 0.84,
+                    'height' => $heightMm * 0.11,
+                    'z_index' => 20,
+                    'font_family' => 'Cairo',
+                    'font_size' => 28,
+                    'font_weight' => '700',
+                    'color' => '#FDD700',
+                    'text_align' => 'center',
+                    'vertical_align' => 'middle',
                 ],
                 [
                     'id' => 'course',
                     'type' => 'text',
+                    'cert_field' => 'course_name',
                     'content' => '{{ course_name }}',
-                    'x' => 40, 'y' => 118, 'width' => 217, 'height' => 14,
-                    'z_index' => 10, 'font_family' => 'DejaVu Sans', 'font_size' => 16,
-                    'font_weight' => '400', 'color' => '#1a2a5c', 'text_align' => 'center',
-                ],
-                [
-                    'id' => 'number',
-                    'type' => 'text',
-                    'content' => '{{ certificate_number }}',
-                    'x' => 20, 'y' => 188, 'width' => 90, 'height' => 8,
-                    'z_index' => 10, 'font_family' => 'DejaVu Sans', 'font_size' => 9,
-                    'font_weight' => '400', 'color' => '#64748b', 'text_align' => 'left',
-                ],
-                [
-                    'id' => 'date',
-                    'type' => 'text',
-                    'content' => '{{ completion_date }}',
-                    'x' => 187, 'y' => 188, 'width' => 90, 'height' => 8,
-                    'z_index' => 10, 'font_family' => 'DejaVu Sans', 'font_size' => 9,
-                    'font_weight' => '400', 'color' => '#64748b', 'text_align' => 'right',
+                    'x' => $widthMm * 0.10,
+                    'y' => $heightMm * 0.51,
+                    'width' => $widthMm * 0.80,
+                    'height' => $heightMm * 0.10,
+                    'z_index' => 20,
+                    'font_family' => 'Cairo',
+                    'font_size' => 16,
+                    'font_weight' => '700',
+                    'color' => '#1a2a5c',
+                    'text_align' => 'center',
+                    'vertical_align' => 'middle',
+                    'background_color' => '#FFFFFF',
                 ],
             ],
         ];

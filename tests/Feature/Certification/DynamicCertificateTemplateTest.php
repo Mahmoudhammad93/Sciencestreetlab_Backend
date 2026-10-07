@@ -571,7 +571,7 @@ final class DynamicCertificateTemplateTest extends TestCase
         $preview = $this->getJson('/api/v1/certificates/'.$certificate->uuid.'/preview')->assertOk();
         $this->assertStringContainsString('Toka Student', (string) $preview->json('data.html'));
         $this->assertSame($template->id, (int) $preview->json('data.template_id'));
-        $this->assertSame('template-v2', data_get($certificate->fresh()->metadata, 'renderer'));
+        $this->assertSame('template-v3', data_get($certificate->fresh()->metadata, 'renderer'));
 
         $bytes = $this->get("/api/v1/certificates/{$certificate->uuid}/download")->assertOk()->streamedContent();
         $this->assertSame(1, $this->pdfPageCount($bytes));

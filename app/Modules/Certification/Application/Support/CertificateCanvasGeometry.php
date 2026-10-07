@@ -97,4 +97,30 @@ final class CertificateCanvasGeometry
 
         return (is_finite($scale) && $scale > 0) ? $scale : 1.0;
     }
+
+    /**
+     * Size the logical canvas from the uploaded artwork so HTML and PDF
+     * share the image aspect ratio (px → mm at CSS 96dpi).
+     *
+     * @return array{width_mm: float, height_mm: float, orientation: string, pixel_width: int, pixel_height: int}
+     */
+    public static function pageFromRaster(?string $absolutePath): array
+    {
+        $info = is_string($absolutePath) && is_file($absolutePath)
+            ? @getimagesize($absolutePath)
+            : false;
+
+        $pixelWidth = (is_array($info) && ($info[0] ?? 0) > 0) ? (int) $info[0] : 1024;
+        $pixelHeight = (is_array($info) && ($info[1] ?? 0) > 0) ? (int) $info[1] : 578;
+        $widthMm = $pixelWidth * self::MM_PER_INCH / self::CSS_DPI;
+        $heightMm = $pixelHeight * self::MM_PER_INCH / self::CSS_DPI;
+
+        return [
+            'width_mm' => $widthMm,
+            'height_mm' => $heightMm,
+            'orientation' => $widthMm >= $heightMm ? 'landscape' : 'portrait',
+            'pixel_width' => $pixelWidth,
+            'pixel_height' => $pixelHeight,
+        ];
+    }
 }
