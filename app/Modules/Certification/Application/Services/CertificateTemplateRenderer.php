@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\View;
 
 final class CertificateTemplateRenderer
 {
-    public const RENDERER_VERSION = 'template-v4';
+    public const RENDERER_VERSION = 'template-v5';
 
     public const STYLE_REVISION = 'artwork-name-navy';
 
