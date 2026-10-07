@@ -16,3 +16,7 @@ Schedule::command('bosta:reconcile-shipments')
     ->everyFifteenMinutes()
     ->withoutOverlapping(20)
     ->when(fn (): bool => (bool) config('bosta.enabled'));
+
+Schedule::command('observability:prune-error-incidents')
+    ->dailyAt('03:40')
+    ->withoutOverlapping();

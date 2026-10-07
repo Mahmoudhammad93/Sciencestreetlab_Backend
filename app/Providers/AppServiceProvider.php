@@ -34,6 +34,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('auth-login', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
         RateLimiter::for('auth-password-reset', fn (Request $request) => Limit::perMinute(5)->by($request->ip()));
         RateLimiter::for('auth-verification-resend', fn (Request $request) => Limit::perMinute(3)->by($request->user()?->id ?: $request->ip()));
+        RateLimiter::for('client-errors', fn (Request $request) => Limit::perMinute(
+            (int) config('error_monitoring.frontend.rate_limit_per_minute', 20)
+        )->by($request->ip()));
 
         // Admin interactive HTML packages can be several MB. Keep Livewire's
         // temporary upload limit in sync with docker/php/uploads.ini (64M).

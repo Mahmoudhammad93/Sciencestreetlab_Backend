@@ -14,6 +14,8 @@ return Application::configure(basePath: dirname(__DIR__))
         apiPrefix: 'api',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->prepend(\App\Http\Middleware\AssignRequestId::class);
+
         $middleware->api(prepend: [
             \App\Http\Middleware\SetLocale::class,
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
@@ -43,6 +45,10 @@ return Application::configure(basePath: dirname(__DIR__))
             fn (Request $request) => $request->is('api/*') || $request->is('livewire/*'),
         );
 
+        $exceptions->report(function (\Throwable $e): void {
+            app(\App\Modules\Observability\Application\Services\ErrorIncidentRecorder::class)->record($e);
+        });
+
         $exceptions->render(function (\Illuminate\Validation\ValidationException $e, Request $request) {
             if (! $request->is('api/*')) {
                 return null;
@@ -58,5 +64,34 @@ return Application::configure(basePath: dirname(__DIR__))
                 'code' => 'VALIDATION_ERROR',
                 'errors' => $errors,
             ], 422);
+        });
+
+        $exceptions->render(function (\Throwable $e, Request $request) {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+            if ($e instanceof \Illuminate\Validation\ValidationException
+                || $e instanceof \Illuminate\Auth\AuthenticationException
+                || $e instanceof \Illuminate\Auth\Access\AuthorizationException
+                || $e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
+                return null;
+            }
+            if ($e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface && $e->getStatusCode() < 500) {
+                return null;
+            }
+
+            $status = $e instanceof \Symfony\Component\HttpKernel\Exception\HttpExceptionInterface
+                ? $e->getStatusCode()
+                : 500;
+            if ($status < 500) {
+                $status = 500;
+            }
+
+            $requestId = $request->attributes->get('request_id') ?: $request->headers->get('X-Request-Id');
+
+            return response()->json([
+                'message' => (string) __('errors.unexpected'),
+                'request_id' => is_string($requestId) && $requestId !== '' ? $requestId : null,
+            ], $status);
         });
     })->create();

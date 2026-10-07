@@ -17,6 +17,7 @@ use App\Modules\Media\Infrastructure\Providers\MediaServiceProvider;
 use App\Modules\Migration\Infrastructure\Providers\MigrationServiceProvider;
 use App\Modules\Mobile\Infrastructure\Providers\MobileServiceProvider;
 use App\Modules\Notification\Infrastructure\Providers\NotificationServiceProvider;
+use App\Modules\Observability\Infrastructure\Providers\ObservabilityServiceProvider;
 use App\Modules\Search\Infrastructure\Providers\SearchServiceProvider;
 use App\Modules\SocialAttribution\Infrastructure\Providers\SocialAttributionServiceProvider;
 use App\Modules\SocialCommerce\Infrastructure\Providers\SocialCommerceServiceProvider;
@@ -42,6 +43,7 @@ final class ModuleAggregatorServiceProvider extends ServiceProvider
         SearchServiceProvider::class,
         SocialCommerceServiceProvider::class,
         SocialAttributionServiceProvider::class,
+        ObservabilityServiceProvider::class,
     ];
 
     public function register(): void

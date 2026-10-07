@@ -15,6 +15,7 @@ use App\Filament\Widgets\StatsOverview;
 use App\Filament\Widgets\StuckCheckoutsWidget;
 use App\Filament\Widgets\TopCoursesWidget;
 use App\Http\Middleware\SetAdminLocale;
+use App\Modules\Observability\Http\Controllers\Api\ErrorProbeController;
 use App\Services\SiteSettings;
 use App\Support\AdminLocale;
 use Filament\Enums\ThemeMode;
@@ -33,6 +34,7 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AdminPanelProvider extends PanelProvider
@@ -87,6 +89,7 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make()->label(fn (): string => (string) __('admin.nav.groups.identity')),
                 NavigationGroup::make()->label(fn (): string => (string) __('admin.nav.groups.content')),
                 NavigationGroup::make()->label(fn (): string => (string) __('admin.nav.groups.settings')),
+                NavigationGroup::make()->label(fn (): string => (string) __('admin.nav.groups.system')),
             ])
             ->userMenuItems([
                 'locale_ar' => MenuItem::make()
@@ -115,6 +118,12 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ]);
+
+        if (app()->environment(['local', 'testing'])) {
+            $panel->authenticatedRoutes(function (): void {
+                Route::get('/__observability/boom', [ErrorProbeController::class, 'boomAdmin']);
+            });
+        }
 
         if ($logo) {
             $panel->brandLogo($logo)->brandLogoHeight('2.5rem');
