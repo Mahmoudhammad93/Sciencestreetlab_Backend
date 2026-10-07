@@ -10,7 +10,6 @@ use App\Modules\Commerce\Infrastructure\Persistence\Models\Order;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Shipment;
 use App\Modules\Commerce\Mail\OrderDeliveredMail;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
-use App\Modules\Learning\Infrastructure\Persistence\Models\Enrollment;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Mail;
 
@@ -23,7 +22,6 @@ final class OrderDeliveredMailService
 {
     public function __construct(
         private readonly GuestPurchaseClaimService $claims,
-        private readonly EnrollmentQrCodeRenderer $qrCodes,
     ) {}
 
     public function notifyIfNeeded(Order $order): void
@@ -82,61 +80,8 @@ final class OrderDeliveredMailService
             loginUrl: $frontend.'/my-account',
             forgotPasswordUrl: $frontend.'/my-account/lost-password',
             mailLocale: $locale,
-            enrollmentQrs: $this->enrollmentQrs($order),
         ));
         $this->markSent($order);
-    }
-
-    /**
-     * @return list<array{course_name: string, verification_url: string, qr_png: string, filename: string}>
-     */
-    private function enrollmentQrs(Order $order): array
-    {
-        if ($order->user_id === null) {
-            return [];
-        }
-
-        $qrs = [];
-        $seen = [];
-        foreach ($order->items as $item) {
-            $courseId = $item->metadata['course_id'] ?? $item->product?->course_id;
-            if (! $courseId) {
-                continue;
-            }
-
-            $enrollment = Enrollment::query()
-                ->with('course')
-                ->where('user_id', $order->user_id)
-                ->where('course_id', $courseId)
-                ->first();
-
-            if (! $enrollment || isset($seen[$enrollment->id])) {
-                continue;
-            }
-
-            $seen[$enrollment->id] = true;
-            $course = $enrollment->course;
-            $courseName = 'Course';
-            if ($course) {
-                foreach (['ar', 'en', app()->getLocale()] as $locale) {
-                    $name = $course->getTranslation('title', $locale, false);
-                    if (is_string($name) && $name !== '') {
-                        $courseName = $name;
-                        break;
-                    }
-                }
-            }
-
-            $url = $enrollment->verificationUrl();
-            $qrs[] = [
-                'course_name' => $courseName,
-                'verification_url' => $url,
-                'qr_png' => $this->qrCodes->png($url),
-                'filename' => 'enrollment-verification-'.count($qrs).'.png',
-            ];
-        }
-
-        return $qrs;
     }
 
     private function recipientEmail(Order $order): ?string

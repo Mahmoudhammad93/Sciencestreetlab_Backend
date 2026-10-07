@@ -67,21 +67,6 @@
 </x-mail::button>
 @endif
 
-@if (! empty($enrollmentQrs))
-# Course enrollment verification
-
-@foreach ($enrollmentQrs as $enrollmentQr)
-**{{ $enrollmentQr['course_name'] }}**
-
-@if (isset($message) && ! $message instanceof \Illuminate\Mail\TextMessage)
-<img src="{{ $message->embedData($enrollmentQr['qr_png'], $enrollmentQr['filename'], 'image/png') }}" alt="Enrollment verification QR" width="180" height="180">
-@endif
-
-{{ $enrollmentQr['verification_url'] }}
-
-@endforeach
-@endif
-
 {{ __('mail.thanks') }},<br>
 {{ config('sciencestreet.name', config('app.name')) }}
 </x-mail::message>

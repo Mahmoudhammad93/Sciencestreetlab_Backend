@@ -15,6 +15,7 @@ use App\Modules\Commerce\Infrastructure\Persistence\Models\Order;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\OrderItem;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Payment;
 use App\Modules\Commerce\Mail\OrderConfirmationMail;
+use App\Modules\Commerce\Mail\OrderDeliveredMail;
 use App\Modules\Learning\Domain\Enums\AccessType;
 use App\Modules\Learning\Domain\Enums\EnrollmentStatus;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
@@ -42,20 +43,17 @@ final class EnrollmentVerificationTest extends TestCase
         $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', (string) $enrollment->enrollment_verification_token);
         $this->assertNotSame((string) $enrollment->id, $enrollment->enrollment_verification_token);
 
-        $sent = Mail::sent(OrderConfirmationMail::class);
-        $this->assertCount(1, $sent, 'Confirmation mail was not sent. sent_at='.(string) $order->fresh()->confirmation_email_sent_at);
-        /** @var OrderConfirmationMail $mail */
+        $sent = Mail::sent(OrderDeliveredMail::class);
+        $this->assertCount(1, $sent, 'Delivered/course-ready mail was not sent.');
+        /** @var OrderDeliveredMail $mail */
         $mail = $sent->first();
-        $qr = $mail->enrollmentQrs[0] ?? null;
-        $this->assertIsArray($qr);
-        $html = $mail->render();
-        $this->assertSame($enrollment->verificationUrl(), $qr['verification_url']);
-        $this->assertStringContainsString('/verify/enrollment/'.$enrollment->enrollment_verification_token, $qr['verification_url']);
-        $this->assertStringNotContainsString('/enrollments/'.$enrollment->id, $qr['verification_url']);
-        $this->assertStringStartsWith("\x89PNG", $qr['qr_png'], 'QR bytes start with '.bin2hex(substr($qr['qr_png'], 0, 8)));
-        $this->assertStringContainsString('Scan this QR code to verify your course enrollment.', $html);
-        $this->assertStringContainsString($enrollment->enrollment_verification_token, $html);
-        $this->assertStringContainsString('data:image/png;base64,', $html);
+        $this->assertSame([], $mail->enrollmentQrs);
+        $this->assertMailHasNoEnrollmentVerification($mail->render());
+        Mail::assertSent(OrderConfirmationMail::class, function (OrderConfirmationMail $confirmation): bool {
+            return $confirmation->enrollmentQrs === []
+                && ! str_contains($confirmation->render(), 'Course enrollment verification')
+                && ! str_contains($confirmation->render(), '/verify/enrollment/');
+        });
 
         $this->getJson('/api/v1/enrollment-verification/'.$enrollment->enrollment_verification_token)
             ->assertOk()
@@ -129,16 +127,25 @@ final class EnrollmentVerificationTest extends TestCase
         $this->assertSame(2, Enrollment::query()->where('user_id', $user->id)->count());
         $this->assertSame($order->id, Order::query()->firstOrFail()->id);
 
-        Mail::assertSent(OrderConfirmationMail::class, function (OrderConfirmationMail $mail): bool {
-            $names = array_column($mail->enrollmentQrs, 'course_name');
-            $urls = array_column($mail->enrollmentQrs, 'verification_url');
+        Mail::assertSent(OrderDeliveredMail::class, function (OrderDeliveredMail $mail): bool {
+            $html = $mail->render();
 
-            return count($mail->enrollmentQrs) === 2
-                && $names === ['Physics', 'Biology']
-                && count(array_unique($urls)) === 2
-                && str_contains($mail->render(), 'Physics')
-                && str_contains($mail->render(), 'Biology');
+            return $mail->enrollmentQrs === []
+                && $mail->courseNames === ['Physics', 'Biology']
+                && str_contains($html, 'Physics')
+                && str_contains($html, 'Biology')
+                && ! str_contains($html, 'Course enrollment verification')
+                && ! str_contains($html, '/verify/enrollment/');
         });
+        Mail::assertSent(OrderConfirmationMail::class, 1);
+    }
+
+    private function assertMailHasNoEnrollmentVerification(string $html): void
+    {
+        $this->assertStringNotContainsString('Course enrollment verification', $html);
+        $this->assertStringNotContainsString('Scan this QR code to verify your course enrollment.', $html);
+        $this->assertStringNotContainsString('/verify/enrollment/', $html);
+        $this->assertStringNotContainsString('data:image/png;base64,', $html);
     }
 
     private function course(string $title): Course

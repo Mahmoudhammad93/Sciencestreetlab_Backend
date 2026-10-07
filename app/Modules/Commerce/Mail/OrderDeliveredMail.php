@@ -64,7 +64,6 @@ final class OrderDeliveredMail extends Mailable
                     ? __('mail.login_to_account')
                     : __('mail.create_account_and_access_course')),
                 'forgotLabel' => $this->withMailLocale(fn (): string => __('mail.forgot_password')),
-                'enrollmentQrs' => $this->enrollmentQrs,
             ],
         );
     }

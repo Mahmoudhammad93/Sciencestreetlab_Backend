@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Modules\Commerce\Application\Listeners;
 
-use App\Modules\Commerce\Application\Services\EnrollmentQrCodeRenderer;
 use App\Modules\Commerce\Application\Services\GuestOrderCapabilityService;
 use App\Modules\Commerce\Application\Support\GuestTokenHasher;
 use App\Modules\Commerce\Application\Support\OrderPaymentMethod;
@@ -33,7 +32,6 @@ final class SendOrderConfirmationEmail implements ShouldQueue
     private const CLAIM_TTL_SECONDS = 900;
 
     public function __construct(
-        private readonly EnrollmentQrCodeRenderer $qrCodes,
         private readonly GuestOrderCapabilityService $guestCapabilities,
     ) {}
 
@@ -79,14 +77,9 @@ final class SendOrderConfirmationEmail implements ShouldQueue
 
             $mailLocale = $this->resolveMailLocale($order);
 
-            // Receipt must not imply course access for delivery-gated orders.
-            $enrollmentQrs = $order->fulfilled_at !== null
-                ? $this->enrollmentQrs($order)
-                : [];
-
             Mail::to($recipient)->send(new OrderConfirmationMail(
                 $order,
-                $enrollmentQrs,
+                [],
                 $rawStatusToken,
                 $mailLocale,
                 null,
@@ -201,58 +194,5 @@ final class SendOrderConfirmationEmail implements ShouldQueue
             'confirmation_email_sent_at' => now(),
             'confirmation_email_claimed_at' => null,
         ]);
-    }
-
-    /**
-     * @return list<array{course_name: string, verification_url: string, qr_png: string, filename: string}>
-     */
-    private function enrollmentQrs(Order $order): array
-    {
-        $qrs = [];
-        $seen = [];
-
-        if ($order->user_id === null) {
-            return [];
-        }
-
-        foreach ($order->items as $item) {
-            $courseId = $item->metadata['course_id'] ?? $item->product?->course_id;
-            if (! $courseId) {
-                continue;
-            }
-
-            $enrollment = \App\Modules\Learning\Infrastructure\Persistence\Models\Enrollment::query()
-                ->with(['course', 'user'])
-                ->where('user_id', $order->user_id)
-                ->where('course_id', $courseId)
-                ->first();
-
-            if (! $enrollment || isset($seen[$enrollment->id])) {
-                continue;
-            }
-
-            $seen[$enrollment->id] = true;
-            $course = $enrollment->course;
-            $courseName = 'Course';
-            if ($course) {
-                foreach ([app()->getLocale(), 'en', 'ar'] as $locale) {
-                    $name = $course->getTranslation('title', $locale, false);
-                    if (is_string($name) && $name !== '') {
-                        $courseName = $name;
-                        break;
-                    }
-                }
-            }
-
-            $url = $enrollment->verificationUrl();
-            $qrs[] = [
-                'course_name' => $courseName,
-                'verification_url' => $url,
-                'qr_png' => $this->qrCodes->png($url),
-                'filename' => 'enrollment-verification-'.count($qrs).'.png',
-            ];
-        }
-
-        return $qrs;
     }
 }

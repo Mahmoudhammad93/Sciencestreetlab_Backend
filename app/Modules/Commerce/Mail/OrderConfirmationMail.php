@@ -50,7 +50,6 @@ final class OrderConfirmationMail extends Mailable
                     ?: ($guestName !== '' ? $guestName : 'there'),
                 'viewOrderUrl' => $this->viewOrderUrl(),
                 'paymentStatus' => $this->order->payment?->status ?? $this->order->status,
-                'enrollmentQrs' => $this->enrollmentQrs,
                 'viewOrderLabel' => $this->withMailLocale(fn (): string => __('mail.view_order')),
                 'accountActivationUrl' => $this->accountActivationUrl,
                 'accountActivationLabel' => $this->withMailLocale(fn (): string => __('mail.create_account_to_track_order')),

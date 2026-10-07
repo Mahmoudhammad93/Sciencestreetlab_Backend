@@ -11,11 +11,13 @@ use App\Modules\Catalog\Infrastructure\Persistence\Models\Product;
 use App\Modules\Commerce\Application\Services\PaymentCompletionService;
 use App\Modules\Commerce\Domain\Enums\OrderStatus;
 use App\Modules\Commerce\Domain\Enums\PaymentStatus;
+use App\Modules\Commerce\Domain\Events\OrderPaid;
 use App\Modules\Commerce\Domain\Events\OrderFulfilled;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Order;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\OrderItem;
 use App\Modules\Commerce\Infrastructure\Persistence\Models\Payment;
 use App\Modules\Commerce\Mail\OrderConfirmationMail;
+use App\Modules\Commerce\Mail\OrderDeliveredMail;
 use App\Modules\Learning\Domain\Enums\AccessType;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Course;
 use App\Modules\Learning\Infrastructure\Persistence\Models\Enrollment;
@@ -120,13 +122,21 @@ final class OrderConfirmationMailTest extends TestCase
         $enrollment = Enrollment::query()->where('user_id', $user->id)->where('course_id', $course->id)->firstOrFail();
 
         Mail::assertSent(OrderConfirmationMail::class, function (OrderConfirmationMail $mail) use ($enrollment): bool {
-            $url = $mail->enrollmentQrs[0]['verification_url'] ?? '';
+            $html = $mail->render();
 
-            return count($mail->enrollmentQrs) === 1
-                && str_starts_with($mail->enrollmentQrs[0]['qr_png'], "\x89PNG")
-                && $url === $enrollment->verificationUrl()
-                && ! str_contains($url, '/enrollments/'.$enrollment->id);
+            return $mail->enrollmentQrs === []
+                && ! str_contains($html, 'Course enrollment verification')
+                && ! str_contains($html, 'Scan this QR code to verify your course enrollment.')
+                && ! str_contains($html, $enrollment->enrollment_verification_token)
+                && ! str_contains($html, '/verify/enrollment/');
         });
+        Mail::assertSent(OrderConfirmationMail::class, 1);
+        foreach (Mail::sent(OrderDeliveredMail::class) as $delivered) {
+            $html = $delivered->render();
+            $this->assertSame([], $delivered->enrollmentQrs);
+            $this->assertStringNotContainsString('Course enrollment verification', $html);
+            $this->assertStringNotContainsString('/verify/enrollment/', $html);
+        }
         $this->assertDatabaseHas('enrollments', [
             'user_id' => $user->id,
             'course_id' => $course->id,
@@ -191,7 +201,7 @@ final class OrderConfirmationMailTest extends TestCase
 
         Mail::fake();
 
-        event(new OrderFulfilled($order->fresh(['items'])));
+        event(new OrderPaid($order->fresh(['items', 'payment', 'user'])));
 
         Mail::assertSent(OrderConfirmationMail::class, 1);
         $this->assertNotNull($order->fresh()->confirmation_email_sent_at);
