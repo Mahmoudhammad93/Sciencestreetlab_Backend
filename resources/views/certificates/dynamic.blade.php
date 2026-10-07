@@ -36,9 +36,11 @@
             width: {{ $embed ? '100%' : $w.'mm' }};
             height: {{ $embed ? '100%' : $h.'mm' }};
             overflow: hidden;
-            font-family: Cairo, Tahoma, 'DejaVu Sans', sans-serif;
+            font-family: 'DejaVu Sans', Cairo, Tahoma, sans-serif;
+            @if($embed)
             container-type: size;
             container-name: ssl-cert;
+            @endif
         }
         .ssl-cert-page {
             position: absolute;
@@ -69,13 +71,13 @@
         }
         .ssl-cert-el {
             position: absolute;
-            overflow: hidden;
+            overflow: {{ $embed ? 'hidden' : 'visible' }};
         }
         .ssl-cert-el-text {
             white-space: pre-wrap;
             word-wrap: break-word;
-            word-spacing: 0.15em;
-            line-height: 1.25;
+            word-spacing: 0.12em;
+            line-height: 1.15;
         }
         .ssl-cert-el-line {
             border-top-style: solid;
@@ -157,7 +159,7 @@
         $op = $el['opacity'] ?? 1;
         $xf = $rot !== 0.0 ? 'transform:rotate('.$rot.'deg);' : '';
         $pct = is_array($el['box_percent'] ?? null) ? $el['box_percent'] : null;
-        if ($pct) {
+        if ($embed && $pct) {
             $box = 'left:'.$pct['left'].'%;top:'.$pct['top'].'%;width:'.$pct['width'].'%;height:'.$pct['height'].'%;opacity:'.$op.';'.$xf;
         } else {
             $box = "left:{$x}mm;top:{$y}mm;width:{$ew}mm;height:{$eh}mm;opacity:{$op};{$xf}";

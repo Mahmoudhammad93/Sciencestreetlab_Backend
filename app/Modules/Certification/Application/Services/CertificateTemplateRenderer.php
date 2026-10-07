@@ -21,6 +21,8 @@ final class CertificateTemplateRenderer
 {
     public const RENDERER_VERSION = 'template-v2';
 
+    public const STYLE_REVISION = 'mm-pdf-boxes';
+
     public function __construct(
         private readonly CertificateQrCodeRenderer $qrCodes,
         private readonly CertificateRenderableLayoutResolver $layouts,
@@ -386,6 +388,7 @@ final class CertificateTemplateRenderer
 
         return hash('sha256', json_encode([
             'renderer' => self::RENDERER_VERSION,
+            'style_revision' => self::STYLE_REVISION,
             'student_name' => $variables['student_name'],
             'course_name' => $variables['course_name'],
             'certificate_number' => $variables['certificate_number'],
