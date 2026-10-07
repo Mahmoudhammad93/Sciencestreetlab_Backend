@@ -41,7 +41,9 @@ final class CertificatePdfGenerator
         $certificate->refresh();
         $meta = is_array($certificate->metadata) ? $certificate->metadata : [];
         $path = is_string($certificate->pdf_path) ? $certificate->pdf_path : '';
+        $fingerprint = $this->renderer->renderFingerprint($certificate);
         $pdfFresh = ($meta['pdf_renderer'] ?? null) === CertificateTemplateRenderer::RENDERER_VERSION
+            && ($meta['render_fingerprint'] ?? null) === $fingerprint
             && $path !== ''
             && Storage::disk('local')->exists($path);
 
@@ -53,6 +55,7 @@ final class CertificatePdfGenerator
                 'pdf_path' => $path,
                 'metadata' => array_merge($meta, [
                     'pdf_renderer' => CertificateTemplateRenderer::RENDERER_VERSION,
+                    'render_fingerprint' => $this->renderer->renderFingerprint($certificate->fresh()),
                 ]),
             ]);
         }
@@ -111,8 +114,8 @@ final class CertificatePdfGenerator
     {
         $widthMm = (float) ($page['width_mm'] ?? 297);
         $heightMm = (float) ($page['height_mm'] ?? 210);
-        $widthPt = round($widthMm * 72 / 25.4, 3);
-        $heightPt = round($heightMm * 72 / 25.4, 3);
+        $widthPt = \App\Modules\Certification\Application\Support\CertificateCanvasGeometry::mmToPt($widthMm);
+        $heightPt = \App\Modules\Certification\Application\Support\CertificateCanvasGeometry::mmToPt($heightMm);
 
         $pdf = Pdf::loadHTML($html);
         $dompdf = $pdf->getDomPDF();

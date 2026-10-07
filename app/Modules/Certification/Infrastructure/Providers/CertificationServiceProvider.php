@@ -8,6 +8,8 @@ use App\Modules\Certification\Application\Listeners\IssueCertificateOnCourseComp
 use App\Modules\Certification\Application\Services\CertificateIssuanceService;
 use App\Modules\Certification\Application\Services\CertificateNumberGenerator;
 use App\Modules\Certification\Application\Services\CertificatePdfGenerator;
+use App\Modules\Certification\Application\Services\CertificateTemplateRenderer;
+use App\Modules\Certification\Application\Support\CertificateRenderableLayoutResolver;
 use App\Modules\Learning\Domain\Events\CourseCompleted;
 use App\Shared\Kernel\ModuleServiceProvider;
 use Illuminate\Support\Facades\Event;
@@ -22,6 +24,8 @@ final class CertificationServiceProvider extends ModuleServiceProvider
     public function register(): void
     {
         $this->app->singleton(CertificateNumberGenerator::class);
+        $this->app->singleton(CertificateRenderableLayoutResolver::class);
+        $this->app->singleton(CertificateTemplateRenderer::class);
         $this->app->singleton(CertificateIssuanceService::class);
         $this->app->singleton(CertificatePdfGenerator::class);
     }

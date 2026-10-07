@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Modules\Certification\Application\Services\CertificatePdfGenerator;
-use App\Modules\Certification\Application\Services\CertificateTemplateRenderer;
 use App\Modules\Certification\Infrastructure\Persistence\Models\Certificate;
 use Illuminate\Console\Command;
 
@@ -24,17 +23,16 @@ final class RefreshStaleCertificateRendersCommand extends Command
 
         $count = 0;
         $query->orderBy('id')->each(function (Certificate $certificate) use ($pdfs, &$count): void {
-            $meta = is_array($certificate->metadata) ? $certificate->metadata : [];
-            $fresh = ($meta['renderer'] ?? null) === CertificateTemplateRenderer::RENDERER_VERSION
-                && is_array($meta['layout_snapshot'] ?? null);
-
-            if ($fresh && $certificate->pdf_path) {
-                return;
+            $before = is_array($certificate->metadata) ? $certificate->metadata : [];
+            $path = $pdfs->ensureGenerated($certificate);
+            $certificate->refresh();
+            $after = is_array($certificate->metadata) ? $certificate->metadata : [];
+            if (($before['render_fingerprint'] ?? null) !== ($after['render_fingerprint'] ?? null)
+                || ($before['renderer'] ?? null) !== ($after['renderer'] ?? null)
+                || $path !== $certificate->pdf_path) {
+                $count++;
+                $this->info("Refreshed certificate {$certificate->id} ({$certificate->certificate_number})");
             }
-
-            $pdfs->ensureGenerated($certificate);
-            $count++;
-            $this->info("Refreshed certificate {$certificate->id} ({$certificate->certificate_number})");
         });
 
         $this->info("Done. Refreshed {$count} certificate(s).");

@@ -97,25 +97,50 @@ final class CertificateFontRegistry
      */
     public static function pdfFamily(string $family, string|int|null $weight = '400'): string
     {
-        $family = trim($family) !== '' ? $family : self::defaultFamily();
+        $resolved = self::resolve($family);
+        $face = $resolved['family'];
         $weight = self::normalizeWeight($weight);
+        $local = self::localFontFiles();
 
-        if (strcasecmp($family, self::FAMILY_CAIRO) !== 0 && ! str_starts_with(strtolower($family), 'cairo ')) {
-            return $family;
+        if (strcasecmp($face, self::FAMILY_CAIRO) === 0) {
+            $face = match ($weight) {
+                '500' => 'Cairo Medium',
+                '600' => 'Cairo SemiBold',
+                '700' => 'Cairo Bold',
+                '800' => 'Cairo ExtraBold',
+                default => self::FAMILY_CAIRO,
+            };
         }
 
-        // Already a specific face.
-        if (strcasecmp($family, self::FAMILY_CAIRO) !== 0) {
-            return $family;
+        if (isset($local[$face]) && ! is_file($local[$face])) {
+            return 'DejaVu Sans';
         }
 
-        return match ($weight) {
-            '500' => 'Cairo Medium',
-            '600' => 'Cairo SemiBold',
-            '700' => 'Cairo Bold',
-            '800' => 'Cairo ExtraBold',
-            default => self::FAMILY_CAIRO,
-        };
+        if (str_starts_with(strtolower($face), 'cairo') && ! isset($local[$face])) {
+            return 'DejaVu Sans';
+        }
+
+        return $face;
+    }
+
+    /**
+     * Browser stack: prefer Cairo, then system Arabic-capable faces.
+     */
+    public static function browserFamily(string $family): string
+    {
+        $resolved = self::resolve($family);
+        $face = $resolved['family'];
+
+        if (str_starts_with(strtolower($face), 'cairo') || $resolved['substituted']) {
+            return "Cairo, Tahoma, 'Noto Naskh Arabic', 'DejaVu Sans', sans-serif";
+        }
+
+        return $face;
+    }
+
+    public static function arabicFallbackFamily(): string
+    {
+        return 'DejaVu Sans';
     }
 
     /**

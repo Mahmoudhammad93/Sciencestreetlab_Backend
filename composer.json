@@ -11,6 +11,7 @@
         "chillerlan/php-qrcode": "^5.0",
         "filament/filament": "^3.3",
         "filament/spatie-laravel-media-library-plugin": "^3.3",
+        "khaled.alshamaa/ar-php": "^7.0",
         "laravel/framework": "^13.8",
         "laravel/sanctum": "^4.3",
         "laravel/tinker": "^3.0",

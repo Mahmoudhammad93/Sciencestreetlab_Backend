@@ -33,17 +33,19 @@
         .ssl-cert-root, .ssl-cert-root * { box-sizing: border-box; }
         .ssl-cert-root {
             position: relative;
-            width: {{ $w }}mm;
-            height: {{ $h }}mm;
+            width: {{ $embed ? '100%' : $w.'mm' }};
+            height: {{ $embed ? '100%' : $h.'mm' }};
             overflow: hidden;
-            font-family: DejaVu Sans, sans-serif;
+            font-family: Cairo, Tahoma, 'DejaVu Sans', sans-serif;
+            container-type: size;
+            container-name: ssl-cert;
         }
         .ssl-cert-page {
             position: absolute;
             top: 0;
             left: 0;
-            width: {{ $w }}mm;
-            height: {{ $h }}mm;
+            width: 100%;
+            height: 100%;
             overflow: hidden;
             page-break-after: avoid;
             page-break-inside: avoid;
@@ -51,17 +53,18 @@
             background: {{ $bg }};
             @if(!empty($backgroundUrl))
             background-image: url('{{ $backgroundUrl }}');
-            background-size: cover;
+            background-size: 100% 100%;
             background-position: center;
+            background-repeat: no-repeat;
             @endif
         }
         .ssl-cert-frame {
             position: absolute;
             top: 0;
             left: 0;
-            width: {{ $innerW }}mm;
-            height: {{ $innerH }}mm;
-            border: {{ $borderW }}mm solid {{ $border }};
+            width: 100%;
+            height: 100%;
+            border: {{ $borderW > 0 ? round(($borderW / max($w, 0.1)) * 100, 4).'%' : '0' }} solid {{ $border }};
             pointer-events: none;
         }
         .ssl-cert-el {
@@ -152,10 +155,17 @@
         $rot = (float) ($el['rotation'] ?? 0);
         $op = $el['opacity'] ?? 1;
         $xf = $rot !== 0.0 ? 'transform:rotate('.$rot.'deg);' : '';
-        $box = "left:{$x}mm;top:{$y}mm;width:{$ew}mm;height:{$eh}mm;opacity:{$op};{$xf}";
+        $pct = is_array($el['box_percent'] ?? null) ? $el['box_percent'] : null;
+        if ($pct) {
+            $box = 'left:'.$pct['left'].'%;top:'.$pct['top'].'%;width:'.$pct['width'].'%;height:'.$pct['height'].'%;opacity:'.$op.';'.$xf;
+        } else {
+            $box = "left:{$x}mm;top:{$y}mm;width:{$ew}mm;height:{$eh}mm;opacity:{$op};{$xf}";
+        }
+        $familyCss = (string) ($el['font_family_css'] ?? $pdfFamily);
+        $lsCss = (!empty($forBrowser) ? $ls : 'normal');
     @endphp
     @if($type === 'text')
-        <div class="ssl-cert-el ssl-cert-el-text" style="{{ $box }}color:{{ $color }};text-align:{{ $align }};font-weight:normal;font-size:{{ $size }}pt;letter-spacing:{{ $ls }};direction:{{ $dir }};font-family:'{{ $pdfFamily }}', 'DejaVu Sans', sans-serif;line-height:{{ $el['line_height'] ?? '1.25' }};">
+        <div class="ssl-cert-el ssl-cert-el-text" style="{{ $box }}color:{{ $color }};text-align:{{ $align }};font-weight:normal;font-size:{{ $size }}pt;letter-spacing:{{ $lsCss }};direction:{{ $dir }};font-family:{{ $familyCss }};line-height:{{ $el['line_height'] ?? '1.25' }};unicode-bidi:isolate;">
             {!! nl2br($el['resolved'] ?? '') !!}
         </div>
     @elseif($type === 'line')
