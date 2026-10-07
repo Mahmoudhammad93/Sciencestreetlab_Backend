@@ -7,6 +7,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\CompetitionSubmissionResource\Pages;
 use App\Models\User;
 use App\Modules\Competition\Application\Services\SubmissionReviewService;
+use App\Modules\Competition\Domain\Enums\ReviewAction;
 use App\Modules\Competition\Domain\Enums\SubmissionStatus;
 use App\Modules\Competition\Infrastructure\Persistence\Models\CompetitionSubmission;
 use Filament\Forms;
@@ -90,17 +91,44 @@ class CompetitionSubmissionResource extends Resource
             Infolists\Components\TextEntry::make('status')
                 ->label(__('admin.common.fields.status'))
                 ->badge(),
+            Infolists\Components\TextEntry::make('replacement_state')
+                ->label(__('admin.competition_submissions.fields.replacement_state'))
+                ->state(fn (CompetitionSubmission $record): ?string => self::replacementStateLabel($record))
+                ->visible(fn (CompetitionSubmission $record): bool => $record->isReplacementPendingReview()),
+            Infolists\Components\TextEntry::make('rejection_reason')
+                ->label(__('admin.competition_submissions.fields.rejection_reason'))
+                ->placeholder('—')
+                ->visible(fn (CompetitionSubmission $record): bool => filled($record->rejection_reason)),
+            Infolists\Components\TextEntry::make('reviewed_at')
+                ->label(__('admin.competition_submissions.fields.reviewed_at'))
+                ->dateTime()
+                ->placeholder('—'),
             Infolists\Components\TextEntry::make('submitted_at')
                 ->label(__('admin.competition_submissions.table.submitted_at'))
                 ->dateTime()
                 ->placeholder('—'),
+            Infolists\Components\RepeatableEntry::make('reviews')
+                ->label(__('admin.competition_submissions.fields.review_history'))
+                ->schema([
+                    Infolists\Components\TextEntry::make('action')
+                        ->label(__('admin.competition_submissions.fields.review_action'))
+                        ->formatStateUsing(fn ($state) => $state instanceof ReviewAction ? $state->value : $state)
+                        ->badge(),
+                    Infolists\Components\TextEntry::make('notes')
+                        ->label(__('admin.competition_submissions.fields.notes'))
+                        ->placeholder('—'),
+                    Infolists\Components\TextEntry::make('created_at')
+                        ->label(__('admin.competition_submissions.table.submitted_at'))
+                        ->dateTime(),
+                ])
+                ->visible(fn (CompetitionSubmission $record): bool => $record->reviews->isNotEmpty()),
         ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['participant.user', 'participant.competition', 'media']))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['participant.user', 'participant.competition', 'media', 'reviews']))
             ->defaultSort('submitted_at', 'desc')
             ->columns([
                 Tables\Columns\ImageColumn::make('photo')
@@ -145,6 +173,11 @@ class CompetitionSubmissionResource extends Resource
                     ->placeholder('—')
                     ->toggleable(),
                 Tables\Columns\TextColumn::make('status')->label(__('admin.common.fields.status'))->badge(),
+                Tables\Columns\TextColumn::make('replacement_state')
+                    ->label(__('admin.competition_submissions.fields.replacement_state'))
+                    ->state(fn (CompetitionSubmission $record): ?string => self::replacementStateLabel($record))
+                    ->placeholder('—')
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('submitted_at')
                     ->label(__('admin.competition_submissions.table.submitted_at'))
                     ->dateTime()
@@ -229,6 +262,16 @@ class CompetitionSubmissionResource extends Resource
         ];
     }
 
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->with([
+            'participant.user',
+            'participant.competition',
+            'media',
+            'reviews',
+        ]);
+    }
+
     public static function canCreate(): bool
     {
         return false;
@@ -241,5 +284,14 @@ class CompetitionSubmissionResource extends Resource
         }
 
         return '#'.$state;
+    }
+
+    public static function replacementStateLabel(CompetitionSubmission $record): ?string
+    {
+        if (! $record->isReplacementPendingReview()) {
+            return null;
+        }
+
+        return __('admin.competition_submissions.replacement_pending');
     }
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Competition\Infrastructure\Persistence\Models;
 
 use App\Models\User;
+use App\Modules\Competition\Domain\Enums\ReviewAction;
 use App\Modules\Competition\Domain\Enums\SubmissionStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -72,5 +73,34 @@ class CompetitionSubmission extends Model implements HasMedia
     public function reviews(): HasMany
     {
         return $this->hasMany(SubmissionReview::class, 'submission_id');
+    }
+
+    public function isReplaceable(): bool
+    {
+        $this->loadMissing('participant.competition');
+
+        $competition = $this->participant?->competition;
+        if ($competition === null || ! $competition->isActive()) {
+            return false;
+        }
+
+        return in_array($this->status, [
+            SubmissionStatus::Rejected,
+            SubmissionStatus::RevisionRequested,
+        ], true);
+    }
+
+    public function isReplacementPendingReview(): bool
+    {
+        if ($this->status !== SubmissionStatus::Pending) {
+            return false;
+        }
+
+        $this->loadMissing('reviews');
+
+        return $this->reviews->contains(
+            static fn (SubmissionReview $review): bool => $review->action === ReviewAction::Reject
+                || $review->action === ReviewAction::RequestRevision
+        );
     }
 }

@@ -30,7 +30,7 @@ final class SubmissionController extends Controller
         }
 
         $items = $query
-            ->with(['participant.competition:id,slug,title', 'media'])
+            ->with(['participant.competition', 'media'])
             ->latest('submitted_at')
             ->paginate(20);
 
@@ -98,22 +98,11 @@ final class SubmissionController extends Controller
 
         try {
             if ($request->hasFile('photo')) {
-                if ($submission->sample_number === null || $submission->photo_index === null) {
-                    return response()->json([
-                        'message' => 'historical_submission_slots_unassigned',
-                        'code' => 'historical_submission_slots_unassigned',
-                    ], 422);
-                }
-
-                $competition = $submission->participant->competition;
-                $submission = $this->submissions->submit(
+                $submission = $this->submissions->replacePhoto(
                     $request->user(),
-                    $competition,
+                    $submission,
                     $request->file('photo'),
-                    array_merge($validated, [
-                        'sample_number' => $submission->sample_number,
-                        'photo_index' => $submission->photo_index,
-                    ])
+                    $validated
                 );
             } else {
                 $submission = $this->submissions->updateMetadata($request->user(), $submission, $validated);
@@ -151,6 +140,7 @@ final class SubmissionController extends Controller
             'rejection_reason' => $submission->rejection_reason,
             'submitted_at' => $submission->submitted_at?->toIso8601String(),
             'reviewed_at' => $submission->reviewed_at?->toIso8601String(),
+            'can_replace' => $submission->isReplaceable(),
             'photo_url' => $photoUrl,
             'photo_thumb_url' => $thumbUrl,
         ];

@@ -84,6 +84,7 @@ final class CompetitionSubmissionService
                     ->where('participant_id', $locked->id)
                     ->where('sample_number', $sampleNumber)
                     ->where('photo_index', $photoIndex)
+                    ->lockForUpdate()
                     ->first();
 
                 if ($existing && ! in_array($existing->status, [SubmissionStatus::RevisionRequested, SubmissionStatus::Rejected], true)) {
@@ -125,6 +126,68 @@ final class CompetitionSubmissionService
         } catch (UniqueConstraintViolationException) {
             throw new DomainException('slot_already_submitted');
         }
+    }
+
+    /**
+     * Replace a rejected / revision-requested photo on the same submission row.
+     * Preserves sample_number and photo_index, including historical null slots.
+     *
+     * @param  array{description?: string, scientific_notes?: string}  $data
+     */
+    public function replacePhoto(
+        User $user,
+        CompetitionSubmission $submission,
+        UploadedFile $photo,
+        array $data = [],
+    ): CompetitionSubmission {
+        $this->assertOwnership($user, $submission);
+        $this->validatePhoto($photo);
+
+        $submission->loadMissing('participant.competition');
+        $competition = $submission->participant->competition;
+
+        if (! $competition->isActive()) {
+            throw new DomainException('competition_not_active');
+        }
+
+        if ($submission->participant->status->value === 'disqualified') {
+            throw new DomainException('participant_disqualified');
+        }
+
+        return DB::transaction(function () use ($submission, $photo, $data): CompetitionSubmission {
+            $locked = CompetitionSubmission::query()
+                ->whereKey($submission->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $lockedParticipant = CompetitionParticipant::query()
+                ->whereKey($locked->participant_id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (! in_array($locked->status, [SubmissionStatus::RevisionRequested, SubmissionStatus::Rejected], true)) {
+                throw new DomainException('slot_already_submitted');
+            }
+
+            $locked->clearMediaCollection('photo');
+            $locked->update([
+                'status' => SubmissionStatus::Pending,
+                'description' => $data['description'] ?? $locked->description,
+                'scientific_notes' => $data['scientific_notes'] ?? $locked->scientific_notes,
+                'rejection_reason' => null,
+                'submitted_at' => now(),
+                'reviewed_at' => null,
+                'reviewed_by' => null,
+            ]);
+
+            $locked->addMedia($photo)
+                ->usingFileName($this->safePhotoFilename($photo, $locked))
+                ->toMediaCollection('photo');
+
+            $this->progress->recalculate($lockedParticipant->fresh());
+
+            return $locked->fresh(['participant.competition', 'media', 'reviews']);
+        });
     }
 
     public function updateMetadata(User $user, CompetitionSubmission $submission, array $data): CompetitionSubmission
