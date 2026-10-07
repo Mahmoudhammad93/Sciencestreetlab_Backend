@@ -21,8 +21,15 @@ final class SubmissionController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $items = CompetitionSubmission::query()
-            ->whereHas('participant', fn ($q) => $q->where('user_id', $request->user()->id))
+        $query = CompetitionSubmission::query()
+            ->whereHas('participant', fn ($q) => $q->where('user_id', $request->user()->id));
+
+        if ($request->filled('competition')) {
+            $competition = $this->slugResolver->resolve((string) $request->query('competition'));
+            $query->whereHas('participant', fn ($q) => $q->where('competition_id', $competition->id));
+        }
+
+        $items = $query
             ->with(['participant.competition:id,slug,title', 'media'])
             ->latest('submitted_at')
             ->paginate(20);
@@ -41,12 +48,21 @@ final class SubmissionController extends Controller
     {
         $competition = $this->slugResolver->resolve($slug);
 
+        $rules = $competition->uploadRules();
+
         $validated = $request->validate([
-            'sample_number' => ['required', 'integer', 'min:1'],
-            'photo_index' => ['nullable', 'integer', 'min:1'],
-            'description' => ['nullable', 'string', 'max:2000'],
-            'scientific_notes' => ['nullable', 'string', 'max:2000'],
-            'photo' => ['required', 'file', 'mimes:jpeg,png,webp', 'max:10240'],
+            'sample_number' => ['required', 'integer', 'min:'.$rules['min_sample_number'], 'max:'.$rules['max_sample_number']],
+            'photo_index' => ['nullable', 'integer', 'min:1', 'max:'.$rules['max_photos_per_sample']],
+            'description' => ['nullable', 'string', 'max:'.$rules['description_max']],
+            'scientific_notes' => ['nullable', 'string', 'max:'.$rules['description_max']],
+            'photo' => [
+                'required',
+                'file',
+                'image',
+                'mimes:jpeg,jpg,png,webp',
+                'mimetypes:image/jpeg,image/png,image/webp',
+                'max:'.$rules['max_file_kb'],
+            ],
         ]);
 
         try {
@@ -70,7 +86,14 @@ final class SubmissionController extends Controller
         $validated = $request->validate([
             'description' => ['nullable', 'string', 'max:2000'],
             'scientific_notes' => ['nullable', 'string', 'max:2000'],
-            'photo' => ['nullable', 'file', 'mimes:jpeg,png,webp', 'max:10240'],
+            'photo' => [
+                'nullable',
+                'file',
+                'image',
+                'mimes:jpeg,jpg,png,webp',
+                'mimetypes:image/jpeg,image/png,image/webp',
+                'max:10240',
+            ],
         ]);
 
         try {
@@ -109,7 +132,14 @@ final class SubmissionController extends Controller
     {
         $submission->loadMissing(['participant.competition', 'media']);
 
+        $media = $submission->getFirstMedia('photo');
+        $photoUrl = $media?->getUrl();
+        $thumbUrl = $media && $media->hasGeneratedConversion('thumb')
+            ? $media->getUrl('thumb')
+            : $photoUrl;
+
         return [
+            'id' => $submission->id,
             'uuid' => $submission->uuid,
             'competition_slug' => $submission->participant->competition->slug,
             'sample_number' => $submission->sample_number,
@@ -121,7 +151,8 @@ final class SubmissionController extends Controller
             'rejection_reason' => $submission->rejection_reason,
             'submitted_at' => $submission->submitted_at?->toIso8601String(),
             'reviewed_at' => $submission->reviewed_at?->toIso8601String(),
-            'photo_url' => $submission->getFirstMediaUrl('photo') ?: null,
+            'photo_url' => $photoUrl,
+            'photo_thumb_url' => $thumbUrl,
         ];
     }
 }

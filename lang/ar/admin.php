@@ -300,11 +300,13 @@ return [
         ],
         'table' => [
             'competition' => 'المسابقة',
+            'email' => 'البريد',
             'photo' => 'الصورة',
             'photo_index' => 'رقم الصورة',
             'sample_name' => 'اسم العيّنة',
-            'sample_number' => 'العيّنة',
+            'sample_number' => 'رقم العيّنة',
             'student' => 'الطالب',
+            'submitted_at' => 'تاريخ الإرسال',
         ],
     ],
     'competitions' => [

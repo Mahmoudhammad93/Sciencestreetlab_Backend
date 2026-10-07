@@ -11,6 +11,8 @@ use App\Modules\Competition\Domain\Enums\SubmissionStatus;
 use App\Modules\Competition\Infrastructure\Persistence\Models\CompetitionSubmission;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Infolists;
+use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -62,35 +64,108 @@ class CompetitionSubmissionResource extends Resource
         ]);
     }
 
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist->schema([
+            Infolists\Components\ImageEntry::make('photo')
+                ->label(__('admin.competition_submissions.table.photo'))
+                ->getStateUsing(fn (CompetitionSubmission $record) => $record->getFirstMediaUrl('photo') ?: null)
+                ->extraImgAttributes(['loading' => 'lazy'])
+                ->hidden(fn (CompetitionSubmission $record): bool => ! $record->getFirstMedia('photo')),
+            Infolists\Components\TextEntry::make('participant.user.name')
+                ->label(__('admin.competition_submissions.table.student')),
+            Infolists\Components\TextEntry::make('participant.user.email')
+                ->label(__('admin.competition_submissions.table.email')),
+            Infolists\Components\TextEntry::make('sample_number')
+                ->label(__('admin.competition_submissions.fields.sample_number'))
+                ->formatStateUsing(fn ($state) => self::formatSlot($state))
+                ->placeholder('—'),
+            Infolists\Components\TextEntry::make('photo_index')
+                ->label(__('admin.competition_submissions.fields.photo_index'))
+                ->formatStateUsing(fn ($state) => self::formatSlot($state))
+                ->placeholder('—'),
+            Infolists\Components\TextEntry::make('description')
+                ->label(__('admin.competition_submissions.fields.description'))
+                ->placeholder('—'),
+            Infolists\Components\TextEntry::make('status')
+                ->label(__('admin.common.fields.status'))
+                ->badge(),
+            Infolists\Components\TextEntry::make('submitted_at')
+                ->label(__('admin.competition_submissions.table.submitted_at'))
+                ->dateTime()
+                ->placeholder('—'),
+        ]);
+    }
+
     public static function table(Table $table): Table
     {
         return $table
             ->modifyQueryUsing(fn (Builder $query) => $query->with(['participant.user', 'participant.competition', 'media']))
-            ->defaultSort('submitted_at')
+            ->defaultSort('submitted_at', 'desc')
             ->columns([
                 Tables\Columns\ImageColumn::make('photo')
                     ->label(__('admin.competition_submissions.table.photo'))
-                    ->getStateUsing(fn (CompetitionSubmission $record) => $record->getFirstMediaUrl('photo'))
+                    ->getStateUsing(function (CompetitionSubmission $record): ?string {
+                        $media = $record->getFirstMedia('photo');
+                        if (! $media) {
+                            return null;
+                        }
+
+                        return $media->hasGeneratedConversion('thumb')
+                            ? $media->getUrl('thumb')
+                            : $media->getUrl();
+                    })
+                    ->extraImgAttributes(['loading' => 'lazy'])
                     ->square(),
-                Tables\Columns\TextColumn::make('participant.user.name')->label(__('admin.competition_submissions.table.student'))->searchable(),
+                Tables\Columns\TextColumn::make('participant.user.name')
+                    ->label(__('admin.competition_submissions.table.student'))
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('participant.user.email')
+                    ->label(__('admin.competition_submissions.table.email'))
+                    ->searchable()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('participant.competition.slug')->label(__('admin.competition_submissions.table.competition')),
                 Tables\Columns\TextColumn::make('sample_number')
                     ->label(__('admin.competition_submissions.table.sample_number'))
-                    ->placeholder('—'),
+                    ->formatStateUsing(fn ($state) => self::formatSlot($state))
+                    ->placeholder('—')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('photo_index')
                     ->label(__('admin.competition_submissions.table.photo_index'))
-                    ->placeholder('—'),
+                    ->formatStateUsing(fn ($state) => self::formatSlot($state))
+                    ->placeholder('—')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('description')
+                    ->label(__('admin.competition_submissions.fields.description'))
+                    ->limit(40)
+                    ->placeholder('—')
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('sample_name')
                     ->label(__('admin.competition_submissions.table.sample_name'))
                     ->placeholder('—')
                     ->toggleable(),
                 Tables\Columns\TextColumn::make('status')->label(__('admin.common.fields.status'))->badge(),
-                Tables\Columns\TextColumn::make('submitted_at')->label(__('admin.common.fields.created_at'))->dateTime()->sortable(),
+                Tables\Columns\TextColumn::make('submitted_at')
+                    ->label(__('admin.competition_submissions.table.submitted_at'))
+                    ->dateTime()
+                    ->sortable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
                     ->options(collect(SubmissionStatus::cases())->mapWithKeys(fn ($s) => [$s->value => $s->name]))
                     ->default(SubmissionStatus::Pending->value),
+                Tables\Filters\Filter::make('sample_number')
+                    ->form([
+                        Forms\Components\TextInput::make('sample_number')
+                            ->numeric()
+                            ->label(__('admin.competition_submissions.fields.sample_number')),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->when(
+                            filled($data['sample_number'] ?? null),
+                            fn (Builder $q) => $q->where('sample_number', (int) $data['sample_number'])
+                        );
+                    }),
             ])
             ->actions([
                 Tables\Actions\Action::make('approve')
@@ -157,5 +232,14 @@ class CompetitionSubmissionResource extends Resource
     public static function canCreate(): bool
     {
         return false;
+    }
+
+    private static function formatSlot(mixed $state): ?string
+    {
+        if ($state === null || $state === '') {
+            return null;
+        }
+
+        return '#'.$state;
     }
 }

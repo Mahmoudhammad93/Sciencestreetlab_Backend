@@ -36,6 +36,9 @@ final class CompetitionController extends Controller
                 'rules' => $competition->getTranslations('rules'),
                 'required_photos' => $competition->required_photos,
                 'photos_per_sample' => $competition->photos_per_sample,
+                'max_photos_per_sample' => $competition->max_photos_per_sample,
+                'max_sample_number' => $competition->maxSampleNumber(),
+                'upload_rules' => $competition->uploadRules(),
                 'starts_at' => $competition->starts_at->toIso8601String(),
                 'ends_at' => $competition->ends_at->toIso8601String(),
                 'status' => $competition->status,
@@ -115,6 +118,7 @@ final class CompetitionController extends Controller
                 'progress_percent' => round(($participant->approved_count / max(1, $competition->required_photos)) * 100, 2),
                 'registered_at' => $participant->registered_at->toIso8601String(),
                 'shortlisted_at' => $participant->shortlisted_at?->toIso8601String(),
+                'upload_rules' => $competition->uploadRules(),
                 'participation' => $participation,
             ],
         ]);

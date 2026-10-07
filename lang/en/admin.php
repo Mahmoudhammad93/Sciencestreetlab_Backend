@@ -300,11 +300,13 @@ return [
         ],
         'table' => [
             'competition' => 'Competition',
+            'email' => 'Email',
             'photo' => 'Photo',
             'photo_index' => 'Photo #',
             'sample_name' => 'Sample name',
-            'sample_number' => 'Sample',
+            'sample_number' => 'Sample #',
             'student' => 'Student',
+            'submitted_at' => 'Submitted',
         ],
     ],
     'competitions' => [

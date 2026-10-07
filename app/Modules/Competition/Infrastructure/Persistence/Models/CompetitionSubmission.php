@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class CompetitionSubmission extends Model implements HasMedia
 {
@@ -46,6 +47,16 @@ class CompetitionSubmission extends Model implements HasMedia
         $this->addMediaCollection('photo')
             ->singleFile()
             ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp']);
+    }
+
+    public function registerMediaConversions(?Media $media = null): void
+    {
+        // Admin/list thumbnail only — original scientific image is kept untouched.
+        $this->addMediaConversion('thumb')
+            ->width(240)
+            ->height(240)
+            ->keepOriginalImageFormat()
+            ->nonQueued();
     }
 
     public function participant(): BelongsTo

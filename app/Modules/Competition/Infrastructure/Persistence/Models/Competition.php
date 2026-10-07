@@ -67,4 +67,36 @@ class Competition extends Model
     {
         return (int) ceil($this->required_photos / max(1, $this->photos_per_sample));
     }
+
+    /**
+     * Authoritative upload constraints for API clients.
+     *
+     * @return array{
+     *     min_sample_number: int,
+     *     max_sample_number: int,
+     *     max_photos_per_sample: int,
+     *     required_photos: int,
+     *     photos_per_sample: int,
+     *     allowed_mimes: list<string>,
+     *     allowed_extensions: list<string>,
+     *     max_file_kb: int,
+     *     description_max: int,
+     *     description_required: bool
+     * }
+     */
+    public function uploadRules(): array
+    {
+        return [
+            'min_sample_number' => 1,
+            'max_sample_number' => $this->maxSampleNumber(),
+            'max_photos_per_sample' => (int) $this->max_photos_per_sample,
+            'required_photos' => (int) $this->required_photos,
+            'photos_per_sample' => (int) $this->photos_per_sample,
+            'allowed_mimes' => ['image/jpeg', 'image/png', 'image/webp'],
+            'allowed_extensions' => ['jpg', 'jpeg', 'png', 'webp'],
+            'max_file_kb' => 10240,
+            'description_max' => 2000,
+            'description_required' => false,
+        ];
+    }
 }
