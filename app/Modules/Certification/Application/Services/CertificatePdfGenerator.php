@@ -117,6 +117,7 @@ final class CertificatePdfGenerator
         $widthPt = \App\Modules\Certification\Application\Support\CertificateCanvasGeometry::mmToPt($widthMm);
         $heightPt = \App\Modules\Certification\Application\Support\CertificateCanvasGeometry::mmToPt($heightMm);
 
+        $html = $this->preservePdfWordSpacing($html);
         $pdf = Pdf::loadHTML($html);
         $dompdf = $pdf->getDomPDF();
         $options = $dompdf->getOptions();
@@ -128,5 +129,17 @@ final class CertificatePdfGenerator
         $pdf->setPaper([0.0, 0.0, $widthPt, $heightPt]);
 
         return $pdf;
+    }
+
+    /**
+     * DomPDF drops regular U+0020 in many custom-font layouts.
+     */
+    private function preservePdfWordSpacing(string $html): string
+    {
+        return (string) preg_replace_callback(
+            '/(<div class="ssl-cert-el ssl-cert-el-text"[^>]*>)(.*?)(<\/div>)/s',
+            static fn (array $m): string => $m[1].str_replace(' ', "\u{00A0}", $m[2]).$m[3],
+            $html
+        );
     }
 }

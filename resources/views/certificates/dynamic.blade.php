@@ -170,7 +170,7 @@
         $lsCss = (!empty($forBrowser) ? $ls : 'normal');
     @endphp
     @if($type === 'text')
-        <div class="ssl-cert-el ssl-cert-el-text" style="{{ $box }}color:{{ $color }};text-align:{{ $align }};font-weight:normal;font-size:{{ $size }}pt;letter-spacing:{{ $lsCss }};direction:{{ $dir }};font-family:{{ $familyCss }};line-height:{{ $el['line_height'] ?? '1.25' }};unicode-bidi:isolate;">
+        <div class="ssl-cert-el ssl-cert-el-text" style="{{ $box }}color:{{ $color }};text-align:{{ $align }};font-weight:normal;font-size:{{ $size }}pt;letter-spacing:{{ $lsCss }};direction:{{ $dir }};font-family:{{ $familyCss }};line-height:{{ $el['line_height'] ?? '1.15' }};unicode-bidi:isolate;display:block;">
             {!! nl2br($el['resolved'] ?? '') !!}
         </div>
     @elseif($type === 'line')

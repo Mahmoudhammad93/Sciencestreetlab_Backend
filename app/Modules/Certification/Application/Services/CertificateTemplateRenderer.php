@@ -21,7 +21,7 @@ final class CertificateTemplateRenderer
 {
     public const RENDERER_VERSION = 'template-v2';
 
-    public const STYLE_REVISION = 'mm-pdf-boxes';
+    public const STYLE_REVISION = 'pdf-nbsp-fit';
 
     public function __construct(
         private readonly CertificateQrCodeRenderer $qrCodes,
@@ -438,6 +438,12 @@ final class CertificateTemplateRenderer
             $content = (string) ($element['content'] ?? '');
             $resolved = CertificateVariableRegistry::resolve($content, $variables);
             $prepared['dir'] = CertificateArabicPdfText::resolveDirection($element, $resolved);
+            $size = (float) ($element['font_size'] ?? 12);
+            $boxHeightPt = $box['height'] * CertificateCanvasGeometry::PDF_DPI / CertificateCanvasGeometry::MM_PER_INCH;
+            if ($boxHeightPt > 0 && $size > $boxHeightPt * 0.92) {
+                $size = round($boxHeightPt * 0.92, 2);
+            }
+            $prepared['font_size'] = $size;
             if (! $forBrowser) {
                 $resolved = CertificateArabicPdfText::shapeForPdf($resolved);
                 $prepared['letter_spacing'] = 'normal';
